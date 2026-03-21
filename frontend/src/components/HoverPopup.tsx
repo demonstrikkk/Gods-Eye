@@ -11,6 +11,8 @@ import clsx from 'clsx';
 
 const sentimentColor = (s: number) => s < 35 ? 'text-red-400' : s < 55 ? 'text-amber-400' : 'text-emerald-400';
 const sentimentBg   = (s: number) => s < 35 ? 'bg-red-950/50 border-red-900' : s < 55 ? 'bg-amber-950/50 border-amber-900' : 'bg-emerald-950/50 border-emerald-900';
+const riskColor = (risk: number) => risk >= 70 ? 'text-red-400' : risk >= 50 ? 'text-amber-400' : 'text-emerald-400';
+const riskBg = (risk: number) => risk >= 70 ? 'bg-red-950/50 border-red-900' : risk >= 50 ? 'bg-amber-950/50 border-amber-900' : 'bg-emerald-950/50 border-emerald-900';
 const urgencyIcon   = (u: string) => u === 'High' ? <AlertTriangle size={12} className="text-red-400" /> : u === 'Medium' ? <Zap size={12} className="text-amber-400" /> : <Shield size={12} className="text-blue-400" />;
 
 export const HoverPopup: React.FC = () => {
@@ -92,9 +94,43 @@ export const HoverPopup: React.FC = () => {
             </div>
           )}
 
+          {/* Country-type data */}
+          {item.risk_index !== undefined && (
+            <div className={clsx('rounded bg-zinc-950/50 px-3 py-2 border', riskBg(item.risk_index))}>
+              <div className="flex items-center justify-between">
+                <span className="text-[8.5px] text-zinc-500 uppercase tracking-widest font-mono">Risk Index</span>
+                <span className={clsx('text-base font-black font-mono tracking-tight', riskColor(item.risk_index))}>
+                  {item.risk_index}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                <span className="text-zinc-500">Influence</span>
+                <span className="text-zinc-300">{item.influence_index}</span>
+                <span className="text-zinc-500">Signals</span>
+                <span className="text-cyan-300">{item.active_signals}</span>
+                <span className="text-zinc-500">Status</span>
+                <span className="text-zinc-300">{item.stability}</span>
+              </div>
+              {item.top_domains?.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {item.top_domains.slice(0, 3).map((domain: string) => (
+                    <span key={domain} className="text-[8px] font-mono uppercase bg-zinc-900 border border-zinc-800/80 text-zinc-400 px-1.5 py-0.5 rounded-sm">
+                      {domain}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* News/alert-type data */}
           {item.urgency && item.text && (
             <p className="text-[10px] text-zinc-300 leading-relaxed line-clamp-3">{item.text}</p>
+          )}
+
+          {/* Global signal-type data */}
+          {item.summary && (
+            <p className="text-[10px] text-zinc-300 leading-relaxed line-clamp-3">{item.summary}</p>
           )}
 
           {/* Worker-type data */}

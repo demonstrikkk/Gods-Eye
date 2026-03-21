@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { RadioTower, AlertTriangle, ShieldCheck, Zap } from 'lucide-react';
-import { apiClient } from '../services/api';
+import { apiClient, fetchGlobalOverview } from '../services/api';
 
 const fetchFeeds = async () => {
     const { data } = await apiClient.get('/data/feeds');
@@ -39,6 +39,13 @@ export const LiveFeedTicker: React.FC = () => {
         refetchInterval: 30000, // Refresh frontend ticker every 30s
     });
 
+    const { data: overview } = useQuery({
+        queryKey: ['global-overview'],
+        queryFn: fetchGlobalOverview,
+        refetchInterval: 60000,
+        staleTime: 30000,
+    });
+
     const displayFeeds = feeds?.length > 0 ? feeds : mockFeeds;
 
     return (
@@ -46,6 +53,10 @@ export const LiveFeedTicker: React.FC = () => {
             {/* Ticker Label */}
             <div className="flex-shrink-0 bg-danger text-white text-[10px] font-black tracking-widest px-4 h-full flex items-center uppercase z-10 shadow-[4px_0_10px_rgba(0,0,0,0.5)]">
                 <RadioTower size={14} className="mr-2 animate-pulse" /> Live Intel
+            </div>
+
+            <div className="hidden md:flex items-center px-3 text-[9px] font-mono uppercase tracking-widest text-cyan-300 border-r border-white/[0.05]">
+                {overview?.total_countries ?? 0} countries · {overview?.total_signals ?? 0} signals
             </div>
 
             {/* Gradient Mask for fading effect */}

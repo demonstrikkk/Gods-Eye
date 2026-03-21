@@ -15,6 +15,60 @@ async def get_global_stats():
     return {"status": "success", "data": store.get_stats()}
 
 
+@router.get("/global/overview", response_model=Dict[str, Any])
+async def get_global_overview():
+    """Returns world-scale ontology overview metrics."""
+    return {"status": "success", "data": store.get_global_overview()}
+
+
+@router.get("/global/countries", response_model=Dict[str, Any])
+async def get_global_countries(region: Optional[str] = None, min_risk: Optional[int] = None):
+    """Returns country nodes used by the global ontology map."""
+    countries = store.get_global_countries(region=region, min_risk=min_risk)
+    return {"status": "success", "count": len(countries), "data": countries}
+
+
+@router.get("/global/country/{country_id}", response_model=Dict[str, Any])
+async def get_global_country(country_id: str):
+    country = store.get_global_country(country_id)
+    if not country:
+        raise HTTPException(status_code=404, detail=f"Country {country_id} not found")
+    return {"status": "success", "data": country}
+
+
+@router.get("/global/signals", response_model=Dict[str, Any])
+async def get_global_signals(
+    category: Optional[str] = None,
+    severity: Optional[str] = None,
+    country_id: Optional[str] = None,
+):
+    signals = store.get_global_signals(category=category, severity=severity, country_id=country_id)
+    return {"status": "success", "count": len(signals), "data": signals}
+
+
+@router.get("/global/corridors", response_model=Dict[str, Any])
+async def get_global_corridors():
+    corridors = store.get_global_corridors()
+    return {"status": "success", "count": len(corridors), "data": corridors}
+
+
+@router.get("/global/map", response_model=Dict[str, Any])
+async def get_global_map():
+    points = store.get_global_map_data()
+    return {"status": "success", "count": len(points), "data": points}
+
+
+@router.get("/global/graph", response_model=Dict[str, Any])
+async def get_global_graph():
+    graph = store.get_global_graph()
+    return {
+        "status": "success",
+        "nodes": len(graph["nodes"]),
+        "edges": len(graph["links"]),
+        "data": graph,
+    }
+
+
 @router.get("/sentiment/timeline", response_model=Dict[str, Any])
 async def get_sentiment_timeline(hours: int = 24):
     """Returns national sentiment trend data for charts."""
@@ -252,7 +306,7 @@ async def get_constituency_segments(constituency_id: str):
 @router.get("/graph/ontology", response_model=Dict[str, Any])
 async def get_ontology_graph(booths: int = Query(default=5, le=20), citizens: int = Query(default=100, le=500)):
     """Returns force-directed graph data of the civic ontology."""
-    graph_data = store.get_ontology_graph(booth_limit=booths, citizen_limit=citizens)
+    graph_data = store.get_global_graph()
     return {
         "status": "success",
         "nodes": len(graph_data["nodes"]),

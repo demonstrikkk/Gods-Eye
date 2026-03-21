@@ -27,10 +27,10 @@ interface Message {
 
 const MODE_META: Record<AgentMode, { label: string; icon: any; color: string; desc: string }> = {
   standard: { 
-    label: 'Civic QA', 
+    label: 'Ontology QA', 
     icon: Search, 
     color: 'text-blue-400', 
-    desc: 'Query booths, workers, and schemes.' 
+    desc: 'Query countries, booths, workers, schemes, and ontology nodes.' 
   },
   strategic: { 
     label: 'Strategic', 

@@ -22,8 +22,8 @@ export const OntologyDashboard: React.FC = () => {
             <div className="flex items-center mb-4">
                 <Network className="mr-3 text-primary-light" size={24} />
                 <div>
-                    <h1 className="text-2xl font-black text-text-main tracking-tight">Ontology Intelligence Engine</h1>
-                    <p className="text-xs text-text-muted uppercase tracking-widest mt-0.5">Live neural projection of civic connections</p>
+                    <h1 className="text-2xl font-black text-text-main tracking-tight">Global Ontology Engine</h1>
+                    <p className="text-xs text-text-muted uppercase tracking-widest mt-0.5">Live neural projection of countries, domains, signals, and corridors</p>
                 </div>
             </div>
 

@@ -19,6 +19,55 @@ export interface BoothPoint extends GeoPoint {
   key_voters: number;
 }
 
+export interface GlobalCountry extends GeoPoint {
+  id: string;
+  name: string;
+  region: string;
+  risk_index: number;
+  influence_index: number;
+  sentiment: number;
+  stability: string;
+  pressure: string;
+  top_domains: string[];
+  active_signals: number;
+}
+
+export interface GlobalSignal extends GeoPoint {
+  id: string;
+  country_id: string;
+  title: string;
+  summary: string;
+  category: string;
+  severity: "High" | "Medium" | "Low";
+  source: string;
+  time: string;
+}
+
+export interface GlobalCorridor {
+  id: string;
+  label: string;
+  category: string;
+  status: string;
+  weight: number;
+  from_country: string;
+  to_country: string;
+  from_name: string;
+  to_name: string;
+  start_lat: number;
+  start_lng: number;
+  end_lat: number;
+  end_lng: number;
+}
+
+export interface GlobalOverview {
+  total_countries: number;
+  total_signals: number;
+  critical_zones: number;
+  active_corridors: number;
+  systemic_stress: number;
+  updated_at: string;
+}
+
 export interface Booth {
   id: string;
   name: string;
@@ -107,13 +156,15 @@ export interface QueryResponse {
 export type MapMode = 'globe' | 'flat';
 
 export type LayerKey =
-  | 'sentiment'
-  | 'events'
-  | 'fires'
-  | 'earthquakes'
+  | 'countries'
+  | 'corridors'
+  | 'economics'
+  | 'climate'
+  | 'defense'
   | 'news';
 
 export type SidebarTab =
+  | 'global'
   | 'booths'
   | 'workers'
   | 'schemes'

@@ -37,7 +37,7 @@ export const ViewNav: React.FC = () => {
     setActiveView(view);
     setSidebarOpen(true);
     // Map to closest sidebar tab
-    if (view === 'cockpit')      setSidebarTab('booths');
+    if (view === 'cockpit')      setSidebarTab('global');
     if (view === 'executive')    setSidebarTab('booths');
     if (view === 'strategic')    setSidebarTab('ai');
     if (view === 'constituency') setSidebarTab('booths');
@@ -45,7 +45,7 @@ export const ViewNav: React.FC = () => {
     if (view === 'schemes')      setSidebarTab('schemes');
     if (view === 'comms')        setSidebarTab('alerts');
     if (view === 'alerts')       setSidebarTab('alerts');
-    if (view === 'ontology')     setSidebarTab('ai');
+    if (view === 'ontology')     setSidebarTab('global');
   };
 
   return (

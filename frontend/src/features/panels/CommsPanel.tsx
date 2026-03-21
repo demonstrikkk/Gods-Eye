@@ -1,9 +1,9 @@
 // CommsPanel — shown when activeView === 'comms'
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAlerts } from '@/services/api';
+import { fetchGlobalSignals } from '@/services/api';
 import { useAppStore } from '@/store';
-import { AlertTriangle, Zap, Shield, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 
 const urgencyUI = (u: string) => {
@@ -14,14 +14,14 @@ const urgencyUI = (u: string) => {
 
 export const CommsPanel: React.FC = () => {
   const { setHoveredItem } = useAppStore();
-  const { data: alerts = [], isLoading } = useQuery({
-    queryKey: ['alerts'],
-    queryFn: fetchAlerts,
-    refetchInterval: 30_000,
+  const { data: signals = [], isLoading } = useQuery({
+    queryKey: ['global-signals'],
+    queryFn: fetchGlobalSignals,
+    refetchInterval: 60_000,
   });
 
-  const safeAlerts = Array.isArray(alerts) ? alerts : [];
-  const top = safeAlerts.slice(0, 6);
+  const safeSignals = Array.isArray(signals) ? signals : [];
+  const top = [...safeSignals].sort((a: any, b: any) => (a.severity === 'High' ? -1 : b.severity === 'High' ? 1 : 0)).slice(0, 6);
 
   if (isLoading) return (
     <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-pink-400" size={20} /></div>
@@ -34,15 +34,15 @@ export const CommsPanel: React.FC = () => {
           <span className="w-1 h-3 rounded-full bg-pink-500 inline-block" />
           <span>Live Signal Feed</span>
         </div>
-        <span className="text-zinc-600">{safeAlerts.length} total</span>
+        <span className="text-zinc-600">{safeSignals.length} total</span>
       </div>
 
-      {top.map((alert: any, i: number) => {
-        const ui = urgencyUI(alert.urgency);
+      {top.map((signal: any, i: number) => {
+        const ui = urgencyUI(signal.severity);
         return (
           <div
-            key={alert.id || i}
-            onMouseEnter={() => setHoveredItem(alert)}
+            key={signal.id || i}
+            onMouseEnter={() => setHoveredItem(signal)}
             onMouseLeave={() => setHoveredItem(null)}
             className="flex items-start space-x-2.5 p-2.5 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:border-zinc-700 transition-all cursor-default"
           >
@@ -50,15 +50,15 @@ export const CommsPanel: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5 mb-0.5">
                 <span className={clsx('text-[7px] font-bold uppercase tracking-widest', ui.text)}>{ui.label}</span>
-                <span className="text-[7px] text-zinc-600">{alert.source}</span>
+                <span className="text-[7px] text-zinc-600">{signal.source}</span>
               </div>
-              <p className="text-[10px] text-zinc-300 leading-snug line-clamp-2">{alert.text}</p>
+              <p className="text-[10px] text-zinc-300 leading-snug line-clamp-2">{signal.title}</p>
             </div>
           </div>
         );
       })}
 
-      {safeAlerts.length === 0 && (
+      {safeSignals.length === 0 && (
         <div className="text-center py-4 text-[10px] text-zinc-600">No active signals</div>
       )}
     </div>

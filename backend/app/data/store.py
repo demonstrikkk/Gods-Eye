@@ -6,6 +6,7 @@ All API endpoints read from this store. Zero database dependency.
 import logging
 from typing import Dict, List, Optional, Any
 from app.data.seed import build_civic_dataset
+from app.data.global_seed import build_global_ontology_dataset
 
 logger = logging.getLogger("data_store")
 
@@ -26,11 +27,14 @@ class CivicDataStore:
         if self._data is None:
             logger.info("Generating JanGraph OS civic dataset...")
             self._data = build_civic_dataset()
+            self._data["global"] = build_global_ontology_dataset()
             stats = self._data["stats"]
+            global_stats = self._data["global"]["overview"]
             logger.info(
                 f"Dataset ready: {stats['total_citizens']:,} citizens, "
                 f"{stats['total_booths']} booths, {stats['total_workers']} workers, "
-                f"{stats['total_projects']} projects"
+                f"{stats['total_projects']} projects | "
+                f"{global_stats['total_countries']} countries, {global_stats['total_signals']} global signals"
             )
 
     # ── Top-Level Stats ──────────────────────────────
@@ -38,10 +42,89 @@ class CivicDataStore:
         self._ensure_loaded()
         return self._data["stats"]
 
+    def get_global_overview(self) -> Dict:
+        self._ensure_loaded()
+        return self._data["global"]["overview"]
+
     # ── Constituencies ───────────────────────────────
     def get_constituencies(self) -> List[Dict]:
         self._ensure_loaded()
         return self._data["constituencies"]
+
+    def get_global_countries(self, region: Optional[str] = None, min_risk: Optional[int] = None) -> List[Dict]:
+        self._ensure_loaded()
+        countries = self._data["global"]["countries"]
+        if region:
+            countries = [country for country in countries if country["region"] == region]
+        if min_risk is not None:
+            countries = [country for country in countries if country["risk_index"] >= min_risk]
+        return countries
+
+    def get_global_country(self, country_id: str) -> Optional[Dict]:
+        self._ensure_loaded()
+        return next((country for country in self._data["global"]["countries"] if country["id"] == country_id), None)
+
+    def get_global_signals(
+        self,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        country_id: Optional[str] = None,
+    ) -> List[Dict]:
+        self._ensure_loaded()
+        signals = self._data["global"]["signals"]
+        if category:
+            signals = [signal for signal in signals if signal["category"] == category]
+        if severity:
+            signals = [signal for signal in signals if signal["severity"] == severity]
+        if country_id:
+            signals = [signal for signal in signals if signal["country_id"] == country_id]
+        return signals
+
+    def get_global_corridors(self) -> List[Dict]:
+        self._ensure_loaded()
+        countries = {country["id"]: country for country in self._data["global"]["countries"]}
+        corridors = []
+        for corridor in self._data["global"]["corridors"]:
+            start = countries.get(corridor["from_country"])
+            end = countries.get(corridor["to_country"])
+            if not start or not end:
+                continue
+            corridors.append(
+                {
+                    **corridor,
+                    "start_lat": start["lat"],
+                    "start_lng": start["lng"],
+                    "end_lat": end["lat"],
+                    "end_lng": end["lng"],
+                    "from_name": start["name"],
+                    "to_name": end["name"],
+                }
+            )
+        return corridors
+
+    def get_global_graph(self) -> Dict:
+        self._ensure_loaded()
+        return self._data["global"]["graph"]
+
+    def get_global_map_data(self) -> List[Dict]:
+        self._ensure_loaded()
+        return [
+            {
+                "id": country["id"],
+                "name": country["name"],
+                "region": country["region"],
+                "lat": country["lat"],
+                "lng": country["lng"],
+                "risk_index": country["risk_index"],
+                "influence_index": country["influence_index"],
+                "sentiment": country["sentiment"],
+                "stability": country["stability"],
+                "pressure": country["pressure"],
+                "top_domains": country["top_domains"],
+                "active_signals": country["active_signals"],
+            }
+            for country in self._data["global"]["countries"]
+        ]
 
     def get_constituency(self, con_id: str) -> Optional[Dict]:
         self._ensure_loaded()

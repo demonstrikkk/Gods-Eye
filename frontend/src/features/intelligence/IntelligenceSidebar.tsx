@@ -8,21 +8,25 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store';
 import type { SidebarTab } from '@/types';
+import { GlobalTab }   from '@/features/global/GlobalTab';
 import { BoothsTab }   from '@/features/booths/BoothsTab';
 import { WorkersTab }  from '@/features/workers/WorkersTab';
 import { SchemesTab }  from '@/features/schemes/SchemesTab';
 import { AlertsTab }   from '@/features/intelligence/AlertsTab';
 import { AIConsoleTab } from '@/features/intelligence/AIConsoleTab';
 import { ExecutivePanel }     from '@/features/panels/ExecutivePanel';
+import { GlobalOverviewPanel } from '@/features/panels/GlobalOverviewPanel';
 import { StrategicDashboard } from '@/pages/StrategicDashboard';
+import { OntologyDashboard } from '@/pages/OntologyDashboard';
 import { ConstituencyPanel }  from '@/features/panels/ConstituencyPanel';
 import { CommsPanel }         from '@/features/panels/CommsPanel';
 import {
-  MapPin, Users, BookOpen, Bell, Sparkles, ChevronsRight,
+  Globe2, MapPin, Users, BookOpen, Bell, Sparkles, ChevronsRight,
   BarChart2, Brain, Target, MessageSquare,
 } from 'lucide-react';
 
 const TABS: { key: SidebarTab; label: string; icon: React.ReactNode }[] = [
+  { key: 'global',  label: 'Global',   icon: <Globe2 size={13} />     },
   { key: 'booths',  label: 'Booths',   icon: <MapPin size={13} />    },
   { key: 'workers', label: 'Workers',  icon: <Users size={13} />     },
   { key: 'schemes', label: 'Schemes',  icon: <BookOpen size={13} />  },
@@ -32,12 +36,14 @@ const TABS: { key: SidebarTab; label: string; icon: React.ReactNode }[] = [
 
 // View-specific overlay panels shown above the tabs
 const VIEW_PANEL: Partial<Record<string, React.ReactNode>> = {
+  cockpit:      <GlobalOverviewPanel />,
   executive:    <ExecutivePanel />,
   constituency: <ConstituencyPanel />,
   comms:        <CommsPanel />,
 };
 
 const TAB_CONTENT: Record<SidebarTab, React.ReactNode> = {
+  global:  <GlobalTab />,
   booths:  <BoothsTab />,
   workers: <WorkersTab />,
   schemes: <SchemesTab />,
@@ -60,7 +66,7 @@ export const IntelligenceSidebar: React.FC = () => {
           transition={{ type: 'spring', stiffness: 300, damping: 35 }}
           className={clsx(
             "border-l border-zinc-800/80 bg-[#0b0b0e]/95 backdrop-blur-xl flex flex-col flex-shrink-0 relative z-30 transition-all duration-300",
-            activeView === 'strategic' ? "w-[60%] lg:w-[65%]" : "w-[40%]"
+            activeView === 'strategic' || activeView === 'ontology' ? "w-[60%] lg:w-[65%]" : "w-[40%]"
           )}
         >
           {/* Header */}
@@ -83,6 +89,10 @@ export const IntelligenceSidebar: React.FC = () => {
           {activeView === 'strategic' ? (
             <div className="flex-1 overflow-y-auto w-full custom-scrollbar">
               <StrategicDashboard />
+            </div>
+          ) : activeView === 'ontology' ? (
+            <div className="flex-1 overflow-y-auto w-full custom-scrollbar p-3">
+              <OntologyDashboard />
             </div>
           ) : (
             <>

@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type {
-  BoothPoint, Booth, Worker, Scheme,
+  BoothPoint, Booth, Worker, Scheme, GlobalCountry, GlobalSignal, GlobalCorridor, GlobalOverview,
   GeoEvent, FireHotspot, Earthquake, NewsFeed, Alert, QueryResponse
 } from '@/types';
 
@@ -24,6 +24,21 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const fetchSentimentHeatmap = (): Promise<BoothPoint[]> =>
   apiFetch('/data/sentiment/heatmap');
+
+export const fetchGlobalOverview = (): Promise<GlobalOverview> =>
+  apiFetch('/data/global/overview');
+
+export const fetchGlobalCountries = (): Promise<GlobalCountry[]> =>
+  apiFetch('/data/global/countries');
+
+export const fetchGlobalSignals = (): Promise<GlobalSignal[]> =>
+  apiFetch('/data/global/signals');
+
+export const fetchGlobalCorridors = (): Promise<GlobalCorridor[]> =>
+  apiFetch('/data/global/corridors');
+
+export const fetchGlobalGraph = (): Promise<any> =>
+  apiFetch('/data/global/graph');
 
 export const fetchBooths = (): Promise<Booth[]> =>
   apiFetch('/data/booths');

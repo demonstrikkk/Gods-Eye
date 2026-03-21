@@ -1,13 +1,11 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// GlobeEngine — 3D Globe with multi-layer support
-// Layers: sentiment dots, geo events (arcs), fires (red), earthquake rings
-// ─────────────────────────────────────────────────────────────────────────────
-
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import Globe from 'react-globe.gl';
 import { useQuery } from '@tanstack/react-query';
 import {
-  fetchSentimentHeatmap, fetchEvents, fetchFires, fetchEarthquakes, fetchNews
+  fetchGlobalCorridors,
+  fetchGlobalCountries,
+  fetchGlobalSignals,
+  fetchNews,
 } from '@/services/api';
 import { useAppStore } from '@/store';
 
@@ -16,144 +14,159 @@ interface GlobeEngineProps {
   height: number;
 }
 
-const sentimentColor = (s: number) =>
-  s < 35 ? '#ef4444' : s < 55 ? '#f59e0b' : '#10b981';
+const countryColor = (risk: number) =>
+  risk >= 70 ? '#ef4444' : risk >= 50 ? '#f59e0b' : '#10b981';
+
+const severityColor = (severity: string) =>
+  severity === 'High' ? '#ef4444' : severity === 'Medium' ? '#38bdf8' : '#c084fc';
+
+const economicCategories = new Set(['Economics', 'Trade', 'Industry', 'Finance']);
+const climateCategories = new Set(['Climate']);
+const defenseCategories = new Set(['Defense', 'Geopolitics']);
 
 export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
   const globeRef = useRef<any>(null);
   const { activeLayers, setSelected, setSidebarTab } = useAppStore();
 
-  // ── Data Queries ──────────────────────────────────────────────────────────
-  const { data: heatmap = [] } = useQuery({
-    queryKey: ['heatmap'],
-    queryFn: fetchSentimentHeatmap,
+  const { data: countries = [] } = useQuery({
+    queryKey: ['global-countries'],
+    queryFn: fetchGlobalCountries,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 
-  const { data: events = [] } = useQuery({
-    queryKey: ['events'],
-    queryFn: fetchEvents,
-    refetchInterval: 120_000,
-    staleTime: 90_000,
-    enabled: activeLayers.has('events'),
+  const { data: signals = [] } = useQuery({
+    queryKey: ['global-signals'],
+    queryFn: fetchGlobalSignals,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 
-  const { data: firesRaw } = useQuery({
-    queryKey: ['fires'],
-    queryFn: fetchFires,
-    refetchInterval: 120_000,
-    enabled: activeLayers.has('fires'),
+  const { data: corridors = [] } = useQuery({
+    queryKey: ['global-corridors'],
+    queryFn: fetchGlobalCorridors,
+    refetchInterval: 90_000,
+    staleTime: 60_000,
   });
 
-  const { data: quakes = [] } = useQuery({
-    queryKey: ['earthquakes'],
-    queryFn: fetchEarthquakes,
-    refetchInterval: 120_000,
-    enabled: activeLayers.has('earthquakes'),
-  });
-
-  const { data: newsItems = [] } = useQuery({
+  const { data: feeds = [] } = useQuery({
     queryKey: ['news'],
     queryFn: fetchNews,
     refetchInterval: 60_000,
+    staleTime: 30_000,
     enabled: activeLayers.has('news'),
   });
 
-  // ── Camera setup ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!globeRef.current) return;
-    globeRef.current.pointOfView({ lat: 22, lng: 80, altitude: 1.2 }, 1800);
-    const ctrl = globeRef.current.controls();
-    ctrl.autoRotate = true;
-    ctrl.autoRotateSpeed = 0.4;
+    globeRef.current.pointOfView({ lat: 20, lng: 30, altitude: 1.65 }, 1800);
+    const controls = globeRef.current.controls();
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.25;
 
-    // Stop rotation on interaction
     const stopRotate = () => {
-      if (ctrl.autoRotate) {
-        ctrl.autoRotate = false;
-      }
+      controls.autoRotate = false;
     };
-    
-    // The renderer's domElement is the canvas where events happen
+
     const canvas = globeRef.current.renderer().domElement;
     canvas.addEventListener('mousedown', stopRotate);
     canvas.addEventListener('touchstart', stopRotate);
-
     return () => {
       canvas.removeEventListener('mousedown', stopRotate);
       canvas.removeEventListener('touchstart', stopRotate);
     };
   }, []);
 
-  // ── Layer data (memoised) ─────────────────────────────────────────────────
-  const sentimentPoints = useMemo(() =>
-    activeLayers.has('sentiment') && Array.isArray(heatmap)
-      ? heatmap.map((d: any) => ({
-          lat: d.lat, lng: d.lng,
-          size: Math.max((d.population || 5000) / 12000, 0.3),
-          color: sentimentColor(d.sentiment),
-          label: `${d.name} · ${d.sentiment}%`,
-          id: d.id, type: 'booth',
-        }))
-      : [],
-    [heatmap, activeLayers]
+  const countryPoints = useMemo(
+    () =>
+      activeLayers.has('countries')
+        ? countries.map((country: any) => ({
+            ...country,
+            color: countryColor(country.risk_index),
+            size: Math.max(0.35, country.influence_index / 90),
+            label: `${country.name} | Risk ${country.risk_index} | Influence ${country.influence_index}`,
+            type: 'country',
+          }))
+        : [],
+    [countries, activeLayers],
   );
 
-  const firePoints = useMemo(() => {
-    if (!activeLayers.has('fires')) return [];
-    const hotspots = firesRaw?.hotspots ?? (Array.isArray(firesRaw) ? firesRaw : []);
-    return hotspots.map((f: any, i: number) => ({
-      lat: f.lat, lng: f.lng, size: 0.5, color: '#f97316',
-      label: `Fire · ${f.confidence ?? 'detected'}`, id: `fire-${i}`, type: 'fire',
-    }));
-  }, [firesRaw, activeLayers]);
+  const filteredSignals = useMemo(() => {
+    const rows = [];
+    if (activeLayers.has('economics')) {
+      rows.push(...signals.filter((signal: any) => economicCategories.has(signal.category)));
+    }
+    if (activeLayers.has('climate')) {
+      rows.push(...signals.filter((signal: any) => climateCategories.has(signal.category)));
+    }
+    if (activeLayers.has('defense')) {
+      rows.push(...signals.filter((signal: any) => defenseCategories.has(signal.category)));
+    }
+    if (activeLayers.has('news')) {
+      rows.push(...signals);
+    }
+    return rows.filter((signal: any, index: number, array: any[]) => array.findIndex((item) => item.id === signal.id) === index);
+  }, [signals, activeLayers]);
 
-  const allPoints = useMemo(() => [...sentimentPoints, ...firePoints], [sentimentPoints, firePoints]);
-
-  const arcsData = useMemo(() =>
-    activeLayers.has('events') && Array.isArray(events)
-      ? events.slice(0, 30).map((e: any) => ({
-          startLat: e.lat, startLng: e.lng,
-          endLat: e.lat + (Math.random() - 0.5) * 12,
-          endLng: e.lng + (Math.random() - 0.5) * 12,
-          color: ['#8b5cf6', '#a78bfa'],
-          label: e.title,
-          id: e.id,
-        }))
-      : [],
-    [events, activeLayers]
+  const signalPoints = useMemo(
+    () =>
+      filteredSignals.map((signal: any) => ({
+        ...signal,
+        color: severityColor(signal.severity),
+        size: signal.severity === 'High' ? 0.28 : 0.22,
+        label: `${signal.title} | ${signal.category} | ${signal.severity}`,
+        type: 'signal',
+      })),
+    [filteredSignals],
   );
 
-  const ringsData = useMemo(() =>
-    activeLayers.has('earthquakes') && Array.isArray(quakes)
-      ? quakes.map((q: any) => ({
-          lat: q.lat, lng: q.lng,
-          maxR: (q.magnitude ?? 4) * 2.5,
-          color: '#fbbf24',
-          propagationSpeed: 2.5,
-          repeatPeriod: 1200,
-          label: `M${q.magnitude} · ${q.location}`,
-        }))
-      : [],
-    [quakes, activeLayers]
+  const arcsData = useMemo(
+    () =>
+      activeLayers.has('corridors')
+        ? corridors.map((corridor: any) => ({
+            ...corridor,
+            startLat: corridor.start_lat,
+            startLng: corridor.start_lng,
+            endLat: corridor.end_lat,
+            endLng: corridor.end_lng,
+            color:
+              corridor.status === 'Critical'
+                ? ['#ef4444', '#fb7185']
+                : corridor.status === 'Elevated' || corridor.status === 'Stressed'
+                  ? ['#f59e0b', '#fbbf24']
+                  : ['#38bdf8', '#818cf8'],
+          }))
+        : [],
+    [corridors, activeLayers],
   );
 
-  const newsPoints = useMemo(() =>
-    activeLayers.has('news') && Array.isArray(newsItems)
-      ? newsItems.filter((n: any) => n.lat && n.lng).map((n: any) => ({
-          lat: n.lat, lng: n.lng,
-          text: n.text?.slice(0, 40) ?? '',
-          size: 1.2, color: '#22d3ee',
-        }))
-      : [],
-    [newsItems, activeLayers]
+  const newsLabels = useMemo(
+    () =>
+      activeLayers.has('news')
+        ? countries
+            .slice()
+            .sort((a: any, b: any) => b.active_signals - a.active_signals)
+            .slice(0, 6)
+            .map((country: any, index: number) => ({
+              lat: country.lat,
+              lng: country.lng,
+              text: feeds[index]?.text?.slice(0, 42) || `${country.name}: signal density rising`,
+              size: 1.2,
+              color: '#67e8f9',
+            }))
+        : [],
+    [countries, feeds, activeLayers],
   );
 
   const handlePointClick = (point: any) => {
-    if (point?.type === 'booth') {
-      setSelected(point.id, 'booth');
-      setSidebarTab('booths');
+    if (point?.type === 'country') {
+      setSelected(point.id, 'country');
+      setSidebarTab('global');
+      return;
+    }
+    if (point?.type === 'signal') {
+      setSelected(point.id, 'signal');
+      setSidebarTab('alerts');
     }
   };
 
@@ -165,48 +178,32 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
       globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
       bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
       backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-      
-      // Atmosphere
-      showAtmosphere={true}
-      atmosphereColor="#3b82f6"
-      atmosphereAltitude={0.15}
-
-      // Sentiment + fire points
-      pointsData={allPoints}
+      showAtmosphere
+      atmosphereColor="#38bdf8"
+      atmosphereAltitude={0.16}
+      pointsData={[...countryPoints, ...signalPoints]}
       pointLat="lat"
       pointLng="lng"
       pointColor="color"
       pointRadius="size"
       pointAltitude={0.015}
-      pointsMerge={false}
       pointLabel="label"
       onPointClick={handlePointClick}
-      
-      // Event arcs
       arcsData={arcsData}
       arcColor="color"
-      arcDashLength={0.4}
-      arcDashGap={0.2}
-      arcDashAnimateTime={1500}
-      arcStroke={0.5}
-      arcAltitudeAutoScale={0.5}
-      arcLabel="label"
-
-      // Earthquake rings
-      ringsData={ringsData}
-      ringColor="color"
-      ringMaxRadius="maxR"
-      ringPropagationSpeed="propagationSpeed"
-      ringRepeatPeriod="repeatPeriod"
-
-      // News labels
-      labelsData={newsPoints}
+      arcDashLength={0.35}
+      arcDashGap={0.18}
+      arcDashAnimateTime={1600}
+      arcStroke={0.55}
+      arcAltitudeAutoScale={0.45}
+      arcLabel={(arc: any) => `${arc.label} | ${arc.from_name} -> ${arc.to_name}`}
+      labelsData={newsLabels}
       labelLat="lat"
       labelLng="lng"
       labelText="text"
       labelSize="size"
       labelColor="color"
-      labelDotRadius={0.4}
+      labelDotRadius={0.35}
       labelAltitude={0.01}
     />
   );

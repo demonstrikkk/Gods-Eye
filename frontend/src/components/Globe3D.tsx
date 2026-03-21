@@ -16,7 +16,7 @@ interface Globe3DProps {
 }
 
 export const Globe3D: React.FC<Globe3DProps> = ({ data = [] }) => {
-    const globeRef = useRef<any>();
+    const globeRef = useRef<any>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
 

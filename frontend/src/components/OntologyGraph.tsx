@@ -57,10 +57,13 @@ export const OntologyGraph: React.FC<OntologyGraphProps> = ({ data }) => {
     const getNodeColor = (node: Node) => {
         if (node.color) return node.color;
         switch (node.group) {
-            case 'Scheme': return '#a855f7'; // Purple
-            case 'Issue': return '#eab308'; // Yellow
-            case 'Booth': return '#3b82f6'; // Blue
-            case 'Citizen': return '#9ca3af'; // Gray
+            case 'Country': return '#3b82f6';
+            case 'Domain': return '#a855f7';
+            case 'Signal': return '#f59e0b';
+            case 'Scheme': return '#a855f7';
+            case 'Issue': return '#eab308';
+            case 'Booth': return '#3b82f6';
+            case 'Citizen': return '#9ca3af';
             default: return '#ffffff';
         }
     };
@@ -100,7 +103,7 @@ export const OntologyGraph: React.FC<OntologyGraphProps> = ({ data }) => {
                     ctx.fill();
 
                     // Draw text label on top
-                    if (globalScale > 1.5 || node.group !== 'Citizen') {
+                    if (globalScale > 1.2 || !['Citizen'].includes(node.group)) {
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
@@ -112,10 +115,9 @@ export const OntologyGraph: React.FC<OntologyGraphProps> = ({ data }) => {
             {/* Legend Overlay */}
             <div className="absolute top-4 right-4 bg-background/90 p-3 rounded border border-border/50 text-xs shadow-lg backdrop-blur-md">
                 <div className="font-bold mb-2 uppercase text-text-muted tracking-widest text-[10px]">Graph Legend</div>
-                <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-purple-500"></div> Government Scheme</div>
-                <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-yellow-500"></div> Critical Issue</div>
-                <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Polling Booth</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400"></div> Citizen</div>
+                <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Country Node</div>
+                <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-purple-500"></div> Domain Cluster</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Live Signal</div>
             </div>
         </div>
     );
