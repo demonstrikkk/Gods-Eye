@@ -17,12 +17,27 @@ class RuntimeIntelligenceEngine:
     def __init__(self):
         self._running = False
         self._task: asyncio.Task | None = None
+        self._warm_task: asyncio.Task | None = None
         self._state_path = Path(__file__).resolve().parent.parent / "data" / "runtime_state.json"
         self._state = self._load_state()
+
+    def _warm_country_search_cache(self, top_n: int = 5):
+        try:
+            watchlist = sorted(self.get_enriched_countries(), key=lambda country: country["risk_index"], reverse=True)[:top_n]
+            for country in watchlist:
+                osint_engine.get_country_search_briefs(country["name"], country.get("region"))
+            logger.info(f"Country search cache warmed for {len(watchlist)} watchlist countries.")
+        except Exception as e:
+            logger.warning(f"Country search cache warm failed: {e}")
+
+    async def _warm_country_search_cache_async(self):
+        await asyncio.to_thread(self._warm_country_search_cache)
 
     def _default_state(self) -> Dict[str, Any]:
         return {
             "dynamic_signals": [],
+            "runtime_assets": [],
+            "runtime_corridors": [],
             "source_health": [],
             "market_snapshot": [],
             "country_catalog": [],
@@ -56,12 +71,99 @@ class RuntimeIntelligenceEngine:
     def get_country_catalog(self) -> List[Dict[str, Any]]:
         return self._state.get("country_catalog", [])
 
-    def get_structural_assets(
+    def get_seeded_assets(
         self,
         country_id: str | None = None,
         layer: str | None = None,
     ) -> List[Dict[str, Any]]:
-        return store.get_global_assets(country_id=country_id, layer=layer)
+        assets = store.get_global_assets(country_id=country_id, layer=layer)
+        return [self._annotate_asset(asset, "seeded") for asset in assets]
+
+    def get_runtime_assets(
+        self,
+        country_id: str | None = None,
+        layer: str | None = None,
+    ) -> List[Dict[str, Any]]:
+        assets = [
+            self._annotate_asset(asset, asset.get("source_mode", "runtime"))
+            for asset in self._state.get("runtime_assets", [])
+        ]
+        if country_id:
+            assets = [asset for asset in assets if asset.get("country_id") == country_id]
+        if layer:
+            assets = [asset for asset in assets if asset.get("layer") == layer]
+        return assets
+
+    def get_structural_assets(
+        self,
+        country_id: str | None = None,
+        layer: str | None = None,
+        include_seeded: bool = True,
+    ) -> List[Dict[str, Any]]:
+        runtime_assets = self.get_runtime_assets(country_id=country_id, layer=layer)
+        seeded_assets = self.get_seeded_assets(country_id=country_id, layer=layer) if include_seeded else []
+        seen = set()
+        merged: List[Dict[str, Any]] = []
+        for asset in runtime_assets + seeded_assets:
+            asset_id = asset.get("id")
+            if asset_id in seen:
+                continue
+            seen.add(asset_id)
+            merged.append(asset)
+        return merged
+
+    def get_seeded_corridors(self) -> List[Dict[str, Any]]:
+        return [self._annotate_corridor(corridor, "seeded") for corridor in store.get_global_corridors()]
+
+    def get_runtime_corridors(self) -> List[Dict[str, Any]]:
+        return [
+            self._annotate_corridor(corridor, corridor.get("source_mode", "runtime"))
+            for corridor in self._state.get("runtime_corridors", [])
+        ]
+
+    def get_global_corridors(self, include_seeded: bool = True) -> List[Dict[str, Any]]:
+        runtime_corridors = self.get_runtime_corridors()
+        seeded_corridors = self.get_seeded_corridors() if include_seeded else []
+        seen = set()
+        merged: List[Dict[str, Any]] = []
+        for corridor in runtime_corridors + seeded_corridors:
+            corridor_id = corridor.get("id")
+            if corridor_id in seen:
+                continue
+            seen.add(corridor_id)
+            merged.append(corridor)
+        return merged
+
+    def _source_provenance_summary(self) -> Dict[str, Any]:
+        health = self.get_source_health()
+        counts = {
+            "live_sources": 0,
+            "limited_sources": 0,
+            "unavailable_sources": 0,
+            "fallback_sources": 0,
+            "error_sources": 0,
+        }
+
+        for item in health:
+            status = item.get("status")
+            if status == "live":
+                counts["live_sources"] += 1
+            elif status == "limited":
+                counts["limited_sources"] += 1
+            elif status == "unavailable":
+                counts["unavailable_sources"] += 1
+            elif status == "fallback":
+                counts["fallback_sources"] += 1
+            elif status == "error":
+                counts["error_sources"] += 1
+
+        return {
+            **counts,
+            "total_sources": len(health),
+            "seeded_context": True,
+            "runtime_state_backed": True,
+            "last_refresh": self._state.get("last_refresh"),
+        }
 
     @staticmethod
     def _stability_from_risk(risk: int) -> str:
@@ -104,17 +206,49 @@ class RuntimeIntelligenceEngine:
                 nearest = country.get("id")
         return nearest or "CTR-IND"
 
-    def _signal_counts(self) -> Dict[str, int]:
+    @staticmethod
+    def _annotate_signal(signal: Dict[str, Any], source_mode: str) -> Dict[str, Any]:
+        annotated = dict(signal)
+        annotated["source_mode"] = source_mode
+        annotated["source_origin"] = "runtime_state" if source_mode == "runtime" else "seeded_ontology"
+        return annotated
+
+    @staticmethod
+    def _annotate_asset(asset: Dict[str, Any], source_mode: str) -> Dict[str, Any]:
+        annotated = dict(asset)
+        annotated["source_mode"] = source_mode
+        annotated["source_origin"] = "runtime_state" if source_mode == "runtime" else "seeded_ontology"
+        return annotated
+
+    @staticmethod
+    def _annotate_corridor(corridor: Dict[str, Any], source_mode: str) -> Dict[str, Any]:
+        annotated = dict(corridor)
+        annotated["source_mode"] = source_mode
+        annotated["source_origin"] = "runtime_state" if source_mode == "runtime" else "seeded_ontology"
+        return annotated
+
+    def _signal_counts(self, signals: List[Dict[str, Any]]) -> Dict[str, int]:
         counts: Dict[str, int] = {}
-        for signal in self.get_dynamic_signals():
+        for signal in signals:
             country_id = signal.get("country_id")
             if not country_id:
                 continue
             counts[country_id] = counts.get(country_id, 0) + 1
         return counts
 
+    def get_seeded_signals(self) -> List[Dict[str, Any]]:
+        return [self._annotate_signal(signal, "seeded") for signal in store.get_global_signals()]
+
+    def get_runtime_signals(self) -> List[Dict[str, Any]]:
+        return [
+            self._annotate_signal(signal, signal.get("source_mode", "runtime"))
+            for signal in self._state.get("dynamic_signals", [])
+        ]
+
     def get_enriched_countries(self) -> List[Dict[str, Any]]:
-        counts = self._signal_counts()
+        runtime_counts = self._signal_counts(self.get_runtime_signals())
+        seeded_counts = self._signal_counts(self.get_seeded_signals())
+        counts = self._signal_counts(self.get_dynamic_signals())
         base_map = {country["id"]: dict(country) for country in store.get_global_countries()}
         asset_counts: Dict[str, int] = {}
         layer_domains: Dict[str, set[str]] = {}
@@ -139,6 +273,8 @@ class RuntimeIntelligenceEngine:
         for row in rows:
             country = dict(row)
             base = base_map.get(country["id"], {})
+            runtime_signal_count = runtime_counts.get(country["id"], 0)
+            seeded_signal_count = seeded_counts.get(country["id"], 0)
             active_signals = max(base.get("active_signals", 0), counts.get(country["id"], 0))
             asset_count = max(base.get("asset_count", 0), asset_counts.get(country["id"], 0))
             population = country.get("population") or base.get("population") or 0
@@ -159,11 +295,23 @@ class RuntimeIntelligenceEngine:
                     "pressure": base.get("pressure", "Live world-scale signals synthesized from open-source feeds."),
                     "top_domains": top_domains,
                     "active_signals": active_signals,
+                    "runtime_signal_count": runtime_signal_count,
+                    "seeded_signal_count": seeded_signal_count,
                     "asset_count": asset_count,
                     "capital": country.get("capital") or base.get("capital"),
                     "population": population,
                     "macro_region": country.get("macro_region") or country.get("region"),
                     "iso3": country.get("iso3") or country["id"].replace("CTR-", ""),
+                    "country_catalog_mode": "runtime" if live_countries else "seeded",
+                    "signal_source_mode": (
+                        "runtime_plus_seeded"
+                        if runtime_signal_count and seeded_signal_count
+                        else "runtime_only"
+                        if runtime_signal_count
+                        else "seeded_only"
+                        if seeded_signal_count
+                        else "none"
+                    ),
                 }
             )
             countries.append(country)
@@ -172,9 +320,32 @@ class RuntimeIntelligenceEngine:
     def get_country(self, country_id: str) -> Dict[str, Any] | None:
         return next((country for country in self.get_enriched_countries() if country["id"] == country_id), None)
 
-    def get_dynamic_signals(self) -> List[Dict[str, Any]]:
-        base = store.get_global_signals()
-        dynamic = self._state.get("dynamic_signals", [])
+    def find_country_by_query(self, query: str) -> Dict[str, Any] | None:
+        normalized = (query or "").strip().lower()
+        if not normalized:
+            return None
+
+        candidates = self.get_enriched_countries()
+        exact_fields = ("name", "capital", "iso3")
+        partial_fields = ("name", "capital", "region", "macro_region", "iso3")
+
+        for country in candidates:
+            for field in exact_fields:
+                value = str(country.get(field) or "").strip().lower()
+                if value and normalized == value:
+                    return country
+
+        for country in candidates:
+            for field in partial_fields:
+                value = str(country.get(field) or "").strip().lower()
+                if value and normalized in value:
+                    return country
+
+        return None
+
+    def get_dynamic_signals(self, include_seeded: bool = True) -> List[Dict[str, Any]]:
+        base = self.get_seeded_signals() if include_seeded else []
+        dynamic = self.get_runtime_signals()
         seen = set()
         merged = []
         for signal in dynamic + base:
@@ -188,17 +359,25 @@ class RuntimeIntelligenceEngine:
         overview = dict(store.get_global_overview())
         overview["total_countries"] = len(self.get_enriched_countries())
         overview["total_signals"] = len(self.get_dynamic_signals())
+        overview["runtime_signals"] = len(self.get_runtime_signals())
+        overview["seeded_signals"] = len(self.get_seeded_signals())
         overview["total_assets"] = len(self.get_structural_assets())
+        overview["runtime_assets"] = len(self.get_runtime_assets())
+        overview["seeded_assets"] = len(self.get_seeded_assets())
+        overview["active_corridors"] = len(self.get_global_corridors())
+        overview["runtime_corridors"] = len(self.get_runtime_corridors())
+        overview["seeded_corridors"] = len(self.get_seeded_corridors())
         overview["live_sources"] = len([item for item in self.get_source_health() if item.get("status") == "live"])
         overview["last_refresh"] = self._state.get("last_refresh")
         overview["market_tickers"] = len(self.get_market_snapshot())
+        overview["provenance"] = self._source_provenance_summary()
         return overview
 
     def get_global_graph(self) -> Dict[str, Any]:
         graph = store.get_global_graph()
         nodes = list(graph["nodes"])
         links = list(graph["links"])
-        for signal in self._state.get("dynamic_signals", [])[:24]:
+        for signal in self.get_runtime_signals()[:24]:
             node_id = f"SIGNAL-{signal['id']}"
             nodes.append(
                 {
@@ -219,6 +398,8 @@ class RuntimeIntelligenceEngine:
             return None
 
         signals = [signal for signal in self.get_dynamic_signals() if signal.get("country_id") == country_id][:8]
+        runtime_signals = [signal for signal in signals if signal.get("source_mode", "runtime") == "runtime"]
+        seeded_signals = [signal for signal in signals if signal.get("source_mode") == "seeded"]
         assets = self.get_structural_assets(country_id=country_id)[:8]
         all_feeds = store.get_recent_feed_briefs(limit=250)
         country_terms = {country["name"].lower()}
@@ -232,6 +413,18 @@ class RuntimeIntelligenceEngine:
 
         weather = osint_engine.get_open_meteo_weather(country["lat"], country["lng"])
         world_bank = osint_engine.get_world_bank_snapshot().get("countries", {}).get(country.get("iso3"), {})
+        search_briefs = osint_engine.get_country_search_briefs(country["name"], country.get("region"))
+        world_bank_live = any(
+            isinstance(metric, dict) and metric.get("value") is not None
+            for metric in world_bank.values()
+        )
+        search_live = search_briefs.get("status") == "live" and bool(search_briefs.get("results"))
+        if not search_live:
+            search_briefs = {
+                **search_briefs,
+                "results": [],
+                "status": "unavailable",
+            }
 
         risk_factors: List[Dict[str, Any]] = []
         if country["risk_index"] >= 70:
@@ -276,20 +469,94 @@ class RuntimeIntelligenceEngine:
         if assets:
             opportunities.append(f"{len(assets)} mapped strategic assets give this country strong ontology coverage.")
 
+        source_status = [
+            {"label": "Signals", "status": "live" if signals else "limited", "count": len(signals)},
+            {"label": "Open-Meteo", "status": weather.get("status", "error"), "count": 1 if weather.get("current") else 0},
+            {"label": "World Bank", "status": "live" if world_bank_live else "unavailable", "count": len(world_bank) if world_bank_live else 0},
+            {"label": "RSS Feeds", "status": "live" if related_feeds else "limited", "count": len(related_feeds)},
+            {"label": "Open Search", "status": "live" if search_live else "unavailable", "count": len(search_briefs.get("results", []))},
+        ]
+
+        evidence_points: List[str] = []
+        if signals:
+            evidence_points.append(f"{len(signals)} live signals are currently associated with {country['name']}.")
+        if related_feeds:
+            evidence_points.append(f"{len(related_feeds)} recent feed mentions reference {country['name']} or its capital.")
+        if weather.get("status") == "live":
+            evidence_points.append(
+                f"Weather evidence is live with temperature {weather.get('current', {}).get('temperature_2m')} and wind {weather.get('current', {}).get('wind_speed_10m')}."
+            )
+        if world_bank_live:
+            gdp_year = world_bank.get("gdp_current_usd", {}).get("date")
+            inflation_year = world_bank.get("inflation_consumer", {}).get("date")
+            evidence_points.append(
+                f"World Bank macro series are available for GDP ({gdp_year or 'n/a'}) and inflation ({inflation_year or 'n/a'})."
+            )
+        if search_live:
+            evidence_points.append(f"{len(search_briefs.get('results', []))} live open-web search hits were retrieved for validation.")
+        if not evidence_points:
+            evidence_points.append("No live external evidence is currently available for this country; rely on mapped ontology context only.")
+
         summary = (
             f"{country['name']} is in {country['stability'].lower()} posture with risk {country['risk_index']} "
             f"and influence {country['influence_index']}. Pressure centers on {country['pressure']}. "
             f"The system currently tracks {country['active_signals']} live signals and {country.get('asset_count', 0)} structural assets for this node."
         )
 
+        research_brief_parts = [
+            f"{country['name']} currently sits in a {country['stability'].lower()} operating posture."
+        ]
+        if signals:
+            research_brief_parts.append(
+                f"The real-time layer is active with {len(signals)} country-linked signals, led by '{signals[0]['title']}'."
+            )
+        if related_feeds:
+            research_brief_parts.append(
+                f"Recent feed coverage is active across {len(related_feeds)} tracked mentions."
+            )
+        if weather.get("status") == "live":
+            research_brief_parts.append(
+                f"Open-Meteo weather is live for the capital zone and can be used as current operating context."
+            )
+        if world_bank_live:
+            research_brief_parts.append(
+                "World Bank macro data is present for baseline economic framing."
+            )
+        if search_live:
+            research_brief_parts.append(
+                f"Open search validation returned {len(search_briefs.get('results', []))} usable links."
+            )
+        else:
+            research_brief_parts.append(
+                "Open search validation is currently unavailable, so this brief excludes unsupported search claims."
+            )
+        research_brief = " ".join(research_brief_parts)
+
+        search_highlights = [item.get("title") for item in search_briefs.get("results", [])[:3] if item.get("title")]
+        prompt_context = "\n".join(f"- {title}" for title in search_highlights) if search_highlights else "- No live web search highlights available"
+
         return {
             "country": country,
             "summary": summary,
+            "research_brief": research_brief,
+            "evidence_points": evidence_points,
+            "source_status": source_status,
+            "provenance": {
+                **self._source_provenance_summary(),
+                "country_id": country_id,
+                "analysis_mode": "seeded_context_plus_live_enrichment",
+                "runtime_signal_count": len(runtime_signals),
+                "seeded_signal_count": len(seeded_signals),
+                "live_source_labels": [item["label"] for item in source_status if item["status"] == "live"],
+                "limited_source_labels": [item["label"] for item in source_status if item["status"] == "limited"],
+                "unavailable_source_labels": [item["label"] for item in source_status if item["status"] == "unavailable"],
+            },
             "risk_factors": risk_factors,
             "opportunities": opportunities,
             "signals": signals,
             "assets": assets,
             "feeds": related_feeds,
+            "search_briefs": search_briefs,
             "weather": weather,
             "world_bank": world_bank,
             "suggested_questions": [
@@ -297,7 +564,10 @@ class RuntimeIntelligenceEngine:
                 f"How do climate and infrastructure stress interact in {country['name']}?",
                 f"Which trade and mobility chokepoints matter most for {country['name']}?",
             ],
-            "ai_prompt": f"Provide a strategic intelligence brief for {country['name']} covering conflict, climate, infrastructure, cyber, and economic posture.",
+            "ai_prompt": (
+                f"Provide a strategic intelligence brief for {country['name']} covering conflict, climate, infrastructure, cyber, and economic posture. "
+                f"Use the following live search highlights for context:\n{prompt_context}"
+            ),
         }
 
     def get_alerts(self) -> List[Dict[str, Any]]:
@@ -537,6 +807,29 @@ class RuntimeIntelligenceEngine:
                 )
             return signals
 
+        def search_builder(payload: Dict[str, Any], source_label: str) -> List[Dict[str, Any]]:
+            signals: List[Dict[str, Any]] = []
+            for index, item in enumerate(payload.get("results", [])[:4]):
+                title = item.get("title")
+                if not title:
+                    continue
+                signals.append(
+                    {
+                        "id": f"{source_label.lower()}-{index}-{abs(hash(title)) % 100000}",
+                        "country_id": "CTR-IND",
+                        "title": f"{source_label}: {title[:90]}",
+                        "summary": f"Open search signal captured from {source_label}.",
+                        "category": "Geopolitics",
+                        "layer": "conflict",
+                        "severity": "Medium",
+                        "source": source_label,
+                        "time": "LIVE",
+                        "lat": 28.6139,
+                        "lng": 77.209,
+                    }
+                )
+            return signals
+
         country_task = asyncio.to_thread(osint_engine.get_country_catalog)
         market_task = asyncio.to_thread(osint_engine.get_market_snapshot)
         captures = await asyncio.gather(
@@ -551,6 +844,20 @@ class RuntimeIntelligenceEngine:
             self._capture_source(source_id="cisa", label="CISA KEV", mode="free", fetcher=osint_engine.get_cisa_kev_data, signal_builder=cisa_builder),
             self._capture_source(source_id="reddit", label="Reddit", mode="free", fetcher=osint_engine.get_reddit_discourse),
             self._capture_source(source_id="mastodon", label="Mastodon", mode="free", fetcher=osint_engine.get_mastodon_public),
+            self._capture_source(
+                source_id="yahoo-search",
+                label="Yahoo Search",
+                mode="free",
+                fetcher=osint_engine.get_yahoo_search_results,
+                signal_builder=lambda payload: search_builder(payload, "Yahoo Search"),
+            ),
+            self._capture_source(
+                source_id="duckduckgo-search",
+                label="DuckDuckGo Search",
+                mode="free",
+                fetcher=osint_engine.get_duckduckgo_search_results,
+                signal_builder=lambda payload: search_builder(payload, "DuckDuckGo"),
+            ),
         )
         country_payload, market_payload = await asyncio.gather(country_task, market_task)
 
@@ -601,6 +908,10 @@ class RuntimeIntelligenceEngine:
         }
         self._persist_state()
 
+        # Keep this lightweight: warm search caches asynchronously for top-risk countries.
+        if not self._warm_task or self._warm_task.done():
+            self._warm_task = asyncio.create_task(self._warm_country_search_cache_async())
+
     async def _loop(self):
         while self._running:
             try:
@@ -619,6 +930,8 @@ class RuntimeIntelligenceEngine:
         self._running = False
         if self._task:
             self._task.cancel()
+        if self._warm_task and not self._warm_task.done():
+            self._warm_task.cancel()
 
 
 runtime_engine = RuntimeIntelligenceEngine()

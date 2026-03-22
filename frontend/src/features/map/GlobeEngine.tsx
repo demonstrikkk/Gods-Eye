@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import Globe from 'react-globe.gl';
+import Globe, { type GlobeMethods } from 'react-globe.gl';
 import { useQuery } from '@tanstack/react-query';
 import {
   fetchGlobalAssets,
@@ -9,30 +9,56 @@ import {
   fetchNews,
 } from '@/services/api';
 import { useAppStore } from '@/store';
+import { getMarkerHtml } from './markerGlyphs';
+import type { GlobalAsset, GlobalCountry, GlobalSignal, LayerKey } from '@/types';
 
 interface GlobeEngineProps {
   width: number;
   height: number;
 }
 
-const countryColor = (risk: number) =>
-  risk >= 70 ? '#ef4444' : risk >= 50 ? '#f59e0b' : '#10b981';
+type CountryMarker = GlobalCountry & { type: 'country'; altitude: number };
+type SignalMarker = GlobalSignal & { type: 'signal'; altitude: number };
+type AssetMarker = GlobalAsset & { type: 'asset'; altitude: number };
+type GlobeMarker = CountryMarker | SignalMarker | AssetMarker;
 
-const severityColor = (severity: string) =>
-  severity === 'High' ? '#ef4444' : severity === 'Medium' ? '#38bdf8' : '#c084fc';
+const hasCoords = (value: { lat?: number | null; lng?: number | null }) =>
+  typeof value.lat === 'number' && Number.isFinite(value.lat) &&
+  typeof value.lng === 'number' && Number.isFinite(value.lng);
 
-const assetColor = (layer?: string) => {
-  if (layer === 'defense' || layer === 'conflict') return '#ef4444';
-  if (layer === 'mobility') return '#d946ef';
-  if (layer === 'cyber') return '#38bdf8';
-  if (layer === 'economics') return '#10b981';
-  if (layer === 'climate') return '#f59e0b';
-  return '#22c55e';
-};
+const hasCorridorCoords = (value: {
+  start_lat?: number | null;
+  start_lng?: number | null;
+  end_lat?: number | null;
+  end_lng?: number | null;
+}) =>
+  typeof value.start_lat === 'number' && Number.isFinite(value.start_lat) &&
+  typeof value.start_lng === 'number' && Number.isFinite(value.start_lng) &&
+  typeof value.end_lat === 'number' && Number.isFinite(value.end_lat) &&
+  typeof value.end_lng === 'number' && Number.isFinite(value.end_lng);
+
+const DATA_LAYERS: LayerKey[] = [
+  'economics',
+  'governance',
+  'climate',
+  'defense',
+  'conflict',
+  'infrastructure',
+  'mobility',
+  'cyber',
+];
 
 export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
-  const globeRef = useRef<any>(null);
-  const { activeLayers, setSelected, setSidebarTab } = useAppStore();
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const {
+    activeLayers,
+    selectedId,
+    selectedType,
+    setHoveredItem,
+    setSelected,
+    setSidebarTab,
+    setSidebarOpen,
+  } = useAppStore();
 
   const { data: countries = [] } = useQuery({
     queryKey: ['global-countries'],
@@ -70,18 +96,25 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     enabled: activeLayers.has('news'),
   });
 
+  const getGlobe = () => globeRef.current;
+
   useEffect(() => {
-    if (!globeRef.current) return;
-    globeRef.current.pointOfView({ lat: 20, lng: 30, altitude: 1.65 }, 1800);
-    const controls = globeRef.current.controls();
+    const globe = getGlobe();
+    if (!globe) return;
+    globe.pointOfView({ lat: 20, lng: 30, altitude: 1.65 }, 1800);
+    const controls = globe.controls();
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.25;
+    controls.autoRotateSpeed = 0.28;
+    controls.enableZoom = true;
+    controls.enablePan = true;
 
     const stopRotate = () => {
       controls.autoRotate = false;
     };
 
-    const canvas = globeRef.current.renderer().domElement;
+    const canvas = globe.renderer().domElement;
+    canvas.style.pointerEvents = 'auto';
+    canvas.style.cursor = 'grab';
     canvas.addEventListener('mousedown', stopRotate);
     canvas.addEventListener('touchstart', stopRotate);
     return () => {
@@ -90,73 +123,63 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     };
   }, []);
 
-  const dataLayers = ['economics', 'governance', 'climate', 'defense', 'conflict', 'infrastructure', 'mobility', 'cyber'] as const;
-
-  const countryPoints = useMemo(
-    () =>
-      activeLayers.has('countries')
-        ? countries.map((country: any) => ({
-            ...country,
-            color: countryColor(country.risk_index),
-            size: Math.max(0.18, country.influence_index / 140),
-            label: `${country.name} | Risk ${country.risk_index} | Influence ${country.influence_index} | Signals ${country.active_signals}`,
-            type: 'country',
-          }))
-        : [],
-    [countries, activeLayers],
-  );
+  useEffect(() => {
+    const globe = getGlobe();
+    if (!globe || selectedType !== 'country' || !selectedId) return;
+    const selectedCountry = countries.filter(hasCoords).find((country) => country.id === selectedId);
+    if (!selectedCountry) return;
+    globe.pointOfView(
+      { lat: selectedCountry.lat, lng: selectedCountry.lng, altitude: 1.02 },
+      1400,
+    );
+    globe.controls().autoRotate = false;
+  }, [countries, selectedId, selectedType]);
 
   const filteredSignals = useMemo(() => {
-    const rows = [];
-    for (const layer of dataLayers) {
-      if (activeLayers.has(layer)) {
-        rows.push(...signals.filter((signal: any) => signal.layer === layer));
-      }
-    }
-    if (activeLayers.has('news')) {
-      rows.push(...signals);
-    }
-    return rows.filter((signal: any, index: number, array: any[]) => array.findIndex((item) => item.id === signal.id) === index);
-  }, [signals, activeLayers]);
-
-  const signalPoints = useMemo(
-    () =>
-      filteredSignals.map((signal: any) => ({
-        ...signal,
-        color: severityColor(signal.severity),
-        size: signal.severity === 'High' ? 0.22 : 0.18,
-        label: `${signal.title} | ${signal.category} | ${signal.severity}`,
-        type: 'signal',
-      })),
-    [filteredSignals],
-  );
+    const selectedSignals = DATA_LAYERS.flatMap((layer) =>
+      activeLayers.has(layer) ? signals.filter((signal) => signal.layer === layer) : [],
+    );
+    const merged = activeLayers.has('news') ? [...selectedSignals, ...signals] : selectedSignals;
+    return merged
+      .filter(hasCoords)
+      .filter((signal, index, array) => array.findIndex((item) => item.id === signal.id) === index);
+  }, [activeLayers, signals]);
 
   const filteredAssets = useMemo(() => {
-    const rows = [];
-    for (const layer of dataLayers) {
-      if (activeLayers.has(layer)) {
-        rows.push(...assets.filter((asset: any) => asset.layer === layer));
-      }
-    }
-    return rows.filter((asset: any, index: number, array: any[]) => array.findIndex((item) => item.id === asset.id) === index);
-  }, [assets, activeLayers]);
+    const merged = DATA_LAYERS.flatMap((layer) =>
+      activeLayers.has(layer) ? assets.filter((asset) => asset.layer === layer) : [],
+    );
+    return merged
+      .filter(hasCoords)
+      .filter((asset, index, array) => array.findIndex((item) => item.id === asset.id) === index);
+  }, [activeLayers, assets]);
 
-  const assetPoints = useMemo(
-    () =>
-      filteredAssets.map((asset: any) => ({
-        ...asset,
-        color: assetColor(asset.layer),
-        size: Math.max(0.14, asset.importance / 260),
-        label: `${asset.title} | ${asset.kind} | ${asset.status}`,
-        type: 'asset',
-      })),
-    [filteredAssets],
-  );
+  const markers = useMemo<GlobeMarker[]>(() => {
+    const countryMarkers: CountryMarker[] = activeLayers.has('countries')
+      ? countries
+          .filter(hasCoords)
+          .map((country) => ({ ...country, type: 'country' as const, altitude: 0.025 }))
+      : [];
+
+    const signalMarkers: SignalMarker[] = filteredSignals.map((signal) => ({
+      ...signal,
+      type: 'signal' as const,
+      altitude: signal.severity === 'High' ? 0.05 : 0.04,
+    }));
+
+    const assetMarkers: AssetMarker[] = filteredAssets.map((asset) => ({
+      ...asset,
+      type: 'asset' as const,
+      altitude: 0.032,
+    }));
+
+    return [...countryMarkers, ...signalMarkers, ...assetMarkers];
+  }, [activeLayers, countries, filteredAssets, filteredSignals]);
 
   const arcsData = useMemo(
     () =>
       activeLayers.has('corridors')
-        ? corridors.map((corridor: any) => ({
+        ? corridors.filter(hasCorridorCoords).map((corridor) => ({
             ...corridor,
             startLat: corridor.start_lat,
             startLng: corridor.start_lng,
@@ -177,10 +200,11 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     () =>
       activeLayers.has('news')
         ? countries
+            .filter(hasCoords)
             .slice()
-            .sort((a: any, b: any) => b.active_signals - a.active_signals)
+            .sort((left, right) => right.active_signals - left.active_signals)
             .slice(0, 8)
-            .map((country: any, index: number) => ({
+            .map((country, index) => ({
               lat: country.lat,
               lng: country.lng,
               text: feeds[index]?.text?.slice(0, 48) || `${country.name}: signal density rising`,
@@ -188,24 +212,29 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
               color: '#67e8f9',
             }))
         : [],
-    [countries, feeds, activeLayers],
+    [activeLayers, countries, feeds],
   );
 
-  const handlePointClick = (point: any) => {
-    if (point?.type === 'country') {
-      setSelected(point.id, 'country');
+  const handleMarkerSelection = (marker: GlobeMarker) => {
+    if (marker.type === 'country') {
+      setSelected(marker.id, 'country');
       setSidebarTab('global');
+      setSidebarOpen(true);
       return;
     }
-    if (point?.type === 'signal') {
-      setSelected(point.id, 'signal');
+
+    if (marker.type === 'signal') {
+      setSelected(marker.id, 'signal');
       setSidebarTab('alerts');
+      setSidebarOpen(true);
       return;
     }
-    if (point?.type === 'asset') {
-      setSelected(point.country_id, 'country');
-      setSidebarTab('global');
+
+    if (marker.type === 'asset') {
+      setSelected(marker.country_id, 'country');
     }
+    setSidebarTab('global');
+    setSidebarOpen(true);
   };
 
   return (
@@ -217,24 +246,50 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
       bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
       backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
       showAtmosphere
+      showPointerCursor
+      enablePointerInteraction
       atmosphereColor="#38bdf8"
       atmosphereAltitude={0.16}
-      pointsData={[...countryPoints, ...signalPoints, ...assetPoints]}
-      pointLat="lat"
-      pointLng="lng"
-      pointColor="color"
-      pointRadius="size"
-      pointAltitude={0.015}
-      pointLabel="label"
-      onPointClick={handlePointClick}
+      htmlElementsData={markers}
+      htmlLat="lat"
+      htmlLng="lng"
+      htmlAltitude="altitude"
+      htmlTransitionDuration={0}
+      htmlElement={(datum: object) => {
+        const marker = datum as GlobeMarker;
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.style.background = 'transparent';
+        element.style.border = '0';
+        element.style.padding = '0';
+        element.style.cursor = 'pointer';
+        element.style.pointerEvents = 'auto';
+        element.innerHTML = getMarkerHtml(
+          {
+            ...marker,
+            sourceMode: marker.type === 'country' ? marker.country_catalog_mode : marker.source_mode,
+          },
+          marker.id === selectedId || (marker.type === 'asset' && marker.country_id === selectedId),
+        );
+        element.onmouseenter = () => setHoveredItem(marker);
+        element.onmouseleave = () => setHoveredItem(null);
+        element.onclick = (event) => {
+          event.stopPropagation();
+          handleMarkerSelection(marker);
+        };
+        return element;
+      }}
       arcsData={arcsData}
       arcColor="color"
       arcDashLength={0.35}
       arcDashGap={0.18}
       arcDashAnimateTime={1600}
-      arcStroke={0.55}
+      arcStroke={0.62}
       arcAltitudeAutoScale={0.45}
-      arcLabel={(arc: any) => `${arc.label} | ${arc.from_name} -> ${arc.to_name}`}
+      arcLabel={(arc: object) => {
+        const item = arc as { label: string; from_name: string; to_name: string };
+        return `${item.label} | ${item.from_name} -> ${item.to_name}`;
+      }}
       labelsData={newsLabels}
       labelLat="lat"
       labelLng="lng"

@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 import logging
 from pydantic import BaseModel
 from typing import Dict, Any
 from app.data.store import store
+from app.core.rate_limit import limiter
 
 logger = logging.getLogger("intelligence_api")
 router = APIRouter()
@@ -39,7 +40,8 @@ class NLQueryRequest(BaseModel):
 
 
 @router.post("/query", response_model=Dict[str, Any])
-async def execute_natural_language_query(request: NLQueryRequest):
+@limiter.limit("24/minute")
+async def execute_natural_language_query(request: Request, payload: NLQueryRequest):
     """
     Processes natural language queries against the demo data stores.
     Attempts real AI reasoning via qa_engine, with deterministic fallbacks.
@@ -47,12 +49,12 @@ async def execute_natural_language_query(request: NLQueryRequest):
     from app.services.osint_aggregator import qa_engine
 
     try:
-        query = request.query or request.question
+        query = payload.query or payload.question
         query = query.lower()
 
         if len(query.split()) > 3:
             try:
-                result = qa_engine.execute_query(request.query)
+                result = qa_engine.execute_query(payload.query)
                 if isinstance(result, dict) and "answer" in result:
                     return {"status": "success", "answer": result["answer"]}
             except Exception as ai_err:
@@ -134,6 +136,11 @@ async def execute_natural_language_query(request: NLQueryRequest):
                         lines.append("Live signals:")
                         for signal in analysis["signals"][:3]:
                             lines.append(f"- {signal['title']} [{signal['category']}]")
+                    search_hits = analysis.get("search_briefs", {}).get("results", [])
+                    if search_hits:
+                        lines.append("Live web search context:")
+                        for item in search_hits[:3]:
+                            lines.append(f"- {item.get('title')} ({item.get('source')})")
                     return {"status": "success", "answer": "\n".join(lines)}
 
         if any(keyword in query for keyword in ["country", "countries", "global", "world", "ontology"]):
@@ -231,7 +238,8 @@ async def execute_scenario_simulation(request: WhatIfRequest):
 
 
 @router.post("/news-insight", response_model=Dict[str, Any])
-async def get_news_insight(request: StrategicQueryRequest):
+@limiter.limit("12/minute")
+async def get_news_insight(request: Request, payload: StrategicQueryRequest):
     """
     AI-driven news extraction and summarization.
     Specifically parses the current news feed storage to provide gists and reasoning.
@@ -246,7 +254,7 @@ async def get_news_insight(request: StrategicQueryRequest):
     context = "\n".join([f"- [{feed['category']}] {feed['text']}" for feed in feeds[:15]])
 
     prompt = f"""You are the JanGraph OS News Analyst.
-Targeted query: {request.query}
+Targeted query: {payload.query}
 
 Current news context:
 {context}

@@ -16,16 +16,41 @@ logger = logging.getLogger("feed_aggregator")
 # Feed configuration – you can move this to environment variables later
 # ----------------------------------------------------------------------
 FEEDS = [
-    {"name": "Reuters World", "url": "https://feeds.reuters.com/reuters/worldNews", "category": "Geopolitics"},
+    {
+        "name": "Reuters World",
+        "url": "https://www.reutersagency.com/feed/?best-topics=world&post_type=best",
+        "fallback_urls": [
+            "https://news.google.com/rss/search?q=reuters+world+news&hl=en-IN&gl=IN&ceid=IN:en",
+        ],
+        "category": "Geopolitics",
+    },
     {"name": "BBC World", "url": "http://feeds.bbci.co.uk/news/world/rss.xml", "category": "Geopolitics"},
-    {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "Geopolitics"},
+    {
+        "name": "Al Jazeera",
+        "url": "https://www.aljazeera.com/xml/rss/all.xml",
+        "fallback_urls": [
+            "https://news.google.com/rss/search?q=al+jazeera+world&hl=en-IN&gl=IN&ceid=IN:en",
+        ],
+        "category": "Geopolitics",
+    },
     {"name": "DW World", "url": "https://rss.dw.com/rdf/rss-en-all", "category": "Geopolitics"},
     {"name": "France24", "url": "https://www.france24.com/en/rss", "category": "Geopolitics"},
     {"name": "Defense News", "url": "https://www.defensenews.com/arc/outboundfeeds/rss/", "category": "Defense"},
     {"name": "The Diplomat", "url": "https://thediplomat.com/feed/", "category": "Geopolitics"},
     {"name": "Economic Times", "url": "https://economictimes.indiatimes.com/rssfeedstopstories.cms", "category": "Economics"},
-    {"name": "PIB India", "url": "https://pib.gov.in/PressReleaseRss.aspx", "category": "Governance"},
-    {"name": "India Meteorological Department", "url": "http://www.imd.gov.in/press_release/rss.xml", "category": "Climate"},
+    {
+        "name": "PIB India",
+        "url": "https://pib.gov.in/RssMain.aspx",
+        "fallback_urls": [
+            "https://news.google.com/rss/search?q=Press+Information+Bureau+India&hl=en-IN&gl=IN&ceid=IN:en",
+        ],
+        "category": "Governance",
+    },
+    {
+        "name": "India Meteorological Department",
+        "url": "https://news.google.com/rss/search?q=India+Meteorological+Department+weather+alert&hl=en-IN&gl=IN&ceid=IN:en",
+        "category": "Climate",
+    },
     {"name": "Global Conflict Watch", "url": "https://news.google.com/rss/search?q=global+conflict+protest+military&hl=en-IN&gl=IN&ceid=IN:en", "category": "Conflict"},
     {"name": "Cyber Threat Watch", "url": "https://news.google.com/rss/search?q=cyber+attack+ransomware+cisa&hl=en-IN&gl=IN&ceid=IN:en", "category": "Cyber"},
     {"name": "Climate Extremes Watch", "url": "https://news.google.com/rss/search?q=wildfire+heatwave+flood+weather+alert&hl=en-IN&gl=IN&ceid=IN:en", "category": "Climate"},
@@ -37,6 +62,11 @@ FEEDS = [
 # How often to refresh (seconds)
 REFRESH_INTERVAL = 300  # 5 minutes
 MAX_BRIEFS_STORED = 200  # keep more than 50 for analysis
+MAX_CONCURRENT_FEEDS = 10
+REQUEST_HEADERS = {
+    "User-Agent": "JanGraph-OS/1.0 (+https://localhost)",
+    "Accept": "application/rss+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5",
+}
 
 class FeedAggregator:
     def __init__(self):
@@ -44,28 +74,49 @@ class FeedAggregator:
         self.last_updated: Optional[datetime] = None
         self._session: Optional[aiohttp.ClientSession] = None
         self._feed_urls: Set[str] = {f["url"] for f in FEEDS}
+        self._semaphore = asyncio.Semaphore(MAX_CONCURRENT_FEEDS)
+
+    @staticmethod
+    def _candidate_urls(feed_info: Dict) -> List[str]:
+        urls = [feed_info["url"]]
+        urls.extend(feed_info.get("fallback_urls", []))
+        return [url for url in urls if url]
 
     async def _fetch_one_feed(self, session: aiohttp.ClientSession, feed_info: Dict) -> List[Dict]:
         """Fetch a single RSS feed and return list of briefs."""
-        url = feed_info["url"]
-        try:
-            async with session.get(url, timeout=10) as resp:
-                if resp.status != 200:
-                    logger.warning(f"Feed {feed_info['name']} returned {resp.status}")
-                    return []
-                text = await resp.text()
-        except asyncio.TimeoutError:
-            logger.warning(f"Timeout fetching {feed_info['name']}")
-            return []
-        except Exception as e:
-            logger.exception(f"Error fetching {feed_info['name']}: {e}")
+        text = ""
+        used_url = ""
+        failed_attempts: List[str] = []
+        async with self._semaphore:
+            for candidate_url in self._candidate_urls(feed_info):
+                try:
+                    async with session.get(candidate_url, timeout=aiohttp.ClientTimeout(total=12), allow_redirects=True) as resp:
+                        if resp.status != 200:
+                            failed_attempts.append(f"{candidate_url} -> HTTP {resp.status}")
+                            continue
+                        text = await resp.text(errors="ignore")
+                        used_url = candidate_url
+                        break
+                except asyncio.TimeoutError:
+                    failed_attempts.append(f"{candidate_url} -> timeout")
+                    continue
+                except aiohttp.ClientError as e:
+                    failed_attempts.append(f"{candidate_url} -> network error: {e}")
+                    continue
+                except Exception as e:
+                    failed_attempts.append(f"{candidate_url} -> unexpected error: {e}")
+                    continue
+
+        if not text:
+            if failed_attempts:
+                logger.warning(f"Feed {feed_info['name']} unavailable after retries: {'; '.join(failed_attempts[:3])}")
             return []
 
         # Parse the RSS in a thread to avoid blocking
         try:
             feed = await asyncio.to_thread(feedparser.parse, text)
         except Exception as e:
-            logger.exception(f"Error parsing {feed_info['name']} RSS: {e}")
+            logger.warning(f"Error parsing {feed_info['name']} RSS from {used_url}: {e}")
             return []
 
         briefs = []
@@ -136,7 +187,9 @@ class FeedAggregator:
         """Main loop – fetches all feeds concurrently."""
         logger.info("Starting intelligence feed aggregation loop...")
         self._running = True
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=15, connect=6, sock_read=10)
+        connector = aiohttp.TCPConnector(limit=40, ttl_dns_cache=300)
+        async with aiohttp.ClientSession(headers=REQUEST_HEADERS, timeout=timeout, connector=connector, trust_env=True) as session:
             while self._running:
                 start_time = time.time()
                 all_briefs = []
@@ -168,6 +221,8 @@ class FeedAggregator:
                         {"tool": "OpenSky", "data": osint_engine.get_opensky_data(), "cat": "Defense"},
                         {"tool": "FRED", "data": osint_engine.get_fred_economic_data(), "cat": "Economics"},
                         {"tool": "NASA", "data": osint_engine.get_nasa_firms(), "cat": "Climate"},
+                        {"tool": "Yahoo Search", "data": osint_engine.get_yahoo_search_results(), "cat": "Geopolitics"},
+                        {"tool": "DuckDuckGo", "data": osint_engine.get_duckduckgo_search_results(), "cat": "Geopolitics"},
                     ]
                     for report in osint_reports:
                         tool_name = report["tool"]
@@ -183,6 +238,14 @@ class FeedAggregator:
                             text = f"[ECON] Fed Rate: {rates.get('FED_FUNDS_RATE')}% | 10YR Treasury: {rates.get('US_10YR_TREASURY')}%"
                         elif tool_name == "NASA":
                             text = f"[CLIMATE] NASA FIRMS Alert: {data.get('fire_hotspots_detected')} hotspots detected globally."
+                        elif tool_name == "Yahoo Search":
+                            top = (data.get("results") or [{}])[0]
+                            if top.get("title"):
+                                text = f"[SEARCH] Yahoo pulse: {top.get('title')}"
+                        elif tool_name == "DuckDuckGo":
+                            top = (data.get("results") or [{}])[0]
+                            if top.get("title"):
+                                text = f"[SEARCH] DuckDuckGo pulse: {top.get('title')}"
 
                         if text:
                             all_briefs.append({

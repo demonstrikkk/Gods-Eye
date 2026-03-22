@@ -10,12 +10,10 @@ Enhanced for hackathon: integrated social media APIs, caching, robust error hand
 
 import json
 import logging
-import random
 import asyncio
 from functools import wraps
-from typing import Dict, List, Any, Optional, Callable, Awaitable
-from datetime import datetime, timedelta
-import time
+from typing import Dict, List, Any, Callable
+from datetime import datetime
 
 from app.services.llm_provider import get_enterprise_llm
 from app.data.store import store
@@ -30,6 +28,16 @@ except ImportError:
     REDIS_AVAILABLE = False
 
 logger = logging.getLogger("strategic_agent")
+
+DEFAULT_TOOLS = [
+    "civic_sentiment",
+    "news_intelligence",
+    "economic_indicators",
+    "twitter_trends",
+    "reddit_discourse",
+]
+MAX_PLANNER_TOOLS = 9
+TOOL_TIMEOUT_SECONDS = 12
 
 # ============================================================
 # DECORATORS & UTILITIES
@@ -70,56 +78,160 @@ def _parse_json(content: str) -> Dict:
         logger.error(f"JSON parse error: {e}\nContent: {content[:500]}")
         raise
 
+
+def _tool_unavailable(source: str, message: str) -> Dict[str, Any]:
+    return {
+        "source": source,
+        "status": "unavailable",
+        "message": message,
+    }
+
+
+def _sanitize_tool_output(tool_name: str, payload: Any) -> Dict[str, Any]:
+    if not isinstance(payload, dict):
+        return _tool_unavailable(tool_name, "Tool returned a non-structured payload.")
+
+    if payload.get("error"):
+        return _tool_unavailable(str(payload.get("source") or tool_name), str(payload.get("error")))
+
+    source = str(payload.get("source") or tool_name)
+    source_lower = source.lower()
+    status = str(payload.get("status") or "").lower()
+
+    if (
+        "fallback" in source_lower
+        or "simulated" in source_lower
+        or status in {"error", "fallback", "missing_key", "missing_resource_ids", "unconfigured"}
+    ):
+        return _tool_unavailable(source, payload.get("message") or "Connector unavailable or returned fallback data.")
+
+    normalized = dict(payload)
+    if not status:
+        normalized["status"] = "local" if tool_name in {"civic_sentiment", "scheme_coverage", "worker_deployment"} else "live"
+    else:
+        normalized["status"] = status
+
+    if tool_name == "news_intelligence" and not normalized.get("latest_briefs"):
+        return _tool_unavailable(source, "No live news briefs are available.")
+
+    if tool_name == "telegram_hyperlocal" and not normalized.get("emerging_alerts"):
+        return _tool_unavailable(source, "No live Telegram alerts are available.")
+
+    if tool_name == "bluesky_trends" and not normalized.get("posts"):
+        return _tool_unavailable(source, "No live Bluesky posts are available.")
+
+    return normalized
+
 def _fallback_analysis(query: str) -> Dict:
-    """Structured fallback when LLM is unavailable."""
+    """Honest fallback when LLM reasoning is unavailable."""
     stats = store.get_stats()
     return {
-        "executive_summary": f"Strategic analysis for: '{query}'. Running in local intelligence mode with {stats['total_citizens']:,} citizens and {stats['total_booths']} booths monitored.",
-        "situation_analysis": "The JanGraph OS civic intelligence store is operational. External LLM reasoning engine requires API connectivity for deep strategic analysis.",
+        "executive_summary": f"Strategic reasoning is unavailable for '{query}' because the LLM connector is offline. Returning a real-data operational snapshot only.",
+        "situation_analysis": (
+            f"Local operational data remains available across {stats['total_constituencies']} constituencies, "
+            f"{stats['total_booths']} booths, and {stats['total_citizens']:,} citizens. "
+            "No predictive scenarios are generated in this mode."
+        ),
         "key_risk_factors": [
-            {"factor": "LLM Connectivity", "severity": "Medium", "description": "Groq API required for full agentic reasoning. Keyword-based analysis active."},
-            {"factor": "Civic Sentiment", "severity": "High" if stats["national_avg_sentiment"] < 45 else "Medium", "description": f"National average sentiment at {stats['national_avg_sentiment']}%"},
+            {
+                "factor": "Reasoning connector offline",
+                "severity": "High",
+                "description": "Cross-domain narrative synthesis is disabled until the LLM provider is reachable.",
+            },
+            {
+                "factor": "Civic sentiment",
+                "severity": "High" if stats["national_avg_sentiment"] < 45 else "Medium",
+                "description": f"National average sentiment is {stats['national_avg_sentiment']}%.",
+            },
         ],
         "impact_on_india": {
-            "economic": f"Monitoring {stats['total_citizens']:,} citizens across {stats['total_constituencies']} constituencies",
-            "political": f"{stats['total_booths']} booths under real-time sentiment surveillance",
-            "defense": "Defense posture data requires external API feed",
-            "social": f"Top civic issues tracked across {stats['total_complaints']:,} complaints"
+            "economic": "Unavailable without live macro tools and strategic reasoning.",
+            "political": f"{stats['total_booths']} booths remain under local sentiment monitoring.",
+            "defense": "Unavailable without live defense tools and strategic reasoning.",
+            "social": f"{stats['total_complaints']:,} tracked complaints remain available for operational review.",
         },
-        "forecasts": {
-            "short_term_0_45_days": "Continued civic monitoring with real-time alerts",
-            "medium_term_3_6_months": "Full LLM-powered strategic forecasting available with API key",
-            "long_term_1_year_plus": "Requires historical trend data integration"
-        },
-        "scenarios": [
-            {"name": "Best Case", "probability": "Medium", "trigger": "Sentiment recovery above 60%", "outcome": "Stable governance, high scheme coverage", "impact_severity": 3},
-            {"name": "Most Likely", "probability": "High", "trigger": "Current trajectory continues", "outcome": "Marginal improvements with targeted interventions", "impact_severity": 5},
-            {"name": "Worst Case", "probability": "Low", "trigger": "Sentiment drops below 30%", "outcome": "Civil unrest indicators rise, emergency response needed", "impact_severity": 8},
-        ],
+        "forecasts": {},
+        "scenarios": [],
         "strategic_recommendations": [
-            "Prioritize booths with sentiment below 40% for immediate intervention",
-            "Deploy field workers to address top civic issues",
-            "Accelerate unenrolled beneficiary coverage campaigns"
+            "Reconnect the LLM provider before relying on scenario analysis.",
+            "Use the country intelligence panel for live-source evidence while strategic synthesis is unavailable.",
+            "Focus interventions on low-sentiment booths and unresolved complaint clusters.",
         ],
-        "scenario_tree": [
-            {"event": query, "children": [
-                {"event": "Civic sentiment analyzed", "children": [
-                    {"event": f"National avg: {stats['national_avg_sentiment']}%", "children": []},
-                    {"event": f"{stats['total_complaints']:,} active complaints", "children": []}
-                ]},
-                {"event": "Data pipeline operational", "children": [
-                    {"event": f"{stats['total_booths']} booths monitored", "children": []},
-                ]}
-            ]}
-        ],
-        "timeline": [
-            {"day": 1, "event": "Intelligence query initiated"},
-            {"day": 7, "event": "Booth-level sentiment trend established"},
-            {"day": 15, "event": "Scheme gap interventions launched"},
-            {"day": 30, "event": "First measurable impact on sentiment scores"},
-            {"day": 45, "event": "Full cycle review and strategic recalibration"},
-        ]
+        "scenario_tree": [],
+        "timeline": [],
     }
+
+
+def _default_plan(query: str) -> Dict[str, Any]:
+    return {
+        "understanding": query,
+        "domains": ["general"],
+        "time_horizon": "medium-term",
+        "tools_needed": list(DEFAULT_TOOLS),
+        "sub_questions": [query],
+    }
+
+
+def _normalize_plan(raw_plan: Any, query: str) -> Dict[str, Any]:
+    plan = raw_plan if isinstance(raw_plan, dict) else _default_plan(query)
+    tools = plan.get("tools_needed")
+
+    if not isinstance(tools, list):
+        tools = list(DEFAULT_TOOLS)
+
+    valid_tools = []
+    for candidate in tools:
+        if not isinstance(candidate, str):
+            continue
+        name = candidate.strip()
+        if name in TOOL_REGISTRY and name not in valid_tools:
+            valid_tools.append(name)
+
+    if not valid_tools:
+        valid_tools = list(DEFAULT_TOOLS)
+
+    plan["tools_needed"] = valid_tools[:MAX_PLANNER_TOOLS]
+
+    sub_questions = plan.get("sub_questions")
+    if not isinstance(sub_questions, list) or not sub_questions:
+        plan["sub_questions"] = [query]
+
+    if not isinstance(plan.get("understanding"), str) or not plan.get("understanding"):
+        plan["understanding"] = query
+
+    return plan
+
+
+async def _invoke_llm(llm: Any, prompt: str):
+    return await asyncio.to_thread(llm.invoke, prompt)
+
+
+async def _run_tool(tool_name: str) -> tuple[str, str, Dict[str, Any]]:
+    tool_meta = TOOL_REGISTRY.get(tool_name)
+    if not tool_meta:
+        return ("unavailable", tool_name, _tool_unavailable(tool_name, "Tool not found in registry."))
+
+    tool_fn = tool_meta["fn"]
+    try:
+        if asyncio.iscoroutinefunction(tool_fn):
+            result = await asyncio.wait_for(tool_fn(), timeout=TOOL_TIMEOUT_SECONDS)
+        else:
+            result = await asyncio.wait_for(asyncio.to_thread(tool_fn), timeout=TOOL_TIMEOUT_SECONDS)
+
+        sanitized = _sanitize_tool_output(tool_name, result)
+        if sanitized.get("status") in {"live", "local"}:
+            return ("available", tool_name, sanitized)
+        return ("unavailable", tool_name, sanitized)
+    except asyncio.TimeoutError:
+        logger.warning(f"Tool timed out: {tool_name}")
+        return (
+            "unavailable",
+            tool_name,
+            _tool_unavailable(tool_name, f"Tool timed out after {TOOL_TIMEOUT_SECONDS} seconds."),
+        )
+    except Exception as e:
+        logger.error(f"Tool {tool_name} failed: {e}", exc_info=True)
+        return ("unavailable", tool_name, _tool_unavailable(tool_name, str(e)))
 
 def _aggregate_top_issues(booths) -> List[Dict]:
     """Aggregates top issues across all booths."""
@@ -142,6 +254,7 @@ def tool_civic_sentiment() -> Dict:
         critical = [b for b in booths if b["avg_sentiment"] < 40]
         return {
             "source": "JanGraph Civic Intelligence Store",
+            "status": "local",
             "national_sentiment": stats["national_avg_sentiment"],
             "total_citizens": stats["total_citizens"],
             "total_booths": stats["total_booths"],
@@ -164,6 +277,7 @@ def tool_scheme_coverage() -> Dict:
         stats = store.get_stats()
         return {
             "source": "JanGraph Beneficiary Linkage Engine",
+            "status": "local",
             "total_schemes": len(schemes),
             "total_citizens_tracked": stats["total_citizens"],
             "schemes": [
@@ -183,6 +297,7 @@ def tool_worker_deployment() -> Dict:
         avg_perf = round(sum(w["performance_score"] for w in workers) / len(workers), 1) if workers else 0
         return {
             "source": "JanGraph Worker Operations",
+            "status": "local",
             "total_workers": len(workers),
             "online": len(online),
             "avg_performance": avg_perf,
@@ -365,6 +480,51 @@ def tool_news_intelligence() -> Dict:
     except Exception as e:
         return {"error": str(e)}
 
+
+# Override tool wrappers below so the registry only sees real/local data helpers.
+@cache_tool(ttl_seconds=1800)
+def tool_conflict_data() -> Dict:
+    """Returns current global conflict intelligence via ACLED/UCDP."""
+    try:
+        return osint_engine.get_acled_data()
+    except Exception as e:
+        return _tool_unavailable("ACLED/UCDP Conflict Database", str(e))
+
+
+@cache_tool(ttl_seconds=3600)
+def tool_energy_markets() -> Dict:
+    """Returns energy market data (oil, gas prices and trends)."""
+    try:
+        return osint_engine.get_energy_markets()
+    except Exception as e:
+        return _tool_unavailable("EIA Energy Information", str(e))
+
+
+@cache_tool(ttl_seconds=3600)
+def tool_defense_posture() -> Dict:
+    """Returns defense readiness and strategic posture data."""
+    try:
+        return osint_engine.get_defense_posture()
+    except Exception as e:
+        return _tool_unavailable("Defense Intelligence Briefing", str(e))
+
+
+@cache_tool(ttl_seconds=60)
+def tool_news_intelligence() -> Dict:
+    """Returns latest aggregated news intelligence from the feed engine."""
+    try:
+        feeds = feed_engine.get_feeds()
+        if not feeds:
+            return _tool_unavailable("JanGraph Live Intelligence Feed Aggregator", "No live RSS or news briefs are currently cached.")
+        return {
+            "source": "JanGraph Live Intelligence Feed Aggregator",
+            "status": "live",
+            "total_feeds_ingested": len(feeds),
+            "latest_briefs": feeds[:10],
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 # Tool registry with descriptions for the planner
 TOOL_REGISTRY = {
     # Civic & governance
@@ -438,8 +598,8 @@ The following data was gathered from our intelligence tools:
 
 {tool_outputs}
 
-Now produce a comprehensive strategic analysis. Use the data to ground your reasoning.
-If some tools returned errors, note the limitations and use available data.
+Now produce a comprehensive strategic analysis. Use only the provided real-source or local operational evidence.
+If some tools are missing or unavailable, state the limitation plainly and do not invent substitute facts.
 
 Respond with ONLY valid JSON:
 {{
@@ -570,49 +730,50 @@ async def run_strategic_analysis(query: str) -> Dict[str, Any]:
     # --- Step 1: Planner ---
     tool_list = "\n".join([f"- {name}: {info['description']}" for name, info in TOOL_REGISTRY.items()])
     try:
-        planner_response = llm.invoke(PLANNER_PROMPT.format(tool_list=tool_list, query=query))
-        plan = _parse_json(planner_response.content)
+        planner_response = await _invoke_llm(llm, PLANNER_PROMPT.format(tool_list=tool_list, query=query))
+        plan = _normalize_plan(_parse_json(planner_response.content), query)
     except Exception as e:
         logger.error(f"Planner failed: {e}", exc_info=True)
-        # Fallback plan: call all available tools? No, too many. Use sensible defaults.
-        plan = {
-            "understanding": query,
-            "domains": ["general"],
-            "time_horizon": "medium-term",
-            "tools_needed": ["civic_sentiment", "economic_indicators", "news_intelligence", "twitter_trends", "reddit_discourse"],
-            "sub_questions": [query]
-        }
+        plan = _default_plan(query)
 
     # --- Step 2: Execute tools (async if possible) ---
-    tools_to_call = plan.get("tools_needed", [])
-    tool_outputs = {}
-    # Execute sequentially for simplicity, but we could use asyncio.gather
-    for tool_name in tools_to_call:
-        if tool_name in TOOL_REGISTRY:
-            try:
-                # Check if the tool function is async (though ours are sync, we can still run in thread)
-                tool_fn = TOOL_REGISTRY[tool_name]["fn"]
-                # If async, await; else call
-                if asyncio.iscoroutinefunction(tool_fn):
-                    result = await tool_fn()
-                else:
-                    # Run sync function in thread to avoid blocking
-                    result = await asyncio.to_thread(tool_fn)
-                tool_outputs[tool_name] = result
-                logger.info(f"Tool executed: {tool_name}")
-            except Exception as e:
-                logger.error(f"Tool {tool_name} failed: {e}", exc_info=True)
-                tool_outputs[tool_name] = {"error": str(e)}
-        else:
-            logger.warning(f"Tool {tool_name} not found in registry")
+    requested_tools = list(dict.fromkeys(plan.get("tools_needed", []) + ["civic_sentiment"]))
+    tool_outputs: Dict[str, Any] = {}
+    unavailable_tools: Dict[str, Any] = {}
+    tool_results = await asyncio.gather(*[_run_tool(name) for name in requested_tools])
 
-    # Ensure civic_sentiment is always present for grounding
+    for status, tool_name, payload in tool_results:
+        if status == "available":
+            tool_outputs[tool_name] = payload
+        else:
+            unavailable_tools[tool_name] = payload
+
     if "civic_sentiment" not in tool_outputs:
-        tool_outputs["civic_sentiment"] = await asyncio.to_thread(tool_civic_sentiment)
+        try:
+            civic_payload = _sanitize_tool_output("civic_sentiment", await asyncio.to_thread(tool_civic_sentiment))
+            if civic_payload.get("status") in {"live", "local"}:
+                tool_outputs["civic_sentiment"] = civic_payload
+            else:
+                unavailable_tools["civic_sentiment"] = civic_payload
+        except Exception as e:
+            unavailable_tools["civic_sentiment"] = _tool_unavailable("civic_sentiment", str(e))
 
     # --- Step 3: Reasoning ---
+    if not tool_outputs:
+        fallback = _fallback_analysis(query)
+        fallback["_meta"] = {
+            "query": query,
+            "tools_used": [],
+            "unavailable_tools": unavailable_tools,
+            "grounding_mode": "local_fallback_only",
+            "plan": plan,
+            "timestamp": datetime.now().isoformat(),
+            "engine": "JanGraph Strategic Intelligence v3.1",
+        }
+        return fallback
+
     try:
-        reasoning_response = llm.invoke(REASONING_PROMPT.format(
+        reasoning_response = await _invoke_llm(llm, REASONING_PROMPT.format(
             query=query,
             sub_questions=json.dumps(plan.get("sub_questions", [query])),
             tool_outputs=json.dumps(tool_outputs, indent=2, default=str)
@@ -626,9 +787,11 @@ async def run_strategic_analysis(query: str) -> Dict[str, Any]:
     analysis["_meta"] = {
         "query": query,
         "tools_used": list(tool_outputs.keys()),
+        "unavailable_tools": unavailable_tools,
+        "grounding_mode": "real_and_local_only",
         "plan": plan,
         "timestamp": datetime.now().isoformat(),
-        "engine": "JanGraph Strategic Intelligence v3.0"
+        "engine": "JanGraph Strategic Intelligence v3.1"
     }
     return analysis
 
@@ -636,7 +799,7 @@ async def run_whatif_simulation(original_context: str, whatif_query: str, variab
     """Runs what-if scenario simulation using the LLM."""
     try:
         llm = get_enterprise_llm(temperature=0.3)
-        response = llm.invoke(WHATIF_PROMPT.format(
+        response = await _invoke_llm(llm, WHATIF_PROMPT.format(
             original_context=original_context[:2000],
             whatif_query=whatif_query,
             variables=json.dumps(variables)

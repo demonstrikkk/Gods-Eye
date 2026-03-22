@@ -32,9 +32,13 @@ export interface GlobalCountry extends GeoPoint {
   pressure: string;
   top_domains: string[];
   active_signals: number;
+  runtime_signal_count?: number;
+  seeded_signal_count?: number;
   asset_count?: number;
   capital?: string;
   population?: number;
+  country_catalog_mode?: "runtime" | "seeded";
+  signal_source_mode?: "runtime_only" | "seeded_only" | "runtime_plus_seeded" | "none";
 }
 
 export interface GlobalSignal extends GeoPoint {
@@ -47,6 +51,8 @@ export interface GlobalSignal extends GeoPoint {
   severity: "High" | "Medium" | "Low";
   source: string;
   time: string;
+  source_mode?: "runtime" | "seeded";
+  source_origin?: string;
 }
 
 export interface GlobalAsset extends GeoPoint {
@@ -60,6 +66,8 @@ export interface GlobalAsset extends GeoPoint {
   importance: number;
   description: string;
   source: string;
+  source_mode?: "runtime" | "seeded";
+  source_origin?: string;
 }
 
 export interface GlobalCorridor {
@@ -76,19 +84,47 @@ export interface GlobalCorridor {
   start_lng: number;
   end_lat: number;
   end_lng: number;
+  source_mode?: "runtime" | "seeded";
+  source_origin?: string;
 }
 
 export interface GlobalOverview {
   total_countries: number;
   total_signals: number;
+  runtime_signals?: number;
+  seeded_signals?: number;
   total_assets?: number;
+  runtime_assets?: number;
+  seeded_assets?: number;
   critical_zones: number;
   active_corridors: number;
+  runtime_corridors?: number;
+  seeded_corridors?: number;
   systemic_stress: number;
   updated_at: string;
   live_sources?: number;
   last_refresh?: string;
   market_tickers?: number;
+  provenance?: SourceProvenance;
+}
+
+export interface SourceProvenance {
+  live_sources: number;
+  limited_sources: number;
+  unavailable_sources: number;
+  fallback_sources: number;
+  error_sources: number;
+  total_sources: number;
+  seeded_context: boolean;
+  runtime_state_backed: boolean;
+  last_refresh?: string;
+  country_id?: string;
+  analysis_mode?: string;
+  runtime_signal_count?: number;
+  seeded_signal_count?: number;
+  live_source_labels?: string[];
+  limited_source_labels?: string[];
+  unavailable_source_labels?: string[];
 }
 
 export interface SourceHealth {
@@ -114,6 +150,10 @@ export interface MarketQuote {
 export interface CountryAnalysis {
   country: GlobalCountry;
   summary: string;
+  research_brief?: string;
+  evidence_points?: string[];
+  source_status?: Array<{ label: string; status: string; count: number }>;
+  provenance?: SourceProvenance;
   risk_factors: Array<{ factor: string; severity: string; description: string }>;
   opportunities: string[];
   signals: GlobalSignal[];
@@ -124,6 +164,13 @@ export interface CountryAnalysis {
     status: string;
     current?: Record<string, any>;
     daily?: Record<string, any>;
+  };
+  search_briefs?: {
+    source: string;
+    country: string;
+    query: string;
+    status: string;
+    results: Array<{ title: string; url: string; source: string }>;
   };
   world_bank?: Record<string, any>;
   suggested_questions: string[];

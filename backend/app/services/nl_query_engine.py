@@ -1,6 +1,9 @@
 import logging
 from langchain_community.chains.graph_qa.cypher import GraphCypherQAChain
-from langchain_community.graphs import Neo4jGraph
+try:
+    from langchain_neo4j import Neo4jGraph
+except Exception:
+    from langchain_community.graphs import Neo4jGraph
 from langchain_core.prompts import PromptTemplate
 from app.services.llm_provider import get_enterprise_llm
 from app.core.config import settings

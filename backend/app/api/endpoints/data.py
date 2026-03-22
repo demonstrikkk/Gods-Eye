@@ -5,6 +5,7 @@ Serves all civic intelligence data from the in-memory store.
 from fastapi import APIRouter, Query, HTTPException
 from typing import Optional, Dict, Any, List
 from app.data.store import store
+from app.schemas.global_api import CountryAnalysisResponse, GlobalOverviewResponse
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ async def get_global_stats():
     return {"status": "success", "data": store.get_stats()}
 
 
-@router.get("/global/overview", response_model=Dict[str, Any])
+@router.get("/global/overview", response_model=GlobalOverviewResponse)
 async def get_global_overview():
     """Returns world-scale ontology overview metrics."""
     from app.services.runtime_intelligence import runtime_engine
@@ -49,9 +50,15 @@ async def get_global_signals(
     severity: Optional[str] = None,
     country_id: Optional[str] = None,
     layer: Optional[str] = None,
+    source_mode: Optional[str] = None,
 ):
     from app.services.runtime_intelligence import runtime_engine
-    signals = runtime_engine.get_dynamic_signals()
+    if source_mode == "runtime":
+        signals = runtime_engine.get_runtime_signals()
+    elif source_mode == "seeded":
+        signals = runtime_engine.get_seeded_signals()
+    else:
+        signals = runtime_engine.get_dynamic_signals()
     if category:
         signals = [signal for signal in signals if signal["category"] == category]
     if severity:
@@ -67,13 +74,19 @@ async def get_global_signals(
 async def get_global_assets(
     country_id: Optional[str] = None,
     layer: Optional[str] = None,
+    source_mode: Optional[str] = None,
 ):
     from app.services.runtime_intelligence import runtime_engine
-    assets = runtime_engine.get_structural_assets(country_id=country_id, layer=layer)
+    if source_mode == "runtime":
+        assets = runtime_engine.get_runtime_assets(country_id=country_id, layer=layer)
+    elif source_mode == "seeded":
+        assets = runtime_engine.get_seeded_assets(country_id=country_id, layer=layer)
+    else:
+        assets = runtime_engine.get_structural_assets(country_id=country_id, layer=layer)
     return {"status": "success", "count": len(assets), "data": assets}
 
 
-@router.get("/global/country-analysis/{country_id}", response_model=Dict[str, Any])
+@router.get("/global/country-analysis/{country_id}", response_model=CountryAnalysisResponse)
 async def get_global_country_analysis(country_id: str):
     from app.services.runtime_intelligence import runtime_engine
     analysis = runtime_engine.get_country_analysis(country_id)
@@ -83,8 +96,14 @@ async def get_global_country_analysis(country_id: str):
 
 
 @router.get("/global/corridors", response_model=Dict[str, Any])
-async def get_global_corridors():
-    corridors = store.get_global_corridors()
+async def get_global_corridors(source_mode: Optional[str] = None):
+    from app.services.runtime_intelligence import runtime_engine
+    if source_mode == "runtime":
+        corridors = runtime_engine.get_runtime_corridors()
+    elif source_mode == "seeded":
+        corridors = runtime_engine.get_seeded_corridors()
+    else:
+        corridors = runtime_engine.get_global_corridors()
     return {"status": "success", "count": len(corridors), "data": corridors}
 
 
@@ -380,14 +399,6 @@ async def get_heatmap():
 @router.get("/booths")
 async def get_legacy_booths():
     return {"status": "success", "data": store.get_booths()}
-
-@router.get("/workers", response_model=Dict[str, Any])
-async def get_legacy_workers():
-    return {"status": "success", "data": store.get_workers()}
-
-@router.get("/schemes", response_model=Dict[str, Any])
-async def get_legacy_schemes():
-    return {"status": "success", "data": store.get_schemes()}
 
 @router.get("/geopolitical/events", response_model=Dict[str, Any])
 async def get_geo_events():

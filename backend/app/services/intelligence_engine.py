@@ -158,8 +158,8 @@ from langchain_core.runnables import RunnableConfig
 
 from app.services.llm_provider import get_enterprise_llm, get_llm, MODEL_REGISTRY
 from app.schemas.domain import ActionRecommendation
-from app.data.store import store  # assuming this is your civic data store
-from app.services.osint_aggregator import osint_engine  # if needed for additional context
+from app.data.store import store
+from app.core.config import settings
 
 logger = logging.getLogger("langgraph_intelligence")
 
@@ -204,11 +204,6 @@ async def extract_entities_node(state: ProcessingState, config: RunnableConfig) 
     if state.get("error"):
         return state
 
-    # Use a model good at extraction – maybe a smaller fast model
-    llm = get_llm(MODEL_REGISTRY["reasoning_fast"], temperature=0.1)
-    if not llm:
-        llm = get_enterprise_llm(temperature=0.1)  # fallback
-
     prompt = PromptTemplate.from_template("""
 You are an elite government intelligence parsing AI.
 Extract key entities from the following text. Pay special attention to:
@@ -226,8 +221,12 @@ Format: {{
     "language": "string"
 }}
 """)
-    chain = prompt | llm
+
     try:
+        llm = get_llm(MODEL_REGISTRY["reasoning_fast"], temperature=0.1)
+        if not llm:
+            llm = get_enterprise_llm(temperature=0.1)
+        chain = prompt | llm
         raw_result = await chain.ainvoke({"text": state["input_text"]})
         entities = _safe_json_parse(raw_result.content)
         state["entities"] = entities
@@ -244,12 +243,6 @@ async def analyze_sentiment_node(state: ProcessingState, config: RunnableConfig)
     if state.get("error"):
         return state
 
-    # Use a multilingual model if language is Indian (Hindi, etc.)
-    if state.get("language") in ["Hindi", "Bengali", "Tamil", "Telugu", "Marathi"]:
-        llm = get_llm(MODEL_REGISTRY["multilingual"], temperature=0.1) or get_enterprise_llm(temperature=0.1)
-    else:
-        llm = get_enterprise_llm(temperature=0.1)
-
     prompt = PromptTemplate.from_template("""
 As a political intelligence analyst, score the following text on sentiment (0-100) and urgency (1-10).
 Sentiment: 0 = very negative, 100 = very positive.
@@ -257,8 +250,13 @@ Urgency: 1 = no immediate action, 10 = require immediate intervention.
 Text: {text}
 Return valid JSON: {{"sentiment": int, "urgency": int}}
 """)
-    chain = prompt | llm
+
     try:
+        if state.get("language") in ["Hindi", "Bengali", "Tamil", "Telugu", "Marathi"]:
+            llm = get_llm(MODEL_REGISTRY["multilingual"], temperature=0.1) or get_enterprise_llm(temperature=0.1)
+        else:
+            llm = get_enterprise_llm(temperature=0.1)
+        chain = prompt | llm
         raw_result = await chain.ainvoke({"text": state["input_text"]})
         sentiment = _safe_json_parse(raw_result.content)
         state["sentiment_payload"] = sentiment
@@ -306,13 +304,6 @@ async def recommend_action_node(state: ProcessingState, config: RunnableConfig) 
     if state.get("error"):
         return state
 
-    # Use a model that supports structured output (function calling)
-    llm = get_llm(MODEL_REGISTRY["function_calling"], temperature=0.1)
-    if not llm:
-        llm = get_enterprise_llm(temperature=0.1)
-
-    structured_llm = llm.with_structured_output(ActionRecommendation)
-
     entities = state["entities"] or {}
     sentiment = state["sentiment_payload"] or {}
 
@@ -338,15 +329,19 @@ Based on the intelligence gathered:
 {worker_info}
 {scheme_info}
 
-Generate a strictly valid ActionRecommendation for the field operation team.
-The recommendation should include:
-- recommended_action (what to do)
-- assigned_worker (if there is a suitable worker, otherwise leave empty)
-- priority (high/medium/low)
-- expected_outcome (brief)
-- tags (list of relevant keywords)
+Generate output that exactly matches this schema:
+- action_type: one of DISPATCH_WORKER, SEND_AWARENESS_SMS, ESCALATE_GRIEVANCE, SCHEDULE_TOWNHALL
+- target_region_id: constituency or booth identifier
+- urgency: integer 1 to 10
+- justification_summary: concise rationale
+- suggested_message: optional citizen-facing message
 """)
     try:
+        llm = get_llm(MODEL_REGISTRY["function_calling"], temperature=0.1)
+        if not llm:
+            llm = get_enterprise_llm(temperature=0.1)
+        structured_llm = llm.with_structured_output(ActionRecommendation)
+
         formatted_prompt = prompt.format(
             issue=entities.get("priority_issue", "Unknown"),
             segment=entities.get("affected_segment", "General Citizenry"),
@@ -384,6 +379,55 @@ workflow.set_entry_point("extract_entities")
 # Compile
 civic_intelligence_agent = workflow.compile()
 
+
+def _build_mock_state(text: str, source_id: str, source_type: str) -> ProcessingState:
+    return {
+        "input_text": text,
+        "source_id": source_id,
+        "source_type": source_type,
+        "language": "English (Mock)",
+        "entities": {
+            "priority_issue": "General Civic Awareness",
+            "affected_segment": "Citizens",
+            "location": "Unknown",
+            "language": "English",
+        },
+        "sentiment_payload": {"sentiment": 60, "urgency": 3},
+        "action_plan": ActionRecommendation(
+            action_type="DISPATCH_WORKER",
+            target_region_id="booth_001",
+            urgency=3,
+            justification_summary="Mock mode is enabled via configuration.",
+            suggested_message="Civic input acknowledged and queued for manual review.",
+        ),
+        "error": None,
+        "location": "Unknown",
+        "worker_assigned": None,
+        "scheme_recommendations": None,
+    }
+
+
+def _build_error_state(text: str, source_id: str, source_type: str, error_message: str) -> ProcessingState:
+    return {
+        "input_text": text,
+        "source_id": source_id,
+        "source_type": source_type,
+        "language": None,
+        "entities": None,
+        "sentiment_payload": None,
+        "action_plan": ActionRecommendation(
+            action_type="ESCALATE_GRIEVANCE",
+            target_region_id="unknown",
+            urgency=7,
+            justification_summary="Automated civic pipeline failed and was escalated for manual intervention.",
+            suggested_message="Your issue has been escalated to the operations desk.",
+        ),
+        "error": error_message,
+        "location": None,
+        "worker_assigned": None,
+        "scheme_recommendations": None,
+    }
+
 # ----------------------------------------------------------------------
 # 5. Public API function
 # ----------------------------------------------------------------------
@@ -392,63 +436,30 @@ async def process_unstructured_civic_text(
     source_id: str,
     source_type: str = "unknown"
 ) -> ProcessingState:
-    """
-    [MOCK MODE ACTIVE] 
-    Original LangGraph pipeline commented out to conserve API tokens.
-    Returns simulated analysis results immediately.
-    """
-    # ------------------------------------------------------------
-    # (Commented out original LangGraph heavy processing)
-    # ------------------------------------------------------------
-    # initial_state: ProcessingState = {
-    #     "input_text": text,
-    #     "source_id": source_id,
-    #     "source_type": source_type,
-    #     "language": None,
-    #     "entities": None,
-    #     "sentiment_payload": None,
-    #     "action_plan": None,
-    #     "error": None,
-    #     "location": None,
-    #     "worker_assigned": None,
-    #     "scheme_recommendations": None,
-    # }
-    # try:
-    #     final_state = await civic_intelligence_agent.ainvoke(initial_state)
-    # except Exception as e:
-    #     logger.exception("LangGraph pipeline failed")
-    #     final_state = initial_state
-    #     final_state["error"] = f"Pipeline error: {e}"
-    # return final_state
+    """Runs civic text through the LangGraph pipeline unless mock mode is explicitly enabled."""
+    if settings.CIVIC_AGENT_MOCK_MODE:
+        await asyncio.sleep(0.05)
+        return _build_mock_state(text, source_id, source_type)
 
-    # --- Elite Mock Response (Instant, No API Costs) ---
-    await asyncio.sleep(0.05) # simulate minor network jitter
-    
-    mock_state: ProcessingState = {
+    initial_state: ProcessingState = {
         "input_text": text,
         "source_id": source_id,
         "source_type": source_type,
-        "language": "English (Local Analysis)",
-        "entities": {
-            "priority_issue": "General Civic Awareness",
-            "affected_segment": "Citizens",
-            "location": "Detected via metadata",
-            "language": "English"
-        },
-        "sentiment_payload": {"sentiment": 65, "urgency": 3},
-        "action_plan": ActionRecommendation(
-            action_type="DISPATCH_WORKER",
-            target_region_id="booth_001",
-            urgency=3,
-            justification_summary="Local processing active. Manual intelligence routing enabled.",
-            suggested_message="Intelligence ingestion acknowledged. Analysis cached locally."
-        ),
+        "language": None,
+        "entities": None,
+        "sentiment_payload": None,
+        "action_plan": None,
         "error": None,
-        "location": "Regional monitoring",
+        "location": None,
         "worker_assigned": None,
         "scheme_recommendations": None,
     }
-    return mock_state
+
+    try:
+        return await civic_intelligence_agent.ainvoke(initial_state)
+    except Exception as e:
+        logger.exception("LangGraph pipeline failed")
+        return _build_error_state(text, source_id, source_type, f"Pipeline error: {e}")
 
 async def process_batch(
     items: List[Dict[str, str]],
@@ -469,8 +480,14 @@ async def process_batch(
                 "input_text": "",
                 "source_id": "error",
                 "source_type": source_type,
+                "language": None,
+                "entities": None,
+                "sentiment_payload": None,
+                "action_plan": None,
                 "error": str(res),
-                # other fields default to None
+                "location": None,
+                "worker_assigned": None,
+                "scheme_recommendations": None,
             })
         else:
             final.append(res)

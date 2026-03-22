@@ -1,16 +1,23 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSourceHealth } from '@/services/api';
+import type { SourceHealth } from '@/types';
 import { Activity, AlertTriangle, CheckCircle2, CircleDashed } from 'lucide-react';
 
 const statusMeta = (status: string) => {
-  if (status === 'live') {
+  if (status === 'live' || status === 'local') {
     return {
       icon: <CheckCircle2 size={12} className="text-emerald-400" />,
       badge: 'text-emerald-400 bg-emerald-950/30 border-emerald-900/40',
     };
   }
   if (status === 'fallback') {
+    return {
+      icon: <AlertTriangle size={12} className="text-amber-400" />,
+      badge: 'text-amber-400 bg-amber-950/30 border-amber-900/40',
+    };
+  }
+  if (status === 'limited') {
     return {
       icon: <AlertTriangle size={12} className="text-amber-400" />,
       badge: 'text-amber-400 bg-amber-950/30 border-amber-900/40',
@@ -38,7 +45,7 @@ export const SourceHealthPanel: React.FC = () => {
       </div>
 
       <div className="space-y-2">
-        {health.slice(0, 8).map((item: any) => {
+        {health.slice(0, 8).map((item: SourceHealth) => {
           const meta = statusMeta(item.status);
           return (
             <div

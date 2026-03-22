@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     # Settings for Sovereign Mode
     LOCAL_MODE_ENABLED: bool = True
+    CIVIC_AGENT_MOCK_MODE: bool = True
     
     # LLM Providers
     GROQ_API_KEY: str = ""

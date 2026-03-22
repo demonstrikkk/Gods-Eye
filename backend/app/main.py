@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.rate_limit import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 import logging
 
 # Configure enterprise logging standards
@@ -13,6 +17,8 @@ app = FastAPI(
     description="AI Civic Intelligence Operating System for Digital Democracy - Sovereign Module",
     version="1.0.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Broadened CORS for development and cross-port consistency
 app.add_middleware(
@@ -22,6 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SlowAPIMiddleware)
 
 from app.services.feed_aggregator import feed_engine
 from app.services.runtime_intelligence import runtime_engine

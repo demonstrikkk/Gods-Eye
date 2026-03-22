@@ -22,7 +22,6 @@ import { ConstituencyPanel }  from '@/features/panels/ConstituencyPanel';
 import { CommsPanel }         from '@/features/panels/CommsPanel';
 import {
   Globe2, MapPin, Users, BookOpen, Bell, Sparkles, ChevronsRight,
-  BarChart2, Brain, Target, MessageSquare,
 } from 'lucide-react';
 
 const TABS: { key: SidebarTab; label: string; icon: React.ReactNode }[] = [
@@ -52,8 +51,11 @@ const TAB_CONTENT: Record<SidebarTab, React.ReactNode> = {
 };
 
 export const IntelligenceSidebar: React.FC = () => {
-  const { sidebarTab, setSidebarTab, sidebarOpen, setSidebarOpen, activeView } = useAppStore();
+  const { sidebarTab, setSidebarTab, sidebarOpen, setSidebarOpen, activeView, selectedId, selectedType } = useAppStore();
   const viewPanel = VIEW_PANEL[activeView];
+  const panelTitle = selectedType === 'country' && selectedId
+    ? `Country Research · ${selectedId.replace('CTR-', '')}`
+    : 'Research Panel';
 
   return (
     <AnimatePresence mode="wait">
@@ -74,7 +76,7 @@ export const IntelligenceSidebar: React.FC = () => {
             <div className="flex items-center space-x-2">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_6px_rgba(59,130,246,0.6)]" />
               <span className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase">
-                Intelligence Panel
+                {panelTitle}
               </span>
             </div>
             <button

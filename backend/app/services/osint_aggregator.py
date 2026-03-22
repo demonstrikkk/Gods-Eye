@@ -2,16 +2,21 @@ import logging
 import hashlib
 import json
 import re
+import html
 from typing import Dict, Any, Optional, Union, List
 from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 import urllib.error
 import base64
+import time
 from pathlib import Path
 
 from langchain_community.chains.graph_qa.cypher import GraphCypherQAChain
-from langchain_community.graphs import Neo4jGraph
+try:
+    from langchain_neo4j import Neo4jGraph
+except Exception:
+    from langchain_community.graphs import Neo4jGraph
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from app.services.llm_provider import get_enterprise_llm, get_llm, MODEL_REGISTRY
@@ -24,6 +29,7 @@ try:
     from app.cache.redis_client import redis_client
     CACHE_AVAILABLE = True
 except ImportError:
+    redis_client = None
     CACHE_AVAILABLE = False
 
 
@@ -46,13 +52,41 @@ def _json_get(
     headers: Optional[Dict[str, str]] = None,
     timeout: int = 12,
     auth: Optional[tuple[str, str]] = None,
+    retries: int = 2,
+    retry_delay: float = 0.7,
 ) -> Any:
-    req = urllib.request.Request(url, headers=headers or {})
-    if auth:
-        token = base64.b64encode(f"{auth[0]}:{auth[1]}".encode("utf-8")).decode("ascii")
-        req.add_header("Authorization", f"Basic {token}")
-    with urllib.request.urlopen(req, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    req_headers = headers or {}
+    if "User-Agent" not in req_headers:
+        req_headers = {**req_headers, "User-Agent": OSINTAggregator.USER_AGENT}
+
+    last_error: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, headers=req_headers)
+            if auth:
+                token = base64.b64encode(f"{auth[0]}:{auth[1]}".encode("utf-8")).decode("ascii")
+                req.add_header("Authorization", f"Basic {token}")
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            last_error = e
+            is_transient = e.code in {408, 409, 425, 429, 500, 502, 503, 504}
+            if not is_transient or attempt >= retries:
+                raise
+        except (urllib.error.URLError, TimeoutError) as e:
+            last_error = e
+            if attempt >= retries:
+                raise
+        except Exception as e:
+            last_error = e
+            if attempt >= retries:
+                raise
+
+        time.sleep(retry_delay * (2**attempt))
+
+    if last_error:
+        raise last_error
+    raise RuntimeError("Request failed without error context")
 
 class CivicIntelligenceQA:
     """
@@ -105,7 +139,7 @@ class CivicIntelligenceQA:
 
     def _get_cached_result(self, question: str) -> Optional[Dict[str, Any]]:
         """Retrieve cached result from Redis."""
-        if not CACHE_AVAILABLE:
+        if not CACHE_AVAILABLE or redis_client is None:
             return None
         key = self._generate_cache_key(question)
         cached = redis_client.get(key)
@@ -118,7 +152,7 @@ class CivicIntelligenceQA:
 
     def _cache_result(self, question: str, result: Dict[str, Any], ttl_seconds: int = 300):
         """Store result in Redis with TTL."""
-        if not CACHE_AVAILABLE:
+        if not CACHE_AVAILABLE or redis_client is None:
             return
         key = self._generate_cache_key(question)
         redis_client.setex(key, ttl_seconds, json.dumps(result))
@@ -279,6 +313,8 @@ Answer:""",
 
 class OSINTAggregator:
     USER_AGENT = "JanGraphOS/0.1 (student-dev intelligence cockpit)"
+    _CACHE_TTL_SECONDS = 180
+    _cache: Dict[str, Dict[str, Any]] = {}
     DATA_GOV_DEFAULT_QUERIES = [
         "air quality",
         "power generation",
@@ -291,6 +327,20 @@ class OSINTAggregator:
         "https://www.data.gov.in/catalogs?title={query}",
         "https://www.data.gov.in/catalog?title={query}",
     )
+
+    @classmethod
+    def _cache_get(cls, key: str, ttl_seconds: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        cached = cls._cache.get(key)
+        if not cached:
+            return None
+        ttl = ttl_seconds if ttl_seconds is not None else cls._CACHE_TTL_SECONDS
+        if time.time() - cached.get("ts", 0) > ttl:
+            return None
+        return cached.get("value")
+
+    @classmethod
+    def _cache_set(cls, key: str, value: Dict[str, Any]) -> None:
+        cls._cache[key] = {"ts": time.time(), "value": value}
 
     @classmethod
     def _data_gov_cache_path(cls) -> Path:
@@ -409,20 +459,24 @@ class OSINTAggregator:
 
     @classmethod
     def get_gdelt_data(cls) -> Dict[str, Any]:
+        cached = cls._cache_get("gdelt", ttl_seconds=240)
+        if cached:
+            return cached
+
         url = (
             "https://api.gdeltproject.org/api/v2/doc/doc?"
             + urllib.parse.urlencode(
                 {
                     "query": "(conflict OR protest OR election OR sanctions OR cyclone OR flood)",
                     "mode": "ArtList",
-                    "maxrecords": 8,
+                    "maxrecords": 5,
                     "format": "json",
                     "sort": "datedesc",
                 }
             )
         )
         try:
-            payload = _json_get(url, headers={"User-Agent": cls.USER_AGENT})
+            payload = _json_get(url, headers={"User-Agent": cls.USER_AGENT}, retries=3, retry_delay=1.0)
             articles = payload.get("articles", []) if isinstance(payload, dict) else []
             fallback_coords = [
                 (50.4501, 30.5234),
@@ -447,14 +501,17 @@ class OSINTAggregator:
                         "url": article.get("url", ""),
                     }
                 )
-            return {
+            result = {
                 "source": "GDELT Project",
                 "global_tension_index": min(95, 45 + len(events) * 4),
                 "recent_events": events,
             }
+            cls._cache_set("gdelt", result)
+            return result
+            
         except Exception as e:
             logger.warning(f"GDELT fetch failed: {e}")
-            return {
+            fallback = {
                 "source": "GDELT Project (fallback)",
                 "global_tension_index": 68.4,
                 "recent_events": [
@@ -462,6 +519,11 @@ class OSINTAggregator:
                     {"id": "ev2", "title": "Heatwave pressure building across South Asia", "lat": 28.6139, "lng": 77.209, "type": "Climate", "source": "GDELT", "date": datetime.utcnow().isoformat()},
                 ],
             }
+            stale = cls._cache_get("gdelt", ttl_seconds=3600)
+            if stale:
+                return stale
+            cls._cache_set("gdelt", fallback)
+            return fallback
 
     @classmethod
     def get_opensky_data(cls) -> Dict[str, Any]:
@@ -652,6 +714,138 @@ class OSINTAggregator:
             logger.warning(f"Reddit fetch failed: {e}")
             return {"source": "Reddit Public JSON (fallback)", "active_discussions": [], "grassroots_consensus": "Unknown"}
 
+    @staticmethod
+    def _search_queries(country_name: Optional[str] = None) -> List[str]:
+        if country_name:
+            return [
+                f"{country_name} geopolitics risk",
+                f"{country_name} economic outlook",
+                f"{country_name} climate infrastructure cyber",
+            ]
+        return [
+            "india geopolitics risk",
+            "global energy disruption",
+            "cybersecurity incident today",
+        ]
+
+    @staticmethod
+    def _extract_search_results(html_text: str, limit: int = 8) -> List[Dict[str, str]]:
+        results: List[Dict[str, str]] = []
+        seen: set[str] = set()
+        pattern = re.compile(r'<a[^>]+href="(https?://[^"#]+)"[^>]*>(.*?)</a>', flags=re.IGNORECASE | re.DOTALL)
+        for href, title_raw in pattern.findall(html_text):
+            href_lower = href.lower()
+            if any(host in href_lower for host in ["duckduckgo.com", "search.yahoo.com", "r.search.yahoo.com"]):
+                continue
+            if href_lower in seen:
+                continue
+            title = re.sub(r"<[^>]+>", " ", title_raw)
+            title = html.unescape(re.sub(r"\s+", " ", title)).strip()
+            if len(title) < 12:
+                continue
+            seen.add(href_lower)
+            results.append({"title": title, "url": href})
+            if len(results) >= limit:
+                break
+        return results
+
+    @classmethod
+    def get_duckduckgo_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
+        query = query or " OR ".join(cls._search_queries())
+        cache_key = f"search:ddg:{query.lower()}"
+        cached = cls._cache_get(cache_key, ttl_seconds=300)
+        if cached:
+            return cached
+        try:
+            url = "https://duckduckgo.com/html/?" + urllib.parse.urlencode({"q": query, "kl": "in-en"})
+            req = urllib.request.Request(url, headers={"User-Agent": cls.USER_AGENT})
+            with urllib.request.urlopen(req, timeout=12) as response:
+                page = response.read().decode("utf-8", errors="ignore")
+            results = cls._extract_search_results(page, limit=8)
+            payload = {
+                "source": "DuckDuckGo Search",
+                "query": query,
+                "results": results,
+                "status": "live" if results else "fallback",
+            }
+            cls._cache_set(cache_key, payload)
+            return payload
+        except Exception as e:
+            logger.warning(f"DuckDuckGo search fetch failed: {e}")
+            fallback = {
+                "source": "DuckDuckGo Search (fallback)",
+                "query": query,
+                "results": [],
+                "status": "error",
+            }
+            stale = cls._cache_get(cache_key, ttl_seconds=3600)
+            return stale or fallback
+
+    @classmethod
+    def get_yahoo_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
+        query = query or " OR ".join(cls._search_queries())
+        cache_key = f"search:yahoo:{query.lower()}"
+        cached = cls._cache_get(cache_key, ttl_seconds=300)
+        if cached:
+            return cached
+        try:
+            url = "https://search.yahoo.com/search?" + urllib.parse.urlencode({"p": query, "ei": "UTF-8"})
+            req = urllib.request.Request(url, headers={"User-Agent": cls.USER_AGENT})
+            with urllib.request.urlopen(req, timeout=12) as response:
+                page = response.read().decode("utf-8", errors="ignore")
+            results = cls._extract_search_results(page, limit=8)
+            payload = {
+                "source": "Yahoo Search",
+                "query": query,
+                "results": results,
+                "status": "live" if results else "fallback",
+            }
+            cls._cache_set(cache_key, payload)
+            return payload
+        except Exception as e:
+            logger.warning(f"Yahoo search fetch failed: {e}")
+            fallback = {
+                "source": "Yahoo Search (fallback)",
+                "query": query,
+                "results": [],
+                "status": "error",
+            }
+            stale = cls._cache_get(cache_key, ttl_seconds=3600)
+            return stale or fallback
+
+    @classmethod
+    def get_country_search_briefs(cls, country_name: str, region: Optional[str] = None) -> Dict[str, Any]:
+        query_terms = cls._search_queries(country_name)
+        if region:
+            query_terms.append(f"{region} regional stability")
+        query = " OR ".join(query_terms)
+        ddg = cls.get_duckduckgo_search_results(query=query)
+        yahoo = cls.get_yahoo_search_results(query=query)
+
+        merged: List[Dict[str, str]] = []
+        seen_urls: set[str] = set()
+        for source_name, payload in (("DuckDuckGo", ddg), ("Yahoo", yahoo)):
+            for item in payload.get("results", []):
+                url = str(item.get("url", "")).strip()
+                title = str(item.get("title", "")).strip()
+                if not url or not title or url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                merged.append({"title": title, "url": url, "source": source_name})
+                if len(merged) >= 8:
+                    break
+            if len(merged) >= 8:
+                break
+
+        status = "live" if merged else "fallback"
+        return {
+            "source": "Country Search Briefs",
+            "country": country_name,
+            "query": query,
+            "results": merged,
+            "status": status,
+        }
+
     @classmethod
     def get_youtube_sentiment(cls) -> Dict[str, Any]:
         try:
@@ -692,8 +886,19 @@ class OSINTAggregator:
     def get_mastodon_public(cls) -> Dict[str, Any]:
         try:
             base = settings.MASTODON_API_BASE_URL.rstrip("/")
-            payload = _json_get(f"{base}/api/v1/timelines/public?limit=10", headers={"User-Agent": cls.USER_AGENT})
-            posts = payload if isinstance(payload, list) else []
+            candidate_urls = [
+                f"{base}/api/v1/timelines/public?limit=10&local=true",
+                f"{base}/api/v1/timelines/public?limit=10",
+            ]
+            posts = []
+            for url in candidate_urls:
+                try:
+                    payload = _json_get(url, headers={"User-Agent": cls.USER_AGENT}, retries=1)
+                    posts = payload if isinstance(payload, list) else []
+                    if posts:
+                        break
+                except Exception:
+                    continue
             return {
                 "source": "Mastodon Public Timeline",
                 "posts": [
