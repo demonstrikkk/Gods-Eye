@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Dict, List
+from app.data.global_assets import ASSETS
 
 COUNTRIES: List[Dict] = [
     {
@@ -383,17 +384,40 @@ CORRIDORS: List[Dict] = [
     },
 ]
 
+SIGNAL_LAYER_MAP = {
+    "Geopolitics": "conflict",
+    "Economics": "economics",
+    "Climate": "climate",
+    "Trade": "mobility",
+    "Infrastructure": "infrastructure",
+    "Technology": "infrastructure",
+    "Industry": "economics",
+    "Defense": "defense",
+}
+
+for signal in SIGNALS:
+    signal.setdefault("layer", SIGNAL_LAYER_MAP.get(signal["category"], "news"))
+
+for corridor in CORRIDORS:
+    corridor.setdefault("layer", "corridors")
+
 
 def build_global_ontology_dataset() -> Dict:
     country_map = {country["id"]: dict(country) for country in COUNTRIES}
 
     for country in country_map.values():
         country["active_signals"] = 0
+        country["asset_count"] = 0
 
     for signal in SIGNALS:
         country = country_map.get(signal["country_id"])
         if country:
             country["active_signals"] += 1
+
+    for asset in ASSETS:
+        country = country_map.get(asset["country_id"])
+        if country:
+            country["asset_count"] += 1
 
     countries = list(country_map.values())
     high_risk = [country for country in countries if country["risk_index"] >= 70]
@@ -440,6 +464,25 @@ def build_global_ontology_dataset() -> Dict:
         )
         links.append({"source": signal["country_id"], "target": node_id, "label": "EMITS"})
 
+    for asset in ASSETS:
+        node_id = f"ASSET-{asset['id']}"
+        nodes.append(
+            {
+                "id": node_id,
+                "group": asset["kind"],
+                "label": asset["title"],
+                "val": max(3, round(asset["importance"] / 20)),
+                "color": "#22c55e" if asset["layer"] == "infrastructure" else "#f97316" if asset["layer"] == "mobility" else "#ef4444",
+            }
+        )
+        links.append(
+            {
+                "source": asset["country_id"],
+                "target": node_id,
+                "label": asset["kind"].upper().replace(" ", "_"),
+            }
+        )
+
     for corridor in CORRIDORS:
         links.append(
             {
@@ -453,6 +496,7 @@ def build_global_ontology_dataset() -> Dict:
         "overview": {
             "total_countries": len(countries),
             "total_signals": len(SIGNALS),
+            "total_assets": len(ASSETS),
             "critical_zones": len(high_risk),
             "active_corridors": len(CORRIDORS),
             "systemic_stress": round(sum(country["risk_index"] for country in countries) / len(countries), 1),
@@ -461,5 +505,6 @@ def build_global_ontology_dataset() -> Dict:
         "countries": countries,
         "signals": SIGNALS,
         "corridors": CORRIDORS,
+        "assets": ASSETS,
         "graph": {"nodes": nodes, "links": links},
     }

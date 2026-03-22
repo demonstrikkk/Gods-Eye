@@ -20,7 +20,7 @@
 We will use a Monorepo strategy handling both frontend and backend seamlessly for simpler automated deployments.
 
 ```
-/jangram
+/Gods-Eye
 ├── docker-compose.yml      # Full sovereign orchestration
 ├── README.md
 ├── backend/

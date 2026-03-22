@@ -4,7 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type {
-  BoothPoint, Booth, Worker, Scheme, GlobalCountry, GlobalSignal, GlobalCorridor, GlobalOverview,
+  BoothPoint, Booth, Worker, Scheme, GlobalCountry, GlobalSignal, GlobalCorridor, GlobalOverview, SourceHealth, MarketQuote,
+  GlobalAsset, CountryAnalysis,
   GeoEvent, FireHotspot, Earthquake, NewsFeed, Alert, QueryResponse
 } from '@/types';
 
@@ -34,11 +35,23 @@ export const fetchGlobalCountries = (): Promise<GlobalCountry[]> =>
 export const fetchGlobalSignals = (): Promise<GlobalSignal[]> =>
   apiFetch('/data/global/signals');
 
+export const fetchGlobalAssets = (): Promise<GlobalAsset[]> =>
+  apiFetch('/data/global/assets');
+
 export const fetchGlobalCorridors = (): Promise<GlobalCorridor[]> =>
   apiFetch('/data/global/corridors');
 
 export const fetchGlobalGraph = (): Promise<any> =>
   apiFetch('/data/global/graph');
+
+export const fetchCountryAnalysis = (countryId: string): Promise<CountryAnalysis> =>
+  apiFetch(`/data/global/country-analysis/${countryId}`);
+
+export const fetchSourceHealth = (): Promise<SourceHealth[]> =>
+  apiFetch('/data/source-health');
+
+export const fetchMarketSnapshot = (): Promise<MarketQuote[]> =>
+  apiFetch('/data/markets');
 
 export const fetchBooths = (): Promise<Booth[]> =>
   apiFetch('/data/booths');

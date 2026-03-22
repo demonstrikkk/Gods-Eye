@@ -24,10 +24,17 @@ app.add_middleware(
 )
 
 from app.services.feed_aggregator import feed_engine
+from app.services.runtime_intelligence import runtime_engine
 
 @app.on_event("startup")
 async def on_startup():
     feed_engine.start()
+    runtime_engine.start()
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    feed_engine.stop()
+    runtime_engine.stop()
 
 app.include_router(api_router, prefix="/api/v1")
 

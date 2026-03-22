@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import Globe from 'react-globe.gl';
 import { useQuery } from '@tanstack/react-query';
 import {
+  fetchGlobalAssets,
   fetchGlobalCorridors,
   fetchGlobalCountries,
   fetchGlobalSignals,
@@ -20,9 +21,14 @@ const countryColor = (risk: number) =>
 const severityColor = (severity: string) =>
   severity === 'High' ? '#ef4444' : severity === 'Medium' ? '#38bdf8' : '#c084fc';
 
-const economicCategories = new Set(['Economics', 'Trade', 'Industry', 'Finance']);
-const climateCategories = new Set(['Climate']);
-const defenseCategories = new Set(['Defense', 'Geopolitics']);
+const assetColor = (layer?: string) => {
+  if (layer === 'defense' || layer === 'conflict') return '#ef4444';
+  if (layer === 'mobility') return '#d946ef';
+  if (layer === 'cyber') return '#38bdf8';
+  if (layer === 'economics') return '#10b981';
+  if (layer === 'climate') return '#f59e0b';
+  return '#22c55e';
+};
 
 export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
   const globeRef = useRef<any>(null);
@@ -40,6 +46,13 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     queryFn: fetchGlobalSignals,
     refetchInterval: 60_000,
     staleTime: 30_000,
+  });
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ['global-assets'],
+    queryFn: fetchGlobalAssets,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
 
   const { data: corridors = [] } = useQuery({
@@ -77,14 +90,16 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     };
   }, []);
 
+  const dataLayers = ['economics', 'governance', 'climate', 'defense', 'conflict', 'infrastructure', 'mobility', 'cyber'] as const;
+
   const countryPoints = useMemo(
     () =>
       activeLayers.has('countries')
         ? countries.map((country: any) => ({
             ...country,
             color: countryColor(country.risk_index),
-            size: Math.max(0.35, country.influence_index / 90),
-            label: `${country.name} | Risk ${country.risk_index} | Influence ${country.influence_index}`,
+            size: Math.max(0.18, country.influence_index / 140),
+            label: `${country.name} | Risk ${country.risk_index} | Influence ${country.influence_index} | Signals ${country.active_signals}`,
             type: 'country',
           }))
         : [],
@@ -93,14 +108,10 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
 
   const filteredSignals = useMemo(() => {
     const rows = [];
-    if (activeLayers.has('economics')) {
-      rows.push(...signals.filter((signal: any) => economicCategories.has(signal.category)));
-    }
-    if (activeLayers.has('climate')) {
-      rows.push(...signals.filter((signal: any) => climateCategories.has(signal.category)));
-    }
-    if (activeLayers.has('defense')) {
-      rows.push(...signals.filter((signal: any) => defenseCategories.has(signal.category)));
+    for (const layer of dataLayers) {
+      if (activeLayers.has(layer)) {
+        rows.push(...signals.filter((signal: any) => signal.layer === layer));
+      }
     }
     if (activeLayers.has('news')) {
       rows.push(...signals);
@@ -113,11 +124,33 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
       filteredSignals.map((signal: any) => ({
         ...signal,
         color: severityColor(signal.severity),
-        size: signal.severity === 'High' ? 0.28 : 0.22,
+        size: signal.severity === 'High' ? 0.22 : 0.18,
         label: `${signal.title} | ${signal.category} | ${signal.severity}`,
         type: 'signal',
       })),
     [filteredSignals],
+  );
+
+  const filteredAssets = useMemo(() => {
+    const rows = [];
+    for (const layer of dataLayers) {
+      if (activeLayers.has(layer)) {
+        rows.push(...assets.filter((asset: any) => asset.layer === layer));
+      }
+    }
+    return rows.filter((asset: any, index: number, array: any[]) => array.findIndex((item) => item.id === asset.id) === index);
+  }, [assets, activeLayers]);
+
+  const assetPoints = useMemo(
+    () =>
+      filteredAssets.map((asset: any) => ({
+        ...asset,
+        color: assetColor(asset.layer),
+        size: Math.max(0.14, asset.importance / 260),
+        label: `${asset.title} | ${asset.kind} | ${asset.status}`,
+        type: 'asset',
+      })),
+    [filteredAssets],
   );
 
   const arcsData = useMemo(
@@ -146,12 +179,12 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
         ? countries
             .slice()
             .sort((a: any, b: any) => b.active_signals - a.active_signals)
-            .slice(0, 6)
+            .slice(0, 8)
             .map((country: any, index: number) => ({
               lat: country.lat,
               lng: country.lng,
-              text: feeds[index]?.text?.slice(0, 42) || `${country.name}: signal density rising`,
-              size: 1.2,
+              text: feeds[index]?.text?.slice(0, 48) || `${country.name}: signal density rising`,
+              size: 1.0,
               color: '#67e8f9',
             }))
         : [],
@@ -167,6 +200,11 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     if (point?.type === 'signal') {
       setSelected(point.id, 'signal');
       setSidebarTab('alerts');
+      return;
+    }
+    if (point?.type === 'asset') {
+      setSelected(point.country_id, 'country');
+      setSidebarTab('global');
     }
   };
 
@@ -181,7 +219,7 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
       showAtmosphere
       atmosphereColor="#38bdf8"
       atmosphereAltitude={0.16}
-      pointsData={[...countryPoints, ...signalPoints]}
+      pointsData={[...countryPoints, ...signalPoints, ...assetPoints]}
       pointLat="lat"
       pointLng="lng"
       pointColor="color"

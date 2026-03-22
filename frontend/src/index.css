@@ -54,13 +54,12 @@
   font-family: 'Inter', sans-serif;
 }
 .leaflet-tile-pane {
-  /* Darken Voyager tiles while preserving crisp boundary line contrast */
-  filter: brightness(0.40) contrast(1.85) saturate(0.8) hue-rotate(1deg);
+  filter: brightness(0.92) contrast(1.08) saturate(0.92);
 }
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background: #141418 !important;
-  color: #010111 !important;
+  color: #f4f4f5 !important;
   border: 1px solid #27272a !important;
   border-radius: 12px !important;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7) !important;

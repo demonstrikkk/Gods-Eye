@@ -16,13 +16,22 @@ logger = logging.getLogger("feed_aggregator")
 # Feed configuration – you can move this to environment variables later
 # ----------------------------------------------------------------------
 FEEDS = [
-    {"name": "NDTV", "url": "https://feeds.ndtv.com/top-stories", "category": "Geopolitics"},
-    {"name": "The Hindu", "url": "https://www.thehindu.com/feeder/default.rss", "category": "Geopolitics"},
     {"name": "Reuters World", "url": "https://feeds.reuters.com/reuters/worldNews", "category": "Geopolitics"},
+    {"name": "BBC World", "url": "http://feeds.bbci.co.uk/news/world/rss.xml", "category": "Geopolitics"},
+    {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "Geopolitics"},
+    {"name": "DW World", "url": "https://rss.dw.com/rdf/rss-en-all", "category": "Geopolitics"},
+    {"name": "France24", "url": "https://www.france24.com/en/rss", "category": "Geopolitics"},
     {"name": "Defense News", "url": "https://www.defensenews.com/arc/outboundfeeds/rss/", "category": "Defense"},
+    {"name": "The Diplomat", "url": "https://thediplomat.com/feed/", "category": "Geopolitics"},
     {"name": "Economic Times", "url": "https://economictimes.indiatimes.com/rssfeedstopstories.cms", "category": "Economics"},
     {"name": "PIB India", "url": "https://pib.gov.in/PressReleaseRss.aspx", "category": "Governance"},
     {"name": "India Meteorological Department", "url": "http://www.imd.gov.in/press_release/rss.xml", "category": "Climate"},
+    {"name": "Global Conflict Watch", "url": "https://news.google.com/rss/search?q=global+conflict+protest+military&hl=en-IN&gl=IN&ceid=IN:en", "category": "Conflict"},
+    {"name": "Cyber Threat Watch", "url": "https://news.google.com/rss/search?q=cyber+attack+ransomware+cisa&hl=en-IN&gl=IN&ceid=IN:en", "category": "Cyber"},
+    {"name": "Climate Extremes Watch", "url": "https://news.google.com/rss/search?q=wildfire+heatwave+flood+weather+alert&hl=en-IN&gl=IN&ceid=IN:en", "category": "Climate"},
+    {"name": "Trade Route Watch", "url": "https://news.google.com/rss/search?q=shipping+red+sea+suez+trade+route&hl=en-IN&gl=IN&ceid=IN:en", "category": "Mobility"},
+    {"name": "AI Infrastructure Watch", "url": "https://news.google.com/rss/search?q=AI+data+center+semiconductor+compute+infrastructure&hl=en-IN&gl=IN&ceid=IN:en", "category": "Infrastructure"},
+    {"name": "Internet Outage Watch", "url": "https://news.google.com/rss/search?q=internet+outage+network+disruption&hl=en-IN&gl=IN&ceid=IN:en", "category": "Cyber"},
 ]
 
 # How often to refresh (seconds)
@@ -80,6 +89,49 @@ class FeedAggregator:
             })
         return briefs
 
+    async def _fetch_newsapi(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Optional NewsAPI fetch using the user's free dev key if configured."""
+        if not settings.NEWS_API_KEY:
+            return []
+        url = "https://newsapi.org/v2/top-headlines"
+        params = {
+            "language": "en",
+            "pageSize": 8,
+            "category": "general",
+        }
+        headers = {
+            "X-Api-Key": settings.NEWS_API_KEY,
+        }
+        try:
+            async with session.get(url, params=params, headers=headers, timeout=10) as resp:
+                if resp.status != 200:
+                    logger.warning(f"NewsAPI returned {resp.status}")
+                    return []
+                payload = await resp.json()
+        except Exception as e:
+            logger.warning(f"NewsAPI fetch failed: {e}")
+            return []
+
+        briefs = []
+        for article in payload.get("articles", [])[:8]:
+            title = article.get("title")
+            if not title:
+                continue
+            briefs.append(
+                {
+                    "id": f"newsapi-{int(time.time()*1000)}-{hash(title) & 0xFFFFFF}",
+                    "source": article.get("source", {}).get("name", "NewsAPI"),
+                    "category": self._classify_category(title),
+                    "text": f"[NewsAPI] {title}",
+                    "summary": article.get("description") or title,
+                    "urgency": self._determine_urgency(title),
+                    "time": "LIVE",
+                    "url": article.get("url", ""),
+                    "published": article.get("publishedAt", ""),
+                }
+            )
+        return briefs
+
     async def fetch_feeds(self):
         """Main loop – fetches all feeds concurrently."""
         logger.info("Starting intelligence feed aggregation loop...")
@@ -90,12 +142,23 @@ class FeedAggregator:
                 all_briefs = []
                 # Fetch all feeds concurrently
                 tasks = [self._fetch_one_feed(session, feed) for feed in FEEDS]
+                tasks.append(self._fetch_newsapi(session))
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for res in results:
                     if isinstance(res, Exception):
                         logger.error(f"Feed fetch failed: {res}")
                     else:
                         all_briefs.extend(res)
+
+                deduped_briefs = []
+                seen_briefs = set()
+                for brief in all_briefs:
+                    fingerprint = (brief.get("url") or brief.get("text") or "").strip().lower()
+                    if not fingerprint or fingerprint in seen_briefs:
+                        continue
+                    seen_briefs.add(fingerprint)
+                    deduped_briefs.append(brief)
+                all_briefs = deduped_briefs
 
                 # --- ⚡ OSINT INJECTION ⚡ ---
                 try:
@@ -180,10 +243,18 @@ class FeedAggregator:
         text = text.lower()
         if any(w in text for w in ["border", "troop", "defense", "military", "war", "weapon", "navy", "army"]):
             return "Defense"
+        if any(w in text for w in ["conflict", "protest", "attack", "clash", "iran", "missile"]):
+            return "Conflict"
         if any(w in text for w in ["market", "economy", "finance", "bank", "subsidy", "trade", "rupee", "inflation"]):
             return "Economics"
         if any(w in text for w in ["weather", "climate", "rain", "storm", "emission", "monsoon", "flood", "heat"]):
             return "Climate"
+        if any(w in text for w in ["ship", "port", "aviation", "flight", "canal", "logistics", "route", "maritime"]):
+            return "Mobility"
+        if any(w in text for w in ["grid", "pipeline", "cable", "data center", "spaceport", "compute"]):
+            return "Infrastructure"
+        if any(w in text for w in ["cyber", "ransomware", "malware", "internet outage", "vulnerability"]):
+            return "Cyber"
         if any(w in text for w in ["tech", "broadband", "cyber", "digital", "data", "ai", "isro"]):
             return "Tech"
         if any(w in text for w in ["election", "minister", "foreign", "treaty", "geopolitics", "modi", "biden", "china", "pakistan"]):

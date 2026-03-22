@@ -18,19 +18,26 @@ async def get_global_stats():
 @router.get("/global/overview", response_model=Dict[str, Any])
 async def get_global_overview():
     """Returns world-scale ontology overview metrics."""
-    return {"status": "success", "data": store.get_global_overview()}
+    from app.services.runtime_intelligence import runtime_engine
+    return {"status": "success", "data": runtime_engine.get_global_overview()}
 
 
 @router.get("/global/countries", response_model=Dict[str, Any])
 async def get_global_countries(region: Optional[str] = None, min_risk: Optional[int] = None):
     """Returns country nodes used by the global ontology map."""
-    countries = store.get_global_countries(region=region, min_risk=min_risk)
+    from app.services.runtime_intelligence import runtime_engine
+    countries = runtime_engine.get_enriched_countries()
+    if region:
+        countries = [country for country in countries if country["region"] == region]
+    if min_risk is not None:
+        countries = [country for country in countries if country["risk_index"] >= min_risk]
     return {"status": "success", "count": len(countries), "data": countries}
 
 
 @router.get("/global/country/{country_id}", response_model=Dict[str, Any])
 async def get_global_country(country_id: str):
-    country = store.get_global_country(country_id)
+    from app.services.runtime_intelligence import runtime_engine
+    country = runtime_engine.get_country(country_id)
     if not country:
         raise HTTPException(status_code=404, detail=f"Country {country_id} not found")
     return {"status": "success", "data": country}
@@ -41,9 +48,38 @@ async def get_global_signals(
     category: Optional[str] = None,
     severity: Optional[str] = None,
     country_id: Optional[str] = None,
+    layer: Optional[str] = None,
 ):
-    signals = store.get_global_signals(category=category, severity=severity, country_id=country_id)
+    from app.services.runtime_intelligence import runtime_engine
+    signals = runtime_engine.get_dynamic_signals()
+    if category:
+        signals = [signal for signal in signals if signal["category"] == category]
+    if severity:
+        signals = [signal for signal in signals if signal["severity"] == severity]
+    if country_id:
+        signals = [signal for signal in signals if signal["country_id"] == country_id]
+    if layer:
+        signals = [signal for signal in signals if signal.get("layer") == layer]
     return {"status": "success", "count": len(signals), "data": signals}
+
+
+@router.get("/global/assets", response_model=Dict[str, Any])
+async def get_global_assets(
+    country_id: Optional[str] = None,
+    layer: Optional[str] = None,
+):
+    from app.services.runtime_intelligence import runtime_engine
+    assets = runtime_engine.get_structural_assets(country_id=country_id, layer=layer)
+    return {"status": "success", "count": len(assets), "data": assets}
+
+
+@router.get("/global/country-analysis/{country_id}", response_model=Dict[str, Any])
+async def get_global_country_analysis(country_id: str):
+    from app.services.runtime_intelligence import runtime_engine
+    analysis = runtime_engine.get_country_analysis(country_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail=f"Country {country_id} not found")
+    return {"status": "success", "data": analysis}
 
 
 @router.get("/global/corridors", response_model=Dict[str, Any])
@@ -54,13 +90,15 @@ async def get_global_corridors():
 
 @router.get("/global/map", response_model=Dict[str, Any])
 async def get_global_map():
-    points = store.get_global_map_data()
+    from app.services.runtime_intelligence import runtime_engine
+    points = runtime_engine.get_enriched_countries()
     return {"status": "success", "count": len(points), "data": points}
 
 
 @router.get("/global/graph", response_model=Dict[str, Any])
 async def get_global_graph():
-    graph = store.get_global_graph()
+    from app.services.runtime_intelligence import runtime_engine
+    graph = runtime_engine.get_global_graph()
     return {
         "status": "success",
         "nodes": len(graph["nodes"]),
@@ -306,13 +344,28 @@ async def get_constituency_segments(constituency_id: str):
 @router.get("/graph/ontology", response_model=Dict[str, Any])
 async def get_ontology_graph(booths: int = Query(default=5, le=20), citizens: int = Query(default=100, le=500)):
     """Returns force-directed graph data of the civic ontology."""
-    graph_data = store.get_global_graph()
+    from app.services.runtime_intelligence import runtime_engine
+    graph_data = runtime_engine.get_global_graph()
     return {
         "status": "success",
         "nodes": len(graph_data["nodes"]),
         "edges": len(graph_data["links"]),
         "data": graph_data
     }
+
+
+@router.get("/source-health", response_model=Dict[str, Any])
+async def get_source_health():
+    from app.services.runtime_intelligence import runtime_engine
+    health = runtime_engine.get_source_health()
+    return {"status": "success", "count": len(health), "data": health}
+
+
+@router.get("/markets", response_model=Dict[str, Any])
+async def get_market_snapshot():
+    from app.services.runtime_intelligence import runtime_engine
+    snapshot = runtime_engine.get_market_snapshot()
+    return {"status": "success", "count": len(snapshot), "data": snapshot}
 
 # ==========================================================
 # MANDATED HACKATHON ALIAS ENDPOINTS
@@ -362,5 +415,5 @@ async def get_news_feeds():
 
 @router.get("/alerts", response_model=Dict[str, Any])
 async def get_hyperlocal_alerts():
-    from app.services.osint_aggregator import osint_engine
-    return {"status": "success", "data": osint_engine.get_telegram_hyperlocal()}
+    from app.services.runtime_intelligence import runtime_engine
+    return {"status": "success", "data": runtime_engine.get_alerts()}

@@ -28,7 +28,7 @@ interface AppState {
 
   // Selection
   selectedId: string | null;
-  selectedType: 'country' | 'signal' | 'booth' | 'event' | 'fire' | 'quake' | 'news' | null;
+  selectedType: 'country' | 'signal' | 'asset' | 'booth' | 'event' | 'fire' | 'quake' | 'news' | null;
   setSelected: (id: string | null, type: AppState['selectedType']) => void;
 
   // Active view (cockpit mode)
@@ -58,7 +58,19 @@ export const useAppStore = create<AppState>((set) => ({
   setMapMode: (mode) => set({ mapMode: mode }),
 
   // All layers on by default
-  activeLayers: new Set<LayerKey>(['countries', 'corridors', 'economics', 'climate', 'defense', 'news']),
+  activeLayers: new Set<LayerKey>([
+    'countries',
+    'corridors',
+    'economics',
+    'governance',
+    'climate',
+    'defense',
+    'conflict',
+    'infrastructure',
+    'mobility',
+    'cyber',
+    'news',
+  ]),
   toggleLayer: (key) =>
     set((state) => {
       const next = new Set(state.activeLayers);

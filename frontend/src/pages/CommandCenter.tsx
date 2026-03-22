@@ -1,6 +1,7 @@
 import React from 'react';
 import { StatusBar } from '@/components/StatusBar';
 import { LiveFeedTicker } from '@/components/LiveFeedTicker';
+import { MarketPulseBar } from '@/components/MarketPulseBar';
 import { KPIBar } from '@/components/KPIBar';
 import { MapView } from '@/features/map/MapView';
 import { IntelligenceSidebar } from '@/features/intelligence/IntelligenceSidebar';
@@ -16,6 +17,7 @@ export const CommandCenter: React.FC = () => {
     <div className="flex flex-col w-screen h-screen overflow-hidden bg-[#09090b] font-sans text-zinc-100">
       <StatusBar />
       <LiveFeedTicker />
+      <MarketPulseBar />
       <ViewNav />
       <KPIBar />
 

@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     OPENSKY_USERNAME: str = ""
     OPENSKY_PASSWORD: str = ""
     FRED_API_KEY: str = ""
+    FINNHUB_API_KEY: str = ""
+    EIA_API_KEY: str = ""
+    DATA_GOV_IN_KEY: str = ""
+    VITE_DATA_GOV_IN_KEY: str = ""
+    DATA_GOV_IN_RESOURCE_IDS: str = ""
+    DATA_GOV_IN_QUERY_TERMS: str = ""
     POLYMARKET_ENABLED: bool = True
     USGS_EARTHQUAKE_ENABLED: bool = True
     NASA_FIRMS_ENABLED: bool = True

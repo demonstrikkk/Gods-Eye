@@ -106,6 +106,19 @@ class CivicDataStore:
         self._ensure_loaded()
         return self._data["global"]["graph"]
 
+    def get_global_assets(
+        self,
+        country_id: Optional[str] = None,
+        layer: Optional[str] = None,
+    ) -> List[Dict]:
+        self._ensure_loaded()
+        assets = self._data["global"].get("assets", [])
+        if country_id:
+            assets = [asset for asset in assets if asset["country_id"] == country_id]
+        if layer:
+            assets = [asset for asset in assets if asset.get("layer") == layer]
+        return assets
+
     def get_global_map_data(self) -> List[Dict]:
         self._ensure_loaded()
         return [

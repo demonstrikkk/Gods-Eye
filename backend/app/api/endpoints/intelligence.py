@@ -117,14 +117,33 @@ async def execute_natural_language_query(request: NLQueryRequest):
                 lines.append(f"- {constituency['name']}: {seg_str}")
             return {"status": "success", "answer": "\n".join(lines)}
 
+        from app.services.runtime_intelligence import runtime_engine
+        for country in runtime_engine.get_enriched_countries():
+            country_name = country["name"].lower()
+            if country_name in query and any(keyword in query for keyword in ["country", "analy", "brief", "risk", "global", "world", "situation"]):
+                analysis = runtime_engine.get_country_analysis(country["id"])
+                if analysis:
+                    lines = [
+                        f"{country['name']} Intelligence Brief:",
+                        analysis["summary"],
+                        "Top risk factors:",
+                    ]
+                    for factor in analysis["risk_factors"][:3]:
+                        lines.append(f"- {factor['factor']} ({factor['severity']}): {factor['description']}")
+                    if analysis["signals"]:
+                        lines.append("Live signals:")
+                        for signal in analysis["signals"][:3]:
+                            lines.append(f"- {signal['title']} [{signal['category']}]")
+                    return {"status": "success", "answer": "\n".join(lines)}
+
         if any(keyword in query for keyword in ["country", "countries", "global", "world", "ontology"]):
             overview = store.get_global_overview()
-            countries = sorted(store.get_global_countries(), key=lambda country: country["risk_index"], reverse=True)
+            countries = sorted(runtime_engine.get_enriched_countries(), key=lambda country: country["risk_index"], reverse=True)
             lines = [
                 "Global Ontology Overview:",
-                f"- {overview['total_countries']} countries indexed",
-                f"- {overview['total_signals']} active intelligence signals",
-                f"- Systemic stress score: {overview['systemic_stress']}",
+                f"- {len(countries)} countries indexed",
+                f"- {runtime_engine.get_global_overview()['total_signals']} active intelligence signals",
+                f"- Systemic stress score: {runtime_engine.get_global_overview()['systemic_stress']}",
                 "Priority watchlist:",
             ]
             for country in countries[:5]:
