@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     
     # Neo4j Driver Connection
+    # For local Neo4j: "bolt://neo4j:7687"
+    # For Neo4j Aura: "neo4j+s://xxxxx.use1.neo4j.io:7687" (replace xxxxx with your instance)
     NEO4J_URI: str = "bolt://neo4j:7687"
     NEO4J_DATABASE: str = "neo4j"
 

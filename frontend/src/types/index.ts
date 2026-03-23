@@ -283,4 +283,210 @@ export type SidebarTab =
   | 'workers'
   | 'schemes'
   | 'alerts'
-  | 'ai';
+  | 'ai'
+  | 'expert';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Expert Agent System Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ConfidenceLevel =
+  | 'very_high'
+  | 'high'
+  | 'moderate'
+  | 'low'
+  | 'very_low'
+  | 'insufficient';
+
+export type ConsensusStrength =
+  | 'unanimous'
+  | 'strong'
+  | 'moderate'
+  | 'weak'
+  | 'divergent'
+  | 'no_consensus';
+
+export interface ExpertAgent {
+  id: string;
+  name: string;
+  domain: string;
+  description: string;
+}
+
+export interface AgentClaim {
+  id: string;
+  statement: string;
+  probability: number;
+  confidence_level: ConfidenceLevel;
+  supporting_observations: string[];
+  reasoning_chain: string[];
+  assumptions: string[];
+  methodology: string;
+  timestamp: string;
+}
+
+export interface AgentContribution {
+  name: string;
+  domain: string;
+  confidence: number;
+  key_claims: number;
+  data_sources: number;
+}
+
+export interface Disagreement {
+  id: string;
+  agents: string[];
+  topic: string;
+  nature: string;
+  severity: 'minor' | 'moderate' | 'major' | 'fundamental';
+  positions: Record<string, string>;
+  probabilities: Record<string, number>;
+  resolution_attempted: boolean;
+  partial_resolution?: string;
+  conflicting_evidence: string[];
+  impact_on_conclusion: string;
+}
+
+export interface MinorityOpinion {
+  agent: string;
+  domain: string;
+  position: string;
+  probability: number;
+  difference_from_consensus: number;
+  reasoning: string[];
+  key_evidence: string[];
+}
+
+export interface DebateRound {
+  id: string;
+  round_number: number;
+  phase: string;
+  topic: string;
+  participants: string[];
+  convergence_score: number;
+  key_disagreements: string[];
+  emerging_consensus?: string;
+  start_time: string;
+  end_time?: string;
+}
+
+export interface DebateSummary {
+  topic: string;
+  question: string;
+  rounds_conducted: number;
+  final_convergence: number;
+  convergence_achieved: boolean;
+  consensus_view?: {
+    statement: string;
+    probability: number;
+    confidence: number;
+  };
+  disagreements: string[];
+  position_summary: Array<{
+    agent: string;
+    stance: string;
+    probability: number;
+    confidence: number;
+    key_evidence: string[];
+  }>;
+  total_arguments: number;
+  total_rebuttals: number;
+}
+
+export interface ProbabilisticScenario {
+  description: string;
+  probability: number;
+  key_factors: string[];
+}
+
+export interface ExpertConsensus {
+  view: string;
+  probability: number;
+  strength: ConsensusStrength;
+  confidence_level: string;
+  confidence_score: number;
+}
+
+export interface ExpertAssessment {
+  consensus_view?: string;
+  confidence: {
+    level: string;
+    score: number;
+    strength?: string;
+  };
+  key_findings: string[];
+  data_sources_cited: string[];
+  disagreements?: Disagreement[];
+  disagreement_summary?: string;
+  minority_opinions?: MinorityOpinion[];
+}
+
+export interface UncertaintyQuantification {
+  overall_confidence: number;
+  confidence_level: string;
+  uncertainty_factors: string[];
+  key_assumptions: string[];
+  data_gaps: string[];
+}
+
+export interface ExpertAnalysisResponse {
+  executive_summary: string;
+  situation_analysis?: string;
+  key_risk_factors?: Array<{
+    factor: string;
+    severity: string;
+    description: string;
+  }>;
+  impact_on_india?: Record<string, string>;
+  forecasts?: Record<string, string>;
+  scenarios?: Array<{
+    name: string;
+    probability: string;
+    trigger: string;
+    outcome: string;
+    impact_severity: number;
+  }>;
+  strategic_recommendations: string[];
+  scenario_tree?: Array<{
+    event: string;
+    children: any[];
+  }>;
+  timeline?: Array<{
+    time: string;
+    event: string;
+    impact: string;
+    type: string;
+  }>;
+
+  // Expert-specific fields
+  expert_assessment?: ExpertAssessment;
+  uncertainty_quantification?: UncertaintyQuantification;
+  probabilistic_scenarios?: Record<string, ProbabilisticScenario>;
+  causal_reasoning_chain?: string[];
+  debate_summary?: DebateSummary;
+  agent_contributions?: Record<string, AgentContribution>;
+  map_visualization?: {
+    layers: Array<{
+      type: string;
+      name: string;
+      data: any;
+      color?: string;
+      color_scale?: string;
+    }>;
+    affected_regions: string[];
+  };
+
+  _meta?: {
+    query?: string;
+    tools_used?: string[];
+    unavailable_tools?: Record<string, any>;
+    grounding_mode?: string;
+    plan?: Record<string, any>;
+    timestamp?: string;
+    engine?: string;
+    expert_agents_consulted?: string[];
+    debate_conducted?: boolean;
+    consensus_strength?: string;
+    expert_processing_time_ms?: number;
+  };
+}

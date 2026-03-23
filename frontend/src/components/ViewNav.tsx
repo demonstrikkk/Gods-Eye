@@ -7,7 +7,7 @@ import React from 'react';
 import { useAppStore, type ActiveView } from '@/store';
 import {
   Globe, BarChart2, Brain, Target, Users,
-  Database, MessageSquare, AlertTriangle, Network,
+  Database, MessageSquare, AlertTriangle, Network, Sparkles,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -22,6 +22,7 @@ const VIEWS: ViewItem[] = [
   { key: 'cockpit',      label: 'Cockpit',     icon: <Globe size={12} />,         color: 'text-blue-400' },
   { key: 'executive',    label: 'Executive',   icon: <BarChart2 size={12} />,      color: 'text-emerald-400' },
   { key: 'strategic',    label: 'Strategic',   icon: <Brain size={12} />,          color: 'text-purple-400' },
+  { key: 'expert',       label: 'Expert AI',   icon: <Sparkles size={12} />,       color: 'text-amber-400' },
   { key: 'constituency', label: 'Lens',        icon: <Target size={12} />,         color: 'text-orange-400' },
   { key: 'workers',      label: 'Workers',     icon: <Users size={12} />,          color: 'text-cyan-400' },
   { key: 'schemes',      label: 'Schemes',     icon: <Database size={12} />,       color: 'text-teal-400' },
@@ -40,6 +41,7 @@ export const ViewNav: React.FC = () => {
     if (view === 'cockpit')      setSidebarTab('global');
     if (view === 'executive')    setSidebarTab('booths');
     if (view === 'strategic')    setSidebarTab('ai');
+    if (view === 'expert')       setSidebarTab('expert');
     if (view === 'constituency') setSidebarTab('booths');
     if (view === 'workers')      setSidebarTab('workers');
     if (view === 'schemes')      setSidebarTab('schemes');

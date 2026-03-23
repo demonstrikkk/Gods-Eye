@@ -237,6 +237,74 @@ async def execute_scenario_simulation(request: WhatIfRequest):
         return {"status": "error", "data": {"error": str(e)}}
 
 
+class ExpertAnalysisRequest(BaseModel):
+    query: str
+    context: Dict[str, Any] = {}
+    force_agents: list = []
+
+
+@router.post("/expert-analysis", response_model=Dict[str, Any])
+async def execute_expert_analysis(request: ExpertAnalysisRequest):
+    """
+    Expert-Level Multi-Agent Strategic Intelligence Engine.
+
+    This endpoint provides:
+    - Multi-agent expert reasoning
+    - Evidence-based citations
+    - Uncertainty quantification
+    - Cross-agent validation
+    - Internal debate mechanism
+    - Consensus/disagreement documentation
+
+    Returns:
+    - consensus_view: Agreed-upon assessment
+    - disagreements: Areas where agents disagree
+    - confidence_level: Overall confidence with score
+    - data_sources_cited: Evidence chain
+    - probabilistic_scenarios: Monte Carlo projections
+    """
+    from app.services.expert_strategic_agent import run_expert_strategic_analysis
+
+    try:
+        analysis = await run_expert_strategic_analysis(
+            query=request.query,
+            context=request.context,
+        )
+        return {"status": "success", "data": analysis}
+    except Exception as e:
+        logger.error(f"Expert Analysis Failure: {e}")
+        return {
+            "status": "error",
+            "data": {
+                "executive_summary": f"Expert analysis engine encountered an error: {str(e)}",
+                "expert_assessment": {
+                    "confidence": {"level": "Cannot Assess", "score": 0.0},
+                    "disagreements": [],
+                },
+                "strategic_recommendations": ["Retry with API connectivity"],
+            },
+        }
+
+
+@router.get("/expert-agents", response_model=Dict[str, Any])
+async def get_available_expert_agents():
+    """
+    Returns list of available expert agents and their capabilities.
+    """
+    from app.agents.agent_orchestrator import expert_orchestrator
+
+    try:
+        agents = expert_orchestrator.get_available_agents()
+        return {"status": "success", "agents": agents}
+    except Exception as e:
+        logger.error(f"Failed to get expert agents: {e}")
+        return {
+            "status": "error",
+            "agents": [],
+            "error": str(e),
+        }
+
+
 @router.post("/news-insight", response_model=Dict[str, Any])
 @limiter.limit("12/minute")
 async def get_news_insight(request: Request, payload: StrategicQueryRequest):

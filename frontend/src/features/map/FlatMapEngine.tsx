@@ -107,6 +107,8 @@ export const FlatMapEngine: React.FC = () => {
     setSelected,
     setSidebarTab,
     setSidebarOpen,
+    expertMapLayers,
+    expertAffectedRegions,
   } = useAppStore();
 
   const { data: countries = [], dataUpdatedAt } = useQuery({
@@ -280,6 +282,36 @@ export const FlatMapEngine: React.FC = () => {
           </Marker>
         ))}
       </MapContainer>
+
+      {/* Expert Analysis Overlay Indicator */}
+      {expertMapLayers.length > 0 && (
+        <div className="pointer-events-none absolute top-3 left-3 z-[400] rounded-xl border border-purple-500/50 bg-purple-950/80 p-3 backdrop-blur-md">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest text-purple-300">Expert Analysis Active</span>
+          </div>
+          <div className="space-y-1 text-[11px] text-purple-200">
+            <div>{expertMapLayers.length} visualization layer{expertMapLayers.length > 1 ? 's' : ''}</div>
+            {expertAffectedRegions.length > 0 && (
+              <div className="text-purple-400">
+                Focus: {expertAffectedRegions.slice(0, 3).join(', ')}
+                {expertAffectedRegions.length > 3 && ` +${expertAffectedRegions.length - 3} more`}
+              </div>
+            )}
+          </div>
+          <div className="mt-2 space-y-1">
+            {expertMapLayers.slice(0, 4).map((layer, i) => (
+              <div key={i} className="flex items-center gap-2 text-[10px]">
+                <div
+                  className="h-2 w-2 rounded-sm"
+                  style={{ backgroundColor: layer.color || (layer.color_scale === 'red_gradient' ? '#ef4444' : '#3b82f6') }}
+                />
+                <span className="text-purple-300">{layer.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="pointer-events-none absolute top-3 right-3 z-[400] rounded-xl border border-zinc-800 bg-black/65 p-3 backdrop-blur-md">
         <div className="mb-2 text-[10px] uppercase tracking-widest text-zinc-500">Global Brief</div>

@@ -6,7 +6,8 @@
 import type {
   BoothPoint, Booth, Worker, Scheme, GlobalCountry, GlobalSignal, GlobalCorridor, GlobalOverview, SourceHealth, MarketQuote,
   GlobalAsset, CountryAnalysis,
-  GeoEvent, FireHotspot, Earthquake, NewsFeed, Alert, QueryResponse
+  GeoEvent, FireHotspot, Earthquake, NewsFeed, Alert, QueryResponse,
+  ExpertAnalysisResponse, ExpertAgent
 } from '@/types';
 
 const BASE = '/api/v1';
@@ -138,4 +139,56 @@ export const apiClient = {
     if (!res.ok) throw new Error(`API POST ${url} failed`);
     return { data: await res.json() };
   },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Expert Agent System API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ExpertAnalysisRequest {
+  query: string;
+  context?: Record<string, any>;
+  force_agents?: string[];
+}
+
+export const postExpertAnalysis = async (
+  query: string,
+  context?: Record<string, any>,
+  forceAgents?: string[]
+): Promise<{ status: string; data: ExpertAnalysisResponse }> => {
+  const res = await fetch(`${BASE}/intelligence/expert-analysis`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      context: context || {},
+      force_agents: forceAgents || [],
+    }),
+  });
+  if (!res.ok) throw new Error(`Expert analysis failed: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchExpertAgents = async (): Promise<{ status: string; agents: ExpertAgent[] }> => {
+  const res = await fetch(`${BASE}/intelligence/expert-agents`);
+  if (!res.ok) throw new Error(`Failed to fetch expert agents: ${res.status}`);
+  return await res.json();
+};
+
+export const postExpertWhatIf = async (
+  originalContext: string,
+  whatIfQuery: string,
+  variables: Record<string, any>
+): Promise<any> => {
+  const res = await fetch(`${BASE}/intelligence/scenario-simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      original_context: originalContext,
+      whatif_query: whatIfQuery,
+      variables,
+    }),
+  });
+  if (!res.ok) throw new Error(`Expert what-if simulation failed: ${res.status}`);
+  return await res.json();
 };

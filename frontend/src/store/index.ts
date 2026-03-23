@@ -9,6 +9,7 @@ export type ActiveView =
   | 'cockpit'
   | 'executive'
   | 'strategic'
+  | 'expert'
   | 'constituency'
   | 'workers'
   | 'schemes'
@@ -41,8 +42,8 @@ interface AppState {
 
   // Agent Handoff
   pendingAgentQuery: string | null;
-  pendingAgentMode: 'standard' | 'strategic' | 'news';
-  setPendingAgentQuery: (query: string, mode: 'standard' | 'strategic' | 'news') => void;
+  pendingAgentMode: 'standard' | 'strategic' | 'news' | 'expert';
+  setPendingAgentQuery: (query: string, mode: 'standard' | 'strategic' | 'news' | 'expert') => void;
   clearPendingAgentQuery: () => void;
 
   // Sidebar
@@ -50,6 +51,20 @@ interface AppState {
   setSidebarTab: (tab: SidebarTab) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+
+  // Expert Analysis Map Visualization
+  expertMapLayers: Array<{
+    type: string;
+    name: string;
+    description?: string;
+    data: any;
+    color?: string;
+    color_scale?: string;
+    visible?: boolean;
+  }>;
+  expertAffectedRegions: string[];
+  setExpertMapLayers: (layers: AppState['expertMapLayers'], regions?: string[]) => void;
+  clearExpertMapLayers: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -110,4 +125,10 @@ export const useAppStore = create<AppState>((set) => ({
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   sidebarOpen: true,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
+
+  // Expert Analysis Map Visualization
+  expertMapLayers: [],
+  expertAffectedRegions: [],
+  setExpertMapLayers: (layers, regions = []) => set({ expertMapLayers: layers, expertAffectedRegions: regions }),
+  clearExpertMapLayers: () => set({ expertMapLayers: [], expertAffectedRegions: [] }),
 }));

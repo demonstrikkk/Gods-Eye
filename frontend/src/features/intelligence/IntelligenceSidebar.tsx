@@ -14,6 +14,7 @@ import { WorkersTab }  from '@/features/workers/WorkersTab';
 import { SchemesTab }  from '@/features/schemes/SchemesTab';
 import { AlertsTab }   from '@/features/intelligence/AlertsTab';
 import { AIConsoleTab } from '@/features/intelligence/AIConsoleTab';
+import ExpertAnalysisTab from '@/features/intelligence/ExpertAnalysisTab';
 import { ExecutivePanel }     from '@/features/panels/ExecutivePanel';
 import { GlobalOverviewPanel } from '@/features/panels/GlobalOverviewPanel';
 import { StrategicDashboard } from '@/pages/StrategicDashboard';
@@ -21,7 +22,7 @@ import { OntologyDashboard } from '@/pages/OntologyDashboard';
 import { ConstituencyPanel }  from '@/features/panels/ConstituencyPanel';
 import { CommsPanel }         from '@/features/panels/CommsPanel';
 import {
-  Globe2, MapPin, Users, BookOpen, Bell, Sparkles, ChevronsRight,
+  Globe2, MapPin, Users, BookOpen, Bell, Sparkles, ChevronsRight, Brain,
 } from 'lucide-react';
 
 const TABS: { key: SidebarTab; label: string; icon: React.ReactNode }[] = [
@@ -31,6 +32,7 @@ const TABS: { key: SidebarTab; label: string; icon: React.ReactNode }[] = [
   { key: 'schemes', label: 'Schemes',  icon: <BookOpen size={13} />  },
   { key: 'alerts',  label: 'Signals',  icon: <Bell size={13} />      },
   { key: 'ai',      label: 'Agent',    icon: <Sparkles size={13} />  },
+  { key: 'expert',  label: 'Expert',   icon: <Brain size={13} />     },
 ];
 
 // View-specific overlay panels shown above the tabs
@@ -48,14 +50,17 @@ const TAB_CONTENT: Record<SidebarTab, React.ReactNode> = {
   schemes: <SchemesTab />,
   alerts:  <AlertsTab />,
   ai:      <AIConsoleTab />,
+  expert:  <ExpertAnalysisTab />,
 };
 
 export const IntelligenceSidebar: React.FC = () => {
   const { sidebarTab, setSidebarTab, sidebarOpen, setSidebarOpen, activeView, selectedId, selectedType } = useAppStore();
   const viewPanel = VIEW_PANEL[activeView];
-  const panelTitle = selectedType === 'country' && selectedId
-    ? `Country Research · ${selectedId.replace('CTR-', '')}`
-    : 'Research Panel';
+  const panelTitle = activeView === 'expert'
+    ? 'Expert Multi-Agent Analysis'
+    : selectedType === 'country' && selectedId
+      ? `Country Research · ${selectedId.replace('CTR-', '')}`
+      : 'Research Panel';
 
   return (
     <AnimatePresence mode="wait">
@@ -68,7 +73,7 @@ export const IntelligenceSidebar: React.FC = () => {
           transition={{ type: 'spring', stiffness: 300, damping: 35 }}
           className={clsx(
             "border-l border-zinc-800/80 bg-[#0b0b0e]/95 backdrop-blur-xl flex flex-col flex-shrink-0 relative z-30 transition-all duration-300",
-            activeView === 'strategic' || activeView === 'ontology' ? "w-[60%] lg:w-[65%]" : "w-[40%]"
+            activeView === 'strategic' || activeView === 'ontology' || activeView === 'expert' ? "w-[60%] lg:w-[65%]" : "w-[40%]"
           )}
         >
           {/* Header */}
@@ -95,6 +100,10 @@ export const IntelligenceSidebar: React.FC = () => {
           ) : activeView === 'ontology' ? (
             <div className="flex-1 overflow-y-auto w-full custom-scrollbar p-3">
               <OntologyDashboard />
+            </div>
+          ) : activeView === 'expert' ? (
+            <div className="flex-1 overflow-hidden w-full">
+              <ExpertAnalysisTab />
             </div>
           ) : (
             <>

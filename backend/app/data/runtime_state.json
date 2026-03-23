@@ -3,67 +3,80 @@
     {
       "id": "dyn-gdelt-0",
       "country_id": "CTR-UKR",
-      "title": "Гърция и Южна Европа очакват наплив от туристи заради войната в Близкия изток",
-      "summary": "novinite.bg reported a live geopolitical event.",
+      "title": "New Yorkers Fleeing Mamdani for Miami ? Yeah , Right",
+      "summary": "therealdeal.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "novinite.bg",
-      "time": "20260322T133000Z",
+      "source": "therealdeal.com",
+      "time": "20260322T180000Z",
       "lat": 50.4501,
       "lng": 30.5234
     },
     {
       "id": "dyn-gdelt-1",
       "country_id": "CTR-SAU",
-      "title": "US and Iran trade threats of expanding war after strikes near sites tied to nuclear programs",
-      "summary": "goskagit.com reported a live geopolitical event.",
+      "title": "मध्य - पूर्व तनाव हुआ बेहद खतरनाक , ईरान - इजरायल संघर्ष परमाणु युद्ध की ओर बढ़ रहा ! ",
+      "summary": "khabarfast.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
-      "severity": "High",
-      "source": "goskagit.com",
-      "time": "20260322T133000Z",
+      "severity": "Medium",
+      "source": "khabarfast.com",
+      "time": "20260322T180000Z",
       "lat": 24.7136,
       "lng": 46.6753
     },
     {
       "id": "dyn-gdelt-2",
       "country_id": "CTR-IND",
-      "title": "Η Ισπανία θα μειώσει τον ΦΠΑ στα καύσιμα λόγω του πολέμου στο Ιράν",
-      "summary": "inewsgr.com reported a live geopolitical event.",
+      "title": "Donald Trump shares Saturday Night Live united kingdom skit poking fun at Prime Minister",
+      "summary": "rutland-times.co.uk reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "inewsgr.com",
-      "time": "20260322T133000Z",
+      "source": "rutland-times.co.uk",
+      "time": "20260322T180000Z",
       "lat": 20.5937,
       "lng": 78.9629
     },
     {
       "id": "dyn-gdelt-3",
       "country_id": "CTR-SGP",
-      "title": "El creador de  El Juego del Calamar  habló de su próximo proyecto y aseguró que será  más brutal  ",
-      "summary": "infobae.com reported a live geopolitical event.",
+      "title": "جريدة القدس",
+      "summary": "alquds.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "infobae.com",
-      "time": "20260322T133000Z",
+      "source": "alquds.com",
+      "time": "20260322T180000Z",
       "lat": 1.3521,
       "lng": 103.8198
     },
     {
       "id": "dyn-gdelt-4",
       "country_id": "CTR-BHS",
-      "title": "Study finds blast in Bahrain that injured 32 was likely fired by U . S . ",
-      "summary": "cambodiantimes.com reported a live geopolitical event.",
+      "title": "россия увеличила объемы продажи сырой нефти для заработка на свою войну - Зеленский",
+      "summary": "unn.ua reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "cambodiantimes.com",
-      "time": "20260322T133000Z",
+      "source": "unn.ua",
+      "time": "20260322T180000Z",
       "lat": 38.9072,
       "lng": -77.0369
+    },
+    {
+      "id": "quake-us6000sii1",
+      "country_id": "CTR-WSM",
+      "title": "M6.3 seismic event",
+      "summary": "144 km NE of Hihifo, Tonga",
+      "category": "Climate",
+      "layer": "climate",
+      "severity": "High",
+      "source": "USGS",
+      "time": "LIVE",
+      "lat": -15.2263,
+      "lng": -172.6832
     },
     {
       "id": "quake-us6000si5l",
@@ -249,107 +262,107 @@
     },
     {
       "id": "opensky-0",
-      "country_id": "CTR-IND",
-      "title": "Aviation activity: AXB2959",
-      "summary": "OpenSky aircraft state linked to India.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 13.2084,
-      "lng": 77.538
-    },
-    {
-      "id": "opensky-1",
-      "country_id": "CTR-CHL",
-      "title": "Aviation activity: LAN774",
-      "summary": "OpenSky aircraft state linked to Chile.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": -24.5294,
-      "lng": -45.739
-    },
-    {
-      "id": "opensky-2",
-      "country_id": "CTR-IND",
-      "title": "Aviation activity: AXB1041",
-      "summary": "OpenSky aircraft state linked to India.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 26.5558,
-      "lng": 84.0058
-    },
-    {
-      "id": "opensky-3",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF67BK",
+      "title": "Aviation activity: TVF79ZM",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 48.0479,
-      "lng": 3.5712
+      "lat": 40.1738,
+      "lng": 2.8985
     },
     {
-      "id": "opensky-4",
-      "country_id": "CTR-IND",
-      "title": "Aviation activity: AXB1195",
-      "summary": "OpenSky aircraft state linked to India.",
+      "id": "opensky-1",
+      "country_id": "CTR-FRA",
+      "title": "Aviation activity: TVF50YJ",
+      "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 27.1673,
-      "lng": 79.8797
+      "lat": 44.1316,
+      "lng": 16.7997
     },
     {
-      "id": "opensky-5",
-      "country_id": "CTR-POL",
-      "title": "Aviation activity: SPAWE",
-      "summary": "OpenSky aircraft state linked to Poland.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 52.277,
-      "lng": 20.9732
-    },
-    {
-      "id": "opensky-6",
+      "id": "opensky-2",
       "country_id": "CTR-USA",
-      "title": "Aviation activity: AAL820",
+      "title": "Aviation activity: RTY484",
       "summary": "OpenSky aircraft state linked to United States.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 42.1545,
-      "lng": -89.1572
+      "lat": 40.6848,
+      "lng": -104.7653
     },
     {
-      "id": "opensky-7",
-      "country_id": "CTR-IND",
-      "title": "Aviation activity: UNKNOWN",
-      "summary": "OpenSky aircraft state linked to India.",
+      "id": "opensky-3",
+      "country_id": "CTR-CHL",
+      "title": "Aviation activity: LAN775",
+      "summary": "OpenSky aircraft state linked to Chile.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 15.1291,
-      "lng": 76.0572
+      "lat": -30.9369,
+      "lng": -58.8203
+    },
+    {
+      "id": "opensky-4",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: N2069K",
+      "summary": "OpenSky aircraft state linked to United States.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 41.0244,
+      "lng": -122.1982
+    },
+    {
+      "id": "opensky-5",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: N56FA",
+      "summary": "OpenSky aircraft state linked to United States.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 34.016,
+      "lng": -118.8053
+    },
+    {
+      "id": "opensky-6",
+      "country_id": "CTR-FRA",
+      "title": "Aviation activity: TVF70KA",
+      "summary": "OpenSky aircraft state linked to France.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 51.2019,
+      "lng": 10.75
+    },
+    {
+      "id": "opensky-7",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: UAL804",
+      "summary": "OpenSky aircraft state linked to United States.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 42.4785,
+      "lng": -92.0556
     },
     {
       "id": "cisa-CVE-2025-32432",
@@ -391,7 +404,7 @@
       "lng": 8.6821
     },
     {
-      "id": "yahoo search-0-62404",
+      "id": "yahoo search-0-80130",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: Reuters www.reuters.com › business › energy Energy supply worries to keep Indian rupee, bo",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -404,7 +417,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-1-37896",
+      "id": "yahoo search-1-15660",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: The Economic Times economictimes.indiatimes.com › topic › india india geopolitics News and",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -417,7 +430,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-2-6311",
+      "id": "yahoo search-2-94165",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: Nairametrics nairametrics.com › 2026/03/21 › energy-crisis-400 Energy crisis: 400 million ",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -430,7 +443,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-3-52330",
+      "id": "yahoo search-3-60206",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: bwsecurityworld.com bwsecurityworld.com › technology › indias-risk India’s Risk Outlook 20",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -451,7 +464,7 @@
       "status": "live",
       "item_count": 5,
       "message": "GDELT Project",
-      "last_updated": "2026-03-22T13:55:20.720919",
+      "last_updated": "2026-03-22T18:21:46.905311",
       "strategy": null
     },
     {
@@ -459,9 +472,9 @@
       "label": "USGS",
       "mode": "free",
       "status": "live",
-      "item_count": 2,
+      "item_count": 3,
       "message": "USGS Earthquake API",
-      "last_updated": "2026-03-22T13:55:22.016805",
+      "last_updated": "2026-03-22T18:21:47.743032",
       "strategy": null
     },
     {
@@ -471,7 +484,7 @@
       "status": "live",
       "item_count": 6,
       "message": "NASA EONET Wildfires",
-      "last_updated": "2026-03-22T13:55:22.818488",
+      "last_updated": "2026-03-22T18:21:48.165252",
       "strategy": null
     },
     {
@@ -481,7 +494,7 @@
       "status": "live",
       "item_count": 0,
       "message": "FRED API",
-      "last_updated": "2026-03-22T13:55:23.448386",
+      "last_updated": "2026-03-22T18:21:48.506853",
       "strategy": null
     },
     {
@@ -491,7 +504,7 @@
       "status": "live",
       "item_count": 5,
       "message": "World Bank Open Data",
-      "last_updated": "2026-03-22T13:55:28.939748",
+      "last_updated": "2026-03-22T18:21:54.571504",
       "strategy": null
     },
     {
@@ -501,7 +514,7 @@
       "status": "live",
       "item_count": 1,
       "message": "EIA API",
-      "last_updated": "2026-03-22T13:55:28.537711",
+      "last_updated": "2026-03-22T18:21:52.643577",
       "strategy": null
     },
     {
@@ -511,7 +524,7 @@
       "status": "fallback",
       "item_count": 0,
       "message": "No resource ids available yet. Add DATA_GOV_IN_RESOURCE_IDS or allow the cache to warm through query discovery.",
-      "last_updated": "2026-03-22T13:55:32.132895",
+      "last_updated": "2026-03-22T18:21:55.227055",
       "strategy": "cached_query_discovery"
     },
     {
@@ -521,7 +534,7 @@
       "status": "live",
       "item_count": 8,
       "message": "OpenSky Network (ADS-B)",
-      "last_updated": "2026-03-22T13:55:24.226418",
+      "last_updated": "2026-03-22T18:21:50.304850",
       "strategy": null
     },
     {
@@ -531,7 +544,7 @@
       "status": "live",
       "item_count": 3,
       "message": "CISA KEV Catalog",
-      "last_updated": "2026-03-22T13:55:23.913384",
+      "last_updated": "2026-03-22T18:21:48.165252",
       "strategy": null
     },
     {
@@ -541,7 +554,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Reddit Public JSON",
-      "last_updated": "2026-03-22T13:55:23.254383",
+      "last_updated": "2026-03-22T18:21:48.622016",
       "strategy": null
     },
     {
@@ -551,7 +564,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Mastodon Public Timeline",
-      "last_updated": "2026-03-22T13:55:23.034418",
+      "last_updated": "2026-03-22T18:21:47.976507",
       "strategy": null
     },
     {
@@ -561,7 +574,7 @@
       "status": "live",
       "item_count": 4,
       "message": "Yahoo Search",
-      "last_updated": "2026-03-22T13:55:22.754408",
+      "last_updated": "2026-03-22T18:21:46.964525",
       "strategy": null
     },
     {
@@ -571,7 +584,7 @@
       "status": "fallback",
       "item_count": 0,
       "message": "DuckDuckGo Search",
-      "last_updated": "2026-03-22T13:55:24.302732",
+      "last_updated": "2026-03-22T18:21:46.966516",
       "strategy": null
     },
     {
@@ -581,7 +594,7 @@
       "status": "live",
       "item_count": 250,
       "message": "REST Countries",
-      "last_updated": "2026-03-22T13:55:36.383329"
+      "last_updated": "2026-03-22T18:22:00.594740"
     },
     {
       "id": "markets",
@@ -590,7 +603,7 @@
       "status": "live",
       "item_count": 5,
       "message": "Finnhub",
-      "last_updated": "2026-03-22T13:55:36.383329"
+      "last_updated": "2026-03-22T18:22:00.594740"
     }
   ],
   "market_snapshot": [
@@ -3637,5 +3650,5 @@
       "area": 110879.0
     }
   ],
-  "last_refresh": "2026-03-22T13:55:36.383329"
+  "last_refresh": "2026-03-22T18:22:00.594740"
 }

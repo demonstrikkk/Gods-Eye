@@ -16,14 +16,63 @@ const riskBg = (risk: number) => risk >= 70 ? 'bg-red-950/50 border-red-900' : r
 const urgencyIcon   = (u: string) => u === 'High' ? <AlertTriangle size={12} className="text-red-400" /> : u === 'Medium' ? <Zap size={12} className="text-amber-400" /> : <Shield size={12} className="text-blue-400" />;
 
 export const HoverPopup: React.FC = () => {
-  const { hoveredItem, setHoveredItem } = useAppStore();
+  const { hoveredItem, setHoveredItem, setSelected } = useAppStore();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isMouseOverPopup, setIsMouseOverPopup] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
     window.addEventListener('mousemove', onMouseMove);
     return () => window.removeEventListener('mousemove', onMouseMove);
+  }, []);
+
+  // Hide popup when mouse leaves, with delay
+  const handleMouseLeave = () => {
+    hideTimeoutRef.current = setTimeout(() => {
+      if (!isMouseOverPopup) {
+        setHoveredItem(null);
+      }
+    }, 200); // 200ms delay before hiding
+  };
+
+  const handleMouseEnter = () => {
+    setIsMouseOverPopup(true);
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+  };
+
+  const handleMouseLeavePopup = () => {
+    setIsMouseOverPopup(false);
+    hideTimeoutRef.current = setTimeout(() => {
+      setHoveredItem(null);
+    }, 150);
+  };
+
+  const handleClick = () => {
+    if (hoveredItem) {
+      // Determine type and set selection
+      if (hoveredItem.risk_index !== undefined) {
+        setSelected(hoveredItem.id, 'country');
+      } else if (hoveredItem.booth_id || hoveredItem.avg_sentiment !== undefined) {
+        setSelected(hoveredItem.id, 'booth');
+      } else if (hoveredItem.urgency) {
+        setSelected(hoveredItem.id, hoveredItem.type || 'signal');
+      }
+      setHoveredItem(null);
+    }
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
   }, []);
 
   if (!hoveredItem) return null;
@@ -46,8 +95,11 @@ export const HoverPopup: React.FC = () => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94 }}
         transition={{ duration: 0.12 }}
-        style={{ position: 'fixed', left, top, zIndex: 9999, minWidth: popupW, maxWidth: 320, pointerEvents: 'none' }}
-        className="bg-[#0a0a0d]/95 border border-zinc-800 rounded-lg shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeavePopup}
+        onClick={handleClick}
+        style={{ position: 'fixed', left, top, zIndex: 9999, minWidth: popupW, maxWidth: 320, pointerEvents: 'auto' }}
+        className="bg-[#0a0a0d]/95 border border-zinc-800 rounded-lg shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden cursor-pointer hover:border-zinc-700 transition-colors"
       >
         {/* Top accent line */}
         <div className="h-0.5 w-full bg-gradient-to-r from-blue-600/80 via-purple-600/80 to-transparent" />
