@@ -6,21 +6,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store';
-import { X, ExternalLink, AlertTriangle, Zap, Shield, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Zap, Shield } from 'lucide-react';
 import clsx from 'clsx';
 
 const sentimentColor = (s: number) => s < 35 ? 'text-red-400' : s < 55 ? 'text-amber-400' : 'text-emerald-400';
-const sentimentBg   = (s: number) => s < 35 ? 'bg-red-950/50 border-red-900' : s < 55 ? 'bg-amber-950/50 border-amber-900' : 'bg-emerald-950/50 border-emerald-900';
+const sentimentBg = (s: number) => s < 35 ? 'bg-red-950/50 border-red-900' : s < 55 ? 'bg-amber-950/50 border-amber-900' : 'bg-emerald-950/50 border-emerald-900';
 const riskColor = (risk: number) => risk >= 70 ? 'text-red-400' : risk >= 50 ? 'text-amber-400' : 'text-emerald-400';
 const riskBg = (risk: number) => risk >= 70 ? 'bg-red-950/50 border-red-900' : risk >= 50 ? 'bg-amber-950/50 border-amber-900' : 'bg-emerald-950/50 border-emerald-900';
-const urgencyIcon   = (u: string) => u === 'High' ? <AlertTriangle size={12} className="text-red-400" /> : u === 'Medium' ? <Zap size={12} className="text-amber-400" /> : <Shield size={12} className="text-blue-400" />;
+const urgencyIcon = (u: string) => u === 'High' ? <AlertTriangle size={12} className="text-red-400" /> : u === 'Medium' ? <Zap size={12} className="text-amber-400" /> : <Shield size={12} className="text-blue-400" />;
 
 export const HoverPopup: React.FC = () => {
   const { hoveredItem, setHoveredItem, setSelected } = useAppStore();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isMouseOverPopup, setIsMouseOverPopup] = useState(false);
+  const [activeItem, setActiveItem] = useState<any | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
@@ -28,17 +28,22 @@ export const HoverPopup: React.FC = () => {
     return () => window.removeEventListener('mousemove', onMouseMove);
   }, []);
 
-  // Hide popup when mouse leaves, with delay
-  const handleMouseLeave = () => {
-    hideTimeoutRef.current = setTimeout(() => {
-      if (!isMouseOverPopup) {
-        setHoveredItem(null);
+  useEffect(() => {
+    if (hoveredItem) {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
       }
-    }, 200); // 200ms delay before hiding
-  };
+      setActiveItem(hoveredItem);
+      return;
+    }
+
+    hideTimeoutRef.current = setTimeout(() => {
+      setActiveItem(null);
+    }, 180);
+  }, [hoveredItem]);
 
   const handleMouseEnter = () => {
-    setIsMouseOverPopup(true);
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = null;
@@ -46,24 +51,24 @@ export const HoverPopup: React.FC = () => {
   };
 
   const handleMouseLeavePopup = () => {
-    setIsMouseOverPopup(false);
     hideTimeoutRef.current = setTimeout(() => {
       setHoveredItem(null);
-    }, 150);
+      setActiveItem(null);
+    }, 120);
   };
 
   const handleClick = () => {
-    if (hoveredItem) {
-      // Determine type and set selection
-      if (hoveredItem.risk_index !== undefined) {
-        setSelected(hoveredItem.id, 'country');
-      } else if (hoveredItem.booth_id || hoveredItem.avg_sentiment !== undefined) {
-        setSelected(hoveredItem.id, 'booth');
-      } else if (hoveredItem.urgency) {
-        setSelected(hoveredItem.id, hoveredItem.type || 'signal');
-      }
-      setHoveredItem(null);
+    if (!activeItem) return;
+
+    if (activeItem.risk_index !== undefined) {
+      setSelected(activeItem.id, 'country');
+    } else if (activeItem.booth_id || activeItem.avg_sentiment !== undefined) {
+      setSelected(activeItem.id, 'booth');
+    } else if (activeItem.urgency) {
+      setSelected(activeItem.id, activeItem.type || 'signal');
     }
+    setHoveredItem(null);
+    setActiveItem(null);
   };
 
   // Cleanup timeout on unmount
@@ -75,7 +80,7 @@ export const HoverPopup: React.FC = () => {
     };
   }, []);
 
-  if (!hoveredItem) return null;
+  if (!activeItem) return null;
 
   // Smart positioning: flip if too close to edge
   const W = window.innerWidth;
@@ -83,9 +88,9 @@ export const HoverPopup: React.FC = () => {
   const popupW = 280;
   const popupH = 200;
   const left = mousePos.x + 18 + popupW > W ? mousePos.x - popupW - 12 : mousePos.x + 18;
-  const top  = mousePos.y + 18 + popupH > H ? mousePos.y - popupH - 12 : mousePos.y + 18;
+  const top = mousePos.y + 18 + popupH > H ? mousePos.y - popupH - 12 : mousePos.y + 18;
 
-  const item = hoveredItem;
+  const item = activeItem;
 
   return (
     <AnimatePresence>
@@ -136,7 +141,7 @@ export const HoverPopup: React.FC = () => {
               </div>
               {item.top_issues?.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {item.top_issues.slice(0, 3).map((issue: any, i: number) => (
+                  {item.top_issues.slice(0, 3)?.map((issue: any, i: number) => (
                     <span key={i} className="text-[8px] font-mono tracking-wide uppercase bg-zinc-900 border border-zinc-800/80 text-zinc-400 px-1.5 py-0.5 rounded-sm">
                       {issue.issue || issue}
                     </span>
@@ -165,7 +170,7 @@ export const HoverPopup: React.FC = () => {
               </div>
               {item.top_domains?.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {item.top_domains.slice(0, 3).map((domain: string) => (
+                  {item.top_domains.slice(0, 3)?.map((domain: string) => (
                     <span key={domain} className="text-[8px] font-mono uppercase bg-zinc-900 border border-zinc-800/80 text-zinc-400 px-1.5 py-0.5 rounded-sm">
                       {domain}
                     </span>

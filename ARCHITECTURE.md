@@ -1,8 +1,8 @@
-# JanGraph OS Architecture
+# Gods-Eye OS Architecture
 
 ## 1. Architecture Intent
 
-JanGraph OS is designed as a dual-domain intelligence system:
+Gods-Eye OS is designed as a dual-domain intelligence system:
 
 - Civic domain for constituency and booth-level governance operations
 - Global domain for world-scale risk, signals, and strategic infrastructure

@@ -1,5 +1,5 @@
 """
-Agent Debate Engine for JanGraph OS
+Agent Debate Engine for Gods-Eye OS
 
 This module implements a structured debate system where multiple expert agents:
 1. Present their initial positions with supporting evidence

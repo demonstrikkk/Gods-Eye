@@ -12,7 +12,7 @@ interface SkeletonProps {
 
 export const Skeleton: React.FC<SkeletonProps> = ({ className, rows = 1 }) => (
   <div className="space-y-2">
-    {Array.from({ length: rows }).map((_, i) => (
+    {Array.from({ length: rows })?.map((_, i) => (
       <div
         key={i}
         className={clsx(
@@ -35,7 +35,7 @@ export const CardSkeleton: React.FC = () => (
 
 export const ListSkeleton: React.FC<{ count?: number }> = ({ count = 4 }) => (
   <div className="space-y-2">
-    {Array.from({ length: count }).map((_, i) => (
+    {Array.from({ length: count })?.map((_, i) => (
       <div key={i} className="flex items-center space-x-3 p-3 rounded-lg bg-zinc-900/60">
         <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse flex-shrink-0" />
         <div className="flex-1 space-y-2">

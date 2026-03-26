@@ -155,7 +155,7 @@ export const StrategicDashboard: React.FC = () => {
 
                 {/* Example Queries */}
                 <div className="mt-4 flex flex-wrap gap-2 relative z-10">
-                    {EXAMPLE_QUERIES.map((eq, i) => (
+                    {EXAMPLE_QUERIES?.map((eq, i) => (
                         <button key={i} type="button" onClick={() => setQuery(eq)}
                             className="text-[10px] px-3 py-1 rounded-full border border-border/50 text-text-muted hover:text-purple-400 hover:border-purple-500/50 transition-colors bg-background/50">
                             {eq.slice(0, 50)}...
@@ -173,7 +173,7 @@ export const StrategicDashboard: React.FC = () => {
                         Planning → Gathering Data → Reasoning → Generating Scenarios...
                     </div>
                     <div className="mt-6 flex space-x-3">
-                        {['Planner', 'Tools', 'Reasoning', 'Scenarios'].map((step, i) => (
+                        {['Planner', 'Tools', 'Reasoning', 'Scenarios']?.map((step, i) => (
                             <div key={step} className="flex items-center text-[10px] uppercase tracking-wider">
                                 <Loader2 className={`mr-1 text-purple-400 ${i === 0 ? 'animate-spin' : 'opacity-30'}`} size={12} />
                                 <span className={i === 0 ? 'text-purple-400' : 'text-text-muted/50'}>{step}</span>
@@ -193,14 +193,13 @@ export const StrategicDashboard: React.FC = () => {
                             { id: 'scenarios', label: 'Scenario Analysis', icon: <GitBranch size={14} /> },
                             { id: 'timeline', label: 'Timeline', icon: <Clock size={14} /> },
                             { id: 'whatif', label: 'What-If Simulator', icon: <Repeat size={14} /> },
-                        ].map(tab => (
+                        ]?.map(tab => (
                             <button key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                                    activeTab === tab.id
-                                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                                        : 'text-text-muted hover:text-text-main hover:bg-panel/50'
-                                }`}>
+                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === tab.id
+                                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                                    : 'text-text-muted hover:text-text-main hover:bg-panel/50'
+                                    }`}>
                                 {tab.icon}
                                 <span>{tab.label}</span>
                             </button>
@@ -233,7 +232,7 @@ export const StrategicDashboard: React.FC = () => {
                                         <AlertTriangle size={14} className="mr-2 text-warning" /> Key Risk Factors
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {analysis.key_risk_factors.map((risk, i) => (
+                                        {analysis.key_risk_factors?.map((risk, i) => (
                                             <div key={i} className={`p-4 rounded-xl border ${getSeverityColor(risk.severity)}`}>
                                                 <div className="flex justify-between items-start mb-2">
                                                     <span className="font-bold text-sm">{risk.factor}</span>
@@ -247,13 +246,13 @@ export const StrategicDashboard: React.FC = () => {
                             )}
 
                             {/* Impact on India */}
-                            {analysis.impact_on_india && Object.keys(analysis.impact_on_india).length > 0 && (
+                            {analysis.impact_on_india && Object.keys(analysis.impact_on_india)?.length > 0 && (
                                 <div className="glass-panel p-6">
                                     <h3 className="text-xs font-black uppercase tracking-widest text-text-muted mb-4 flex items-center">
                                         <Shield size={14} className="mr-2 text-primary-light" /> Impact on India
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {Object.entries(analysis.impact_on_india).map(([domain, assessment]) => (
+                                        {Object.entries(analysis.impact_on_india)?.map(([domain, assessment]) => (
                                             <div key={domain} className="bg-panel/30 border border-border/50 rounded-xl p-4">
                                                 <div className="text-[10px] font-black uppercase tracking-widest text-primary-light mb-2 flex items-center">
                                                     <ChevronRight size={12} className="mr-1" /> {domain}
@@ -266,13 +265,13 @@ export const StrategicDashboard: React.FC = () => {
                             )}
 
                             {/* Forecasts */}
-                            {analysis.forecasts && Object.keys(analysis.forecasts).length > 0 && (
+                            {analysis.forecasts && Object.keys(analysis.forecasts)?.length > 0 && (
                                 <div className="glass-panel p-6">
                                     <h3 className="text-xs font-black uppercase tracking-widest text-text-muted mb-4 flex items-center">
                                         <TrendingUp size={14} className="mr-2 text-success" /> Strategic Forecasts
                                     </h3>
                                     <div className="space-y-3">
-                                        {Object.entries(analysis.forecasts).map(([period, forecast]) => (
+                                        {Object.entries(analysis.forecasts)?.map(([period, forecast]) => (
                                             <div key={period} className="flex items-start gap-4 p-3 rounded-xl bg-background/40 border border-border/30">
                                                 <Clock size={14} className="text-primary-light mt-0.5 shrink-0" />
                                                 <div>
@@ -294,7 +293,7 @@ export const StrategicDashboard: React.FC = () => {
                                         <Lightbulb size={14} className="mr-2" /> Strategic Recommendations
                                     </h3>
                                     <div className="space-y-2">
-                                        {analysis.strategic_recommendations.map((rec, i) => (
+                                        {analysis.strategic_recommendations?.map((rec, i) => (
                                             <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-background/40 border border-border/30">
                                                 <span className="text-success font-black text-sm mt-0.5">{i + 1}.</span>
                                                 <span className="text-xs text-text-main leading-relaxed">{rec}</span>
@@ -319,10 +318,9 @@ export const StrategicDashboard: React.FC = () => {
                             {/* Scenario Cards */}
                             {analysis.scenarios?.length > 0 && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {analysis.scenarios.map((s, i) => (
-                                        <div key={i} className={`glass-panel p-6 border-t-4 ${
-                                            s.name === 'Best Case' ? 'border-t-success' : s.name === 'Worst Case' ? 'border-t-danger' : 'border-t-warning'
-                                        }`}>
+                                    {analysis.scenarios?.map((s, i) => (
+                                        <div key={i} className={`glass-panel p-6 border-t-4 ${s.name === 'Best Case' ? 'border-t-success' : s.name === 'Worst Case' ? 'border-t-danger' : 'border-t-warning'
+                                            }`}>
                                             <div className="flex justify-between items-start mb-3">
                                                 <h4 className="text-sm font-black text-text-main">{s.name}</h4>
                                                 <span className={`text-[10px] font-black ${getProbColor(s.probability)}`}>{s.probability} Prob</span>
@@ -334,7 +332,7 @@ export const StrategicDashboard: React.FC = () => {
                                             <div className="flex items-center justify-between pt-3 border-t border-border/30">
                                                 <span className="text-[10px] text-text-muted uppercase">Impact Severity</span>
                                                 <div className="flex items-center gap-1">
-                                                    {Array.from({ length: 10 }).map((_, j) => (
+                                                    {Array.from({ length: 10 })?.map((_, j) => (
                                                         <div key={j} className={`w-2 h-4 rounded-sm ${j < s.impact_severity
                                                             ? (s.impact_severity >= 7 ? 'bg-danger' : s.impact_severity >= 4 ? 'bg-warning' : 'bg-success')
                                                             : 'bg-border/30'}`}></div>
@@ -369,7 +367,7 @@ export const StrategicDashboard: React.FC = () => {
                                 {/* Vertical line */}
                                 <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500 via-primary to-success"></div>
                                 <div className="space-y-6">
-                                    {analysis.timeline.map((evt, i) => (
+                                    {analysis.timeline?.map((evt, i) => (
                                         <div key={i} className="flex items-start gap-6 relative">
                                             <div className="w-12 h-12 rounded-full bg-panel border-2 border-primary/50 flex items-center justify-center text-xs font-black text-primary-light shrink-0 z-10 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                                                 D{evt.day}
@@ -422,7 +420,7 @@ export const StrategicDashboard: React.FC = () => {
                                         <div className="glass-panel p-6">
                                             <h4 className="text-xs font-black uppercase tracking-widest text-text-muted mb-3">Impact Delta (Changes)</h4>
                                             <div className="grid grid-cols-2 gap-3">
-                                                {Object.entries(whatifResult.impact_delta).map(([k, v]) => (
+                                                {Object.entries(whatifResult.impact_delta)?.map(([k, v]) => (
                                                     <div key={k} className="bg-panel/30 border border-border/50 rounded-xl p-3">
                                                         <div className="text-[10px] font-black uppercase text-primary-light mb-1">{k}</div>
                                                         <p className="text-xs text-text-main">{v as string}</p>
@@ -437,7 +435,7 @@ export const StrategicDashboard: React.FC = () => {
                                             <h4 className="text-xs font-black uppercase tracking-widest text-text-muted mb-3 flex items-center">
                                                 <TrendingDown size={14} className="mr-2 text-danger" /> Chain Reactions
                                             </h4>
-                                            {whatifResult.chain_reactions.map((cr: any, i: number) => (
+                                            {whatifResult.chain_reactions?.map((cr: any, i: number) => (
                                                 <div key={i} className="mb-3 p-3 border border-border/30 rounded-xl bg-background/40">
                                                     <div className="text-xs font-bold text-warning mb-2">⚡ {cr.trigger}</div>
                                                     <div className="space-y-1 ml-4">

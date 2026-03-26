@@ -1,5 +1,5 @@
 """
-Specialized Expert Agents for JanGraph OS
+Specialized Expert Agents for Gods-Eye OS
 
 This module contains expert agents for specific domains:
 1. EconomicAnalystAgent - Economic indicators, trade, finance

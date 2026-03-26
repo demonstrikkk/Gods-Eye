@@ -312,7 +312,7 @@ Answer:""",
         return self._execute_cypher(cypher)
 
 class OSINTAggregator:
-    USER_AGENT = "JanGraphOS/0.1 (student-dev intelligence cockpit)"
+    USER_AGENT = "Gods-EyeOS/0.1 (student-dev intelligence cockpit)"
     _CACHE_TTL_SECONDS = 180
     _cache: Dict[str, Dict[str, Any]] = {}
     DATA_GOV_DEFAULT_QUERIES = [
@@ -327,6 +327,9 @@ class OSINTAggregator:
         "https://www.data.gov.in/catalogs?title={query}",
         "https://www.data.gov.in/catalog?title={query}",
     )
+    DATA_GOV_RESOURCE_LINK_RE = re.compile(r"/resource/([A-Za-z0-9][A-Za-z0-9-]{5,})", re.IGNORECASE)
+    DATA_GOV_API_LINK_RE = re.compile(r"/apis/([0-9a-fA-F-]{36})", re.IGNORECASE)
+    DATA_GOV_TITLE_RE = re.compile(r"<title>([^<]{6,180})</title>", re.IGNORECASE | re.DOTALL)
 
     @classmethod
     def _cache_get(cls, key: str, ttl_seconds: Optional[int] = None) -> Optional[Dict[str, Any]]:
@@ -393,22 +396,37 @@ class OSINTAggregator:
     def _extract_data_gov_entries(cls, html: str, query: str) -> List[Dict[str, Any]]:
         entries: List[Dict[str, Any]] = []
         seen: set[str] = set()
-        for match in re.finditer(r"/resource/([A-Za-z0-9-]{20,})", html):
-            resource_id = match.group(1)
+        page_title_match = cls.DATA_GOV_TITLE_RE.search(html)
+        page_title = page_title_match.group(1).strip() if page_title_match else ""
+
+        def add_entry(resource_id: str, context: str, discovered_from: str) -> None:
             if resource_id in seen:
-                continue
+                return
             seen.add(resource_id)
-            context = html[max(0, match.start() - 220): min(len(html), match.end() + 220)]
             title_match = re.search(r'title="([^"]{6,180})"', context, flags=re.IGNORECASE)
             entries.append(
                 {
                     "resource_id": resource_id,
-                    "title": title_match.group(1).strip() if title_match else f"Query match for {query}",
+                    "title": title_match.group(1).strip() if title_match else page_title or f"Query match for {query}",
                     "description": "",
                     "source_query": query,
-                    "discovered_from": "html_search",
+                    "discovered_from": discovered_from,
                 }
             )
+
+        for match in cls.DATA_GOV_RESOURCE_LINK_RE.finditer(html):
+            resource_id = match.group(1)
+            context = html[max(0, match.start() - 260): min(len(html), match.end() + 260)]
+            api_match = cls.DATA_GOV_API_LINK_RE.search(context)
+            if api_match:
+                add_entry(api_match.group(1), context, "api_detail")
+            else:
+                add_entry(resource_id, context, "html_search")
+
+        for match in cls.DATA_GOV_API_LINK_RE.finditer(html):
+            resource_id = match.group(1)
+            context = html[max(0, match.start() - 260): min(len(html), match.end() + 260)]
+            add_entry(resource_id, context, "api_detail")
         return entries
 
     @classmethod

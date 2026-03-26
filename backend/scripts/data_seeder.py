@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal, engine, Base
 from app.models.domain import User, Region, RoleType
-from app.core.graph import driver
+from app.core.graph import get_graph_driver, close_graph_driver
 from app.models.graph_schema import initialize_neo4j_constraints
 from passlib.hash import bcrypt
 
@@ -28,14 +28,14 @@ async def init_rdbms():
     async with AsyncSessionLocal() as session:
         # Base Admin User
         admin = User(
-            email="admin@jangraph.gov",
+            email="admin@Gods-Eye.gov",
             full_name="National Admin",
             hashed_password=bcrypt.hash("admin123"),
             role=RoleType.SUPER_ADMIN
         )
         # Base Strategy User
         strategist = User(
-            email="strategist@jangraph.gov",
+            email="strategist@Gods-Eye.gov",
             full_name="Alpha Strategist",
             hashed_password=bcrypt.hash("strat123"),
             role=RoleType.STRATEGIST
@@ -72,7 +72,8 @@ async def init_rdbms():
 
 async def init_graph():
     logger.info("Initializing Neo4j Graph DB...")
-    await initialize_neo4j_constraints(driver)
+    graph_driver = await get_graph_driver()
+    await initialize_neo4j_constraints(graph_driver)
     
     # Pre-seed Neo4j Graph for Demo Map Nodes
     query = """
@@ -88,7 +89,7 @@ async def init_graph():
     MERGE (i2:Issue {name: 'Water Supply Deterioration', urgency: 9})
     MERGE (c2)-[:COMPLAINED_ABOUT]->(i2)
     """
-    async with driver.session() as session:
+    async with graph_driver.session() as session:
         await session.run(query)
     logger.info("Neo4j Data Seeded successfully.")
 
@@ -100,7 +101,7 @@ async def main():
     except Exception as e:
         logger.error(f"Seeder failed: {e}")
     finally:
-        await driver.close()
+        await close_graph_driver()
 
 if __name__ == "__main__":
     asyncio.run(main())

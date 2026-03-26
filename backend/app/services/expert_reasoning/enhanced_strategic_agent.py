@@ -222,7 +222,7 @@ class ExpertStrategicAgent:
                 "methodology": consensus.methodology_notes,
                 "timestamp": consensus.timestamp.isoformat(),
                 "processing_time_ms": consensus.total_processing_time_ms,
-                "engine": "JanGraph Expert Intelligence v4.0",
+                "engine": "Gods-Eye Expert Intelligence v4.0",
             },
         }
 
@@ -498,7 +498,7 @@ class ExpertStrategicAgent:
                 "error": error,
                 "grounding_mode": "fallback",
                 "timestamp": datetime.utcnow().isoformat(),
-                "engine": "JanGraph Expert Intelligence v4.0 (fallback)",
+                "engine": "Gods-Eye Expert Intelligence v4.0 (fallback)",
             },
         }
 

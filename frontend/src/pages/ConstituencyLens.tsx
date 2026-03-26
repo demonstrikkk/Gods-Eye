@@ -118,18 +118,18 @@ export const ConstituencyLens: React.FC = () => {
                 <div className="lg:col-span-1 glass-panel flex flex-col h-[700px]">
                     <div className="p-4 border-b border-border/40 flex justify-between items-center bg-panel/30">
                         <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Target Roster</span>
-                        <span className="text-[10px] bg-primary/20 text-primary-light px-2 py-0.5 rounded">{filteredBooths.length} Nodes</span>
+                        <span className="text-[10px] bg-primary/20 text-primary-light px-2 py-0.5 rounded">{filteredBooths?.length} Nodes</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-2">
                         {boothsLoading ? (
                             <div className="flex items-center justify-center py-12"><Loader2 className="animate-spin text-primary" size={24} /></div>
-                        ) : filteredBooths.map((booth: any) => (
+                        ) : filteredBooths?.map((booth: any) => (
                             <div
                                 key={booth.id}
                                 onClick={() => setSelectedBoothId(booth.id)}
                                 className={`p-4 rounded-xl cursor-pointer transition-all border flex items-center justify-between group ${currentBooth?.id === booth.id
-                                        ? 'bg-primary-dark/20 border-primary shadow-glow ring-1 ring-primary/20'
-                                        : 'bg-background/40 border-border/50 hover:border-text-muted hover:bg-panel/30'
+                                    ? 'bg-primary-dark/20 border-primary shadow-glow ring-1 ring-primary/20'
+                                    : 'bg-background/40 border-border/50 hover:border-text-muted hover:bg-panel/30'
                                     }`}
                             >
                                 <div>
@@ -169,7 +169,7 @@ export const ConstituencyLens: React.FC = () => {
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie data={segmentChartData} innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="count" stroke="none">
-                                                {segmentChartData.map((entry: any, index: number) => (
+                                                {segmentChartData?.map((entry: any, index: number) => (
                                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                                 ))}
                                             </Pie>
@@ -178,7 +178,7 @@ export const ConstituencyLens: React.FC = () => {
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="flex flex-col justify-center space-y-2.5">
-                                    {segmentChartData.map((s: any) => (
+                                    {segmentChartData?.map((s: any) => (
                                         <div key={s.name} className="flex items-center justify-between">
                                             <div className="flex items-center space-x-2">
                                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></div>
@@ -203,7 +203,7 @@ export const ConstituencyLens: React.FC = () => {
                                         <YAxis dataKey="name" type="category" stroke="#a1a1aa" fontSize={9} axisLine={false} tickLine={false} width={90} />
                                         <Tooltip contentStyle={{ backgroundColor: '#141416', border: '1px solid #27272a', borderRadius: '12px', fontSize: '11px' }} />
                                         <Bar dataKey="enrolled" radius={[0, 4, 4, 0]} barSize={12}>
-                                            {(schemes?.slice(0, 6) || []).map((_: any, index: number) => (
+                                            {(schemes?.slice(0, 6) || [])?.map((_: any, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#10b981'} />
                                             ))}
                                         </Bar>

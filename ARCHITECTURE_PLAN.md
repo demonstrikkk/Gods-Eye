@@ -1,4 +1,4 @@
-# JanGraph OS Architecture Plan
+# Gods-Eye OS Architecture Plan
 
 This plan is aligned with the current implementation and describes how to harden it into a production-grade agentic intelligence platform.
 

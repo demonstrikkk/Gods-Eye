@@ -168,8 +168,19 @@ class ExpertStrategicAgent:
             "debate_conducted": expert_response.debate_conducted,
             "consensus_strength": expert_response.consensus.consensus_strength.value if expert_response.consensus else None,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "engine": "JanGraph Expert Strategic Intelligence v4.0",
+            "engine": "Gods-Eye Expert Strategic Intelligence v4.0",
         })
+
+        try:
+            command_ids = strategic_agent.publish_analysis_map_commands(
+                query,
+                merged,
+                source="expert_strategic_agent",
+                priority="high",
+            )
+            merged["_meta"]["expert_map_command_ids"] = command_ids
+        except Exception as e:
+            self.logger.warning(f"Expert map command generation failed: {e}")
 
         return merged
 
@@ -203,7 +214,7 @@ class ExpertStrategicAgent:
         lines = []
 
         lines.append("=" * 80)
-        lines.append("JANGRAPH OS — EXPERT STRATEGIC INTELLIGENCE ASSESSMENT")
+        lines.append("Gods-Eye OS — EXPERT STRATEGIC INTELLIGENCE ASSESSMENT")
         lines.append("=" * 80)
         lines.append("")
 

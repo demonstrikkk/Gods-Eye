@@ -19,8 +19,8 @@ export const StatusBar: React.FC = () => {
   }, []);
 
   const statusSummary = useMemo(() => {
-    const live = sourceHealth.filter((item) => item.status === 'live' || item.status === 'local').length;
-    const degraded = sourceHealth.filter((item) => !['live', 'local'].includes(item.status)).length;
+    const live = sourceHealth.filter((item) => item.status === 'live' || item.status === 'local')?.length;
+    const degraded = sourceHealth.filter((item) => !['live', 'local'].includes(item.status))?.length;
     return { live, degraded };
   }, [sourceHealth]);
 
@@ -34,7 +34,7 @@ export const StatusBar: React.FC = () => {
       <div className="flex shrink-0 items-center space-x-4 text-zinc-500">
         <span className="flex items-center space-x-1.5">
           <Shield size={10} className="text-cyan-300" />
-          <span className="font-bold uppercase tracking-widest text-cyan-300">JANGRAPH OS</span>
+          <span className="font-bold uppercase tracking-widest text-cyan-300">Gods-Eye OS</span>
           <span className="text-zinc-600">·</span>
           <span>SOVEREIGN NODE</span>
         </span>

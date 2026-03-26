@@ -1,5 +1,5 @@
 """
-Expert Reasoning Framework for JanGraph OS
+Expert Reasoning Framework for Gods-Eye OS
 
 This module provides the core infrastructure for expert-level AI reasoning:
 - Structured evidence and citation tracking

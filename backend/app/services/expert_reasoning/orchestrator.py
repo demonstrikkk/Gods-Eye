@@ -1,5 +1,5 @@
 """
-Expert Orchestrator for JanGraph OS
+Expert Orchestrator for Gods-Eye OS
 
 This module orchestrates the complete expert reasoning pipeline:
 1. Parse user query to identify relevant domains

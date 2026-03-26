@@ -17,8 +17,8 @@ export const WorkerDashboard: React.FC = () => {
     const workers = data?.data || [];
     const onlineCount = data?.online || 0;
 
-    const avgPerformance = workers.length > 0
-        ? Math.round(workers.reduce((a: number, w: any) => a + w.performance_score, 0) / workers.length)
+    const avgPerformance = workers?.length > 0
+        ? Math.round(workers.reduce((a: number, w: any) => a + w.performance_score, 0) / workers?.length)
         : 0;
 
     const totalHouseholds = workers.reduce((a: number, w: any) => a + w.daily_households_visited, 0);
@@ -35,7 +35,7 @@ export const WorkerDashboard: React.FC = () => {
                         <h2 className="text-2xl font-black text-text-main tracking-tighter uppercase">Field Worker Operations</h2>
                         <div className="flex items-center space-x-2 text-[10px] text-text-muted font-mono tracking-[0.2em] uppercase">
                             <Activity size={12} className="text-success" />
-                            <span>{workers.length} Workers Deployed // {onlineCount} Online Now</span>
+                            <span>{workers?.length} Workers Deployed // {onlineCount} Online Now</span>
                         </div>
                     </div>
                 </div>
@@ -43,7 +43,7 @@ export const WorkerDashboard: React.FC = () => {
 
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <WorkerStat title="Total Workers" value={workers.length} icon={<Users size={18} />} color="text-primary-light" />
+                <WorkerStat title="Total Workers" value={workers?.length} icon={<Users size={18} />} color="text-primary-light" />
                 <WorkerStat title="Online Now" value={onlineCount} icon={<Target size={18} />} color="text-success" />
                 <WorkerStat title="Avg Performance" value={`${avgPerformance}%`} icon={<Award size={18} />} color="text-warning" />
                 <WorkerStat title="Households Today" value={totalHouseholds.toLocaleString()} icon={<MapPin size={18} />} color="text-primary-light" />
@@ -53,7 +53,7 @@ export const WorkerDashboard: React.FC = () => {
             <div className="glass-panel p-6">
                 <div className="flex items-center justify-between mb-6 border-b border-border/30 pb-4">
                     <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest">Active Worker Roster</h3>
-                    <span className="text-[10px] font-mono text-success">{onlineCount}/{workers.length} Online</span>
+                    <span className="text-[10px] font-mono text-success">{onlineCount}/{workers?.length} Online</span>
                 </div>
 
                 {isLoading ? (
@@ -74,7 +74,7 @@ export const WorkerDashboard: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="text-xs">
-                                {workers.slice(0, 25).map((worker: any) => (
+                                {workers.slice(0, 25)?.map((worker: any) => (
                                     <tr key={worker.id} className="border-b border-border/20 hover:bg-panel/40 transition-colors">
                                         <td className="py-3 px-2">
                                             <div className="font-bold text-text-main">{worker.name}</div>
@@ -84,11 +84,11 @@ export const WorkerDashboard: React.FC = () => {
                                         <td className="py-3 px-2 text-text-muted font-mono text-[10px]">{worker.assigned_booth}</td>
                                         <td className="py-3 px-2 text-center">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded inline-flex items-center ${worker.status === 'Online' ? 'bg-success/20 text-success' :
-                                                    worker.status === 'Offline' ? 'bg-danger/20 text-danger' :
-                                                        'bg-warning/20 text-warning'
+                                                worker.status === 'Offline' ? 'bg-danger/20 text-danger' :
+                                                    'bg-warning/20 text-warning'
                                                 }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${worker.status === 'Online' ? 'bg-success animate-pulse' :
-                                                        worker.status === 'Offline' ? 'bg-danger' : 'bg-warning'
+                                                    worker.status === 'Offline' ? 'bg-danger' : 'bg-warning'
                                                     }`}></span>
                                                 {worker.status}
                                             </span>
@@ -116,9 +116,9 @@ export const WorkerDashboard: React.FC = () => {
 
             {/* Bottom Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <AlertCard icon={<CheckCircle size={16} />} color="text-success border-success/20 bg-success/5" title="High Performers" count={workers.filter((w: any) => w.performance_score >= 80).length} label="Workers above 80% score" />
-                <AlertCard icon={<Clock size={16} />} color="text-warning border-warning/20 bg-warning/5" title="On Leave" count={workers.filter((w: any) => w.status === 'On Leave').length} label="Workers currently on leave" />
-                <AlertCard icon={<AlertTriangle size={16} />} color="text-danger border-danger/20 bg-danger/5" title="Low Performers" count={workers.filter((w: any) => w.performance_score < 50).length} label="Workers below 50% score" />
+                <AlertCard icon={<CheckCircle size={16} />} color="text-success border-success/20 bg-success/5" title="High Performers" count={workers.filter((w: any) => w.performance_score >= 80)?.length} label="Workers above 80% score" />
+                <AlertCard icon={<Clock size={16} />} color="text-warning border-warning/20 bg-warning/5" title="On Leave" count={workers.filter((w: any) => w.status === 'On Leave')?.length} label="Workers currently on leave" />
+                <AlertCard icon={<AlertTriangle size={16} />} color="text-danger border-danger/20 bg-danger/5" title="Low Performers" count={workers.filter((w: any) => w.performance_score < 50)?.length} label="Workers below 50% score" />
             </div>
         </div>
     );

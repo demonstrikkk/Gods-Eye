@@ -7,9 +7,9 @@ import { Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 
 const urgencyUI = (u: string) => {
-  if (u === 'High')   return { dot: 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]',   text: 'text-red-400',   label: 'CRITICAL' };
+  if (u === 'High') return { dot: 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]', text: 'text-red-400', label: 'CRITICAL' };
   if (u === 'Medium') return { dot: 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.6)]', text: 'text-amber-400', label: 'ELEVATED' };
-  return                     { dot: 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]',  text: 'text-blue-400',  label: 'NOMINAL' };
+  return { dot: 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]', text: 'text-blue-400', label: 'NOMINAL' };
 };
 
 export const CommsPanel: React.FC = () => {
@@ -34,10 +34,10 @@ export const CommsPanel: React.FC = () => {
           <span className="w-1 h-3 rounded-full bg-pink-500 inline-block" />
           <span>Live Signal Feed</span>
         </div>
-        <span className="text-zinc-600">{safeSignals.length} total</span>
+        <span className="text-zinc-600">{safeSignals?.length} total</span>
       </div>
 
-      {top.map((signal: any, i: number) => {
+      {top?.map((signal: any, i: number) => {
         const ui = urgencyUI(signal.severity);
         return (
           <div
@@ -58,7 +58,7 @@ export const CommsPanel: React.FC = () => {
         );
       })}
 
-      {safeSignals.length === 0 && (
+      {safeSignals?.length === 0 && (
         <div className="text-center py-4 text-[10px] text-zinc-600">No active signals</div>
       )}
     </div>

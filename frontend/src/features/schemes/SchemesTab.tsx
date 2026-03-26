@@ -31,7 +31,7 @@ export const SchemesTab: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-y-auto space-y-2">
-      {Array.isArray(schemes) && schemes.map((s: any) => {
+      {Array.isArray(schemes) && schemes?.map((s: any) => {
         const pct = s.coverage_pct ?? Math.floor(Math.random() * 40 + 30); // use real value if available
         const barColor = pct > 70 ? 'bg-emerald-500' : pct > 45 ? 'bg-yellow-500' : 'bg-red-500';
 

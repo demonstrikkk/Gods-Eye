@@ -627,18 +627,10 @@ class ExpertAgentOrchestrator:
                 return (agent.agent_id, assessment)
             except Exception as e:
                 self.logger.error(f"Agent {agent.name} failed: {e}")
-                # Return minimal assessment on failure
-                return (agent.agent_id, AgentAssessment(
-                    agent_id=agent.agent_id,
-                    agent_name=agent.name,
-                    domain=agent.domain,
-                    query_context=query,
-                    executive_summary=f"Agent {agent.name} encountered an error",
-                    overall_confidence=ConfidenceLevel.INSUFFICIENT,
-                    confidence_score=0.0,
-                ))
+                raise RuntimeError(f"Agent {agent.name} analysis failed: {str(e)}") from e
 
         # Run all agents concurrently
+        # If one fails, the gather raises, returning a real error to the caller without fake dummy defaults.
         results = await asyncio.gather(*[run_single_agent(a) for a in agents])
 
         return dict(results)
@@ -1018,7 +1010,7 @@ class ExpertAgentOrchestrator:
         lines = []
 
         lines.append("=" * 70)
-        lines.append("JANGRAPH OS - SOVEREIGN INTELLIGENCE ASSESSMENT")
+        lines.append("Gods-Eye OS - SOVEREIGN INTELLIGENCE ASSESSMENT")
         lines.append("=" * 70)
         lines.append("")
 

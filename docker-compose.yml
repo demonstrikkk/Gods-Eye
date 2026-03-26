@@ -3,11 +3,11 @@ version: "3.8"
 services:
   db:
     image: postgis/postgis:15-3.3
-    container_name: jangraph_pg
+    container_name: Gods-Eye_pg
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-jangraph}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jangraph_secure}
-      POSTGRES_DB: ${POSTGRES_DB:-jangraph_os}
+      POSTGRES_USER: ${POSTGRES_USER:-Gods-Eye}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Gods-Eye_secure}
+      POSTGRES_DB: ${POSTGRES_DB:-Gods-Eye_os}
     env_file: .env
     ports:
       - "5432:5432"
@@ -17,9 +17,9 @@ services:
 
   neo4j:
     image: neo4j:5.11.0
-    container_name: jangraph_neo4j
+    container_name: Gods-Eye_neo4j
     environment:
-      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-jangraph_secure_graph}
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-Gods-Eye_secure_graph}
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_security_procedures_unrestricted: apoc.*
     env_file: .env
@@ -32,21 +32,21 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: jangraph_redis
+    container_name: Gods-Eye_redis
     ports:
       - "6379:6379"
     restart: unless-stopped
 
   # backend:
   #   build: ./backend
-  #   container_name: jangraph_backend
+  #   container_name: Gods-Eye_backend
   #   ports:
   #     - "8000:8000"
   #   environment:
-  #     - DATABASE_URL=postgresql+asyncpg://jangraph:jangraph_secure@db:5432/jangraph_os
+  #     - DATABASE_URL=postgresql+asyncpg://Gods-Eye:Gods-Eye_secure@db:5432/Gods-Eye_os
   #     - NEO4J_URI=bolt://neo4j:7687
   #     - NEO4J_USER=neo4j
-  #     - NEO4J_PASSWORD=jangraph_secure_graph
+  #     - NEO4J_PASSWORD=Gods-Eye_secure_graph
   #     - REDIS_URL=redis://redis:6379/0
   #   depends_on:
   #     - db
@@ -56,7 +56,7 @@ services:
 
   # frontend:
   #   build: ./frontend
-  #   container_name: jangraph_frontend
+  #   container_name: Gods-Eye_frontend
   #   ports:
   #     - "5173:5173"
   #   environment:

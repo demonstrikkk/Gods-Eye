@@ -1,1 +1,1 @@
-# Data module for JanGraph OS
+# Data module for Gods-Eye OS

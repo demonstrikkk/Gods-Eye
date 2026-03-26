@@ -47,8 +47,8 @@ export const AccountabilityDashboard: React.FC = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <ProjStat title="Total Projects" value={projects?.length ?? '--'} icon={<Hammer size={18} />} color="text-primary-light" />
-                <ProjStat title="Completed" value={completed.length} icon={<CheckCircle size={18} />} color="text-success" />
-                <ProjStat title="In Progress" value={inProgress.length} icon={<Clock size={18} />} color="text-warning" />
+                <ProjStat title="Completed" value={completed?.length} icon={<CheckCircle size={18} />} color="text-success" />
+                <ProjStat title="In Progress" value={inProgress?.length} icon={<Clock size={18} />} color="text-warning" />
                 <ProjStat title="Total Budget" value={`₹${(totalBudget / 10000000).toFixed(1)}Cr`} icon={<IndianRupee size={18} />} color="text-primary-light" />
             </div>
 
@@ -57,9 +57,9 @@ export const AccountabilityDashboard: React.FC = () => {
                 <div className="flex items-center justify-between mb-6 border-b border-border/30 pb-4">
                     <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest">Infrastructure Project Tracker</h3>
                     <div className="flex space-x-2">
-                        <span className="text-[10px] bg-success/20 text-success px-2 py-0.5 rounded border border-success/30">{completed.length} Done</span>
-                        <span className="text-[10px] bg-warning/20 text-warning px-2 py-0.5 rounded border border-warning/30">{inProgress.length} Active</span>
-                        <span className="text-[10px] bg-panel text-text-muted px-2 py-0.5 rounded border border-border">{pending.length} Pending</span>
+                        <span className="text-[10px] bg-success/20 text-success px-2 py-0.5 rounded border border-success/30">{completed?.length} Done</span>
+                        <span className="text-[10px] bg-warning/20 text-warning px-2 py-0.5 rounded border border-warning/30">{inProgress?.length} Active</span>
+                        <span className="text-[10px] bg-panel text-text-muted px-2 py-0.5 rounded border border-border">{pending?.length} Pending</span>
                     </div>
                 </div>
 
@@ -87,7 +87,7 @@ export const AccountabilityDashboard: React.FC = () => {
 
                                 {/* Before / After Sentiment Slider */}
                                 {proj.status === 'Completed' ? (
-                                    <BeforeAfterSlider 
+                                    <BeforeAfterSlider
                                         project={proj}
                                         beforeImage="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=800"
                                         afterImage="https://images.unsplash.com/photo-1574007557239-acf6eeff2c68?auto=format&fit=crop&q=80&w=800"

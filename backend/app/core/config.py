@@ -1,15 +1,15 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "JanGraph OS"
+    PROJECT_NAME: str = "Gods-Eye OS"
     
     # To utilize Upstash/Remote Postgres, populate the DATABASE_URL in .env
     DATABASE_URL: str = ""
 
     # Legacy Local Defaults (maintained for structural fallback)
-    POSTGRES_USER: str = "jangraph"
-    POSTGRES_PASSWORD: str = "jangraph_secure"
-    POSTGRES_DB: str = "jangraph_os"
+    POSTGRES_USER: str = "Gods-Eye"
+    POSTGRES_PASSWORD: str = "Gods-Eye_secure"
+    POSTGRES_DB: str = "Gods-Eye_os"
     POSTGRES_HOST: str = "db"
     POSTGRES_PORT: int = 5432
     
@@ -17,10 +17,11 @@ class Settings(BaseSettings):
     # For local Neo4j: "bolt://neo4j:7687"
     # For Neo4j Aura: "neo4j+s://xxxxx.use1.neo4j.io:7687" (replace xxxxx with your instance)
     NEO4J_URI: str = "bolt://neo4j:7687"
+    NEO4J_FALLBACK_URIS: str = "bolt://localhost:7687,bolt://neo4j:7687"
     NEO4J_DATABASE: str = "neo4j"
 
     NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = "jangraph_secure_graph"
+    NEO4J_PASSWORD: str = "Gods-Eye_secure_graph"
     
     # Cache / Celery
     REDIS_URL: str = "redis://redis:6379/0"
@@ -28,6 +29,11 @@ class Settings(BaseSettings):
     # Settings for Sovereign Mode
     LOCAL_MODE_ENABLED: bool = True
     CIVIC_AGENT_MOCK_MODE: bool = True
+    CLASSIFIED_STRICT_LOCAL_ONLY: bool = True
+    CLASSIFIED_VAULT_PATH: str = "app/data/classified_vault.json"
+    CLASSIFIED_VAULT_KEY: str = ""
+    LOCAL_LLM_PROVIDER: str = "ollama"
+    LOCAL_LLM_MODEL: str = "llama3.1:8b"
     
     # LLM Providers
     GROQ_API_KEY: str = ""
@@ -88,6 +94,16 @@ class Settings(BaseSettings):
                 url = "postgresql+asyncpg://" + url.split("://")[-1]
             return url
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    @property
+    def neo4j_connection_uris(self) -> list[str]:
+        """Return the configured Neo4j URI plus local fallbacks in priority order."""
+        uris = [self.NEO4J_URI]
+        for candidate in self.NEO4J_FALLBACK_URIS.split(","):
+            candidate = candidate.strip()
+            if candidate and candidate not in uris:
+                uris.append(candidate)
+        return uris
 
 
     class Config:

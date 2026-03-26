@@ -68,7 +68,7 @@ export const GlobalOverviewPanel: React.FC = () => {
           Risk Watchlist
         </div>
         <div className="space-y-1.5">
-          {watchlist.map((country: any) => (
+          {watchlist?.map((country: any) => (
             <div key={country.id} className="flex items-center justify-between rounded-lg bg-black/20 px-2.5 py-2">
               <div className="min-w-0 pr-2">
                 <div className="truncate text-[10px] font-bold text-zinc-100">{country.name}</div>
@@ -80,14 +80,14 @@ export const GlobalOverviewPanel: React.FC = () => {
         </div>
       </div>
 
-      {!!markets.length && (
+      {!!markets?.length && (
         <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3">
           <div className="mb-2 flex items-center text-[9px] uppercase tracking-widest text-zinc-500">
             <CandlestickChart size={11} className="mr-1.5 text-cyan-400" />
             Market Pulse
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {markets.slice(0, 4).map((quote: any) => (
+            {markets.slice(0, 4)?.map((quote: any) => (
               <div key={quote.symbol} className="rounded-lg bg-black/20 px-2.5 py-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-zinc-100">{quote.symbol}</span>

@@ -1,5 +1,5 @@
 """
-JanGraph OS — Deterministic Civic Data Seeder
+Gods-Eye OS — Deterministic Civic Data Seeder
 Generates realistic Indian constituency/booth/citizen data for demo without any database dependency.
 All data is held in-memory and served by FastAPI endpoints.
 """
@@ -245,7 +245,7 @@ def _generate_complaints(booth_id: str, citizens: List[dict], count: int = 20) -
 
 def build_civic_dataset() -> dict:
     """
-    Generates the entire JanGraph OS demo dataset.
+    Generates the entire Gods-Eye OS demo dataset.
     Returns a dictionary with all entities keyed for fast lookup.
     """
     dataset = {

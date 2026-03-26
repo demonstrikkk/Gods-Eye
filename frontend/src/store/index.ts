@@ -1,9 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// JanGraph OS — Zustand Global Store
+// Gods-Eye OS — Zustand Global Store
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { create } from 'zustand';
-import type { MapMode, LayerKey, SidebarTab } from '@/types';
+import type {
+  MapMode,
+  LayerKey,
+  SidebarTab,
+  UnifiedIntelligenceResponse,
+} from '@/types';
 
 export type ActiveView =
   | 'cockpit'
@@ -60,11 +65,43 @@ interface AppState {
     data: any;
     color?: string;
     color_scale?: string;
+    line_width?: number;
     visible?: boolean;
   }>;
   expertAffectedRegions: string[];
   setExpertMapLayers: (layers: AppState['expertMapLayers'], regions?: string[]) => void;
+  setAffectedRegions: (regions: string[]) => void;
   clearExpertMapLayers: () => void;
+
+  // Map Commands (from backend)
+  mapCommands: Array<{
+    id: string;
+    command_type: string;
+    priority: string;
+    data: any;
+    description: string;
+    source: string;
+    created_at: string;
+  }>;
+  setMapCommands: (commands: AppState['mapCommands']) => void;
+  addMapCommand: (command: AppState['mapCommands'][0]) => void;
+  removeMapCommand: (commandId: string) => void;
+  clearMapCommands: () => void;
+
+  // Unified assistant conversation
+  unifiedConversationId: string | null;
+  unifiedMessages: Array<{
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: string;
+    response?: UnifiedIntelligenceResponse;
+    status?: 'pending' | 'done' | 'error';
+  }>;
+  setUnifiedConversationId: (conversationId: string | null) => void;
+  addUnifiedMessage: (message: AppState['unifiedMessages'][0]) => void;
+  replaceUnifiedMessage: (messageId: string, message: Partial<AppState['unifiedMessages'][0]>) => void;
+  clearUnifiedConversation: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -130,5 +167,27 @@ export const useAppStore = create<AppState>((set) => ({
   expertMapLayers: [],
   expertAffectedRegions: [],
   setExpertMapLayers: (layers, regions = []) => set({ expertMapLayers: layers, expertAffectedRegions: regions }),
+  setAffectedRegions: (regions) => set({ expertAffectedRegions: regions }),
   clearExpertMapLayers: () => set({ expertMapLayers: [], expertAffectedRegions: [] }),
+
+  // Map Commands
+  mapCommands: [],
+  setMapCommands: (commands) => set({ mapCommands: commands }),
+  addMapCommand: (command) => set((state) => ({ mapCommands: [...state.mapCommands, command] })),
+  removeMapCommand: (commandId) => set((state) => ({
+    mapCommands: state.mapCommands.filter((cmd) => cmd.id !== commandId),
+  })),
+  clearMapCommands: () => set({ mapCommands: [] }),
+
+  // Unified assistant conversation
+  unifiedConversationId: null,
+  unifiedMessages: [],
+  setUnifiedConversationId: (conversationId) => set({ unifiedConversationId: conversationId }),
+  addUnifiedMessage: (message) => set((state) => ({ unifiedMessages: [...state.unifiedMessages, message] })),
+  replaceUnifiedMessage: (messageId, message) => set((state) => ({
+    unifiedMessages: state.unifiedMessages.map((item) => (
+      item.id === messageId ? { ...item, ...message } : item
+    )),
+  })),
+  clearUnifiedConversation: () => set({ unifiedConversationId: null, unifiedMessages: [] }),
 }));

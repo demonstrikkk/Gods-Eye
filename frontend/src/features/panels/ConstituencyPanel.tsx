@@ -6,7 +6,7 @@ import { useAppStore } from '@/store';
 import { Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const sentColor = (s: number) => s < 40 ? 'text-red-400' : s < 60 ? 'text-amber-400' : 'text-emerald-400';
-const sentBg    = (s: number) => s < 40 ? 'border-red-900/50 bg-red-950/20' : s < 60 ? 'border-amber-900/50 bg-amber-950/20' : 'border-emerald-900/50 bg-emerald-950/20';
+const sentBg = (s: number) => s < 40 ? 'border-red-900/50 bg-red-950/20' : s < 60 ? 'border-amber-900/50 bg-amber-950/20' : 'border-emerald-900/50 bg-emerald-950/20';
 
 export const ConstituencyPanel: React.FC = () => {
   const { setHoveredItem, setSidebarTab } = useAppStore();
@@ -31,7 +31,7 @@ export const ConstituencyPanel: React.FC = () => {
         <span>Critical Constituencies</span>
       </div>
 
-      {critical.map((b: any) => (
+      {critical?.map((b: any) => (
         <div
           key={b.id}
           onMouseEnter={() => setHoveredItem(b)}
@@ -46,7 +46,7 @@ export const ConstituencyPanel: React.FC = () => {
           <div className="text-[8px] text-zinc-500">{b.constituency_name} · {b.state}</div>
           {b.top_issues?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
-              {b.top_issues.slice(0, 2).map((iss: any, i: number) => (
+              {b.top_issues.slice(0, 2)?.map((iss: any, i: number) => (
                 <span key={i} className="text-[7px] text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full">
                   {iss.issue}
                 </span>
@@ -57,7 +57,7 @@ export const ConstituencyPanel: React.FC = () => {
       ))}
 
       <div className="text-[9px] text-zinc-600 text-center pt-1">
-        {safeBooths.length} total booths monitored
+        {safeBooths?.length} total booths monitored
       </div>
     </div>
   );

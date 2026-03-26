@@ -49,22 +49,19 @@ async def bg_process_and_store(payload: IngestionPayload, graph_session: GraphSe
         
     except Exception as e:
         logger.error(f"Background Ingestion Failure: {e}")
-
-@router.post("/unstructured")
-async def ingest_unstructured_data(
-    payload: IngestionPayload, 
-    background_tasks: BackgroundTasks,
+        raise e
     graph_session: GraphSession = Depends(get_graph_session)
-):
-    """
-    Accepts raw SMS, Tweets, or PDF notes.
-    Delegates to LangGraph AI layer via background worker for sentiment/entity extraction.
-    """
-    # Trigger graph processing in the background to avoid locking the UI/Integration
-    background_tasks.add_task(bg_process_and_store, payload, graph_session)
+# )
+# :
+    # """
+    # Accepts raw SMS, Tweets, or PDF notes.
+    # Delegates to LangGraph AI layer via background worker for sentiment/entity extraction.
+    # """
+    # # Trigger graph processing in the background to avoid locking the UI/Integration
+    # background_tasks.add_task(bg_process_and_store, payload, graph_session)
     
-    return {
-        "status": "processing",
-        "message": "Payload queued for LangGraph Intelligence Engine",
-        "source": payload.source_id
-    }
+    # return {
+    #     "status": "processing",
+    #     "message": "Payload queued for LangGraph Intelligence Engine",
+    #     "source": payload.source_id
+    # }

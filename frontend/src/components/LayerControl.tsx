@@ -26,9 +26,8 @@ export const LayerControl: React.FC = () => {
   const { activeLayers, toggleLayer } = useAppStore();
 
   return (
-    <div className="flex max-w-[calc(100vw-2rem)] items-center space-x-1 overflow-x-auto bg-black/60 border border-zinc-800 rounded-xl px-2 py-1.5 backdrop-blur-md">
-      <Layers size={11} className="text-zinc-500 mr-1 shrink-0" />
-      {LAYERS.map(({ key, label, icon, color }) => {
+    <div className="flex flex-wrap gap-2 w-full bg-black/60 rounded-xl p-2 backdrop-blur-md">
+      {LAYERS?.map(({ key, label, icon, color }) => {
         const active = activeLayers.has(key);
         return (
           <button
@@ -36,8 +35,8 @@ export const LayerControl: React.FC = () => {
             onClick={() => toggleLayer(key)}
             title={`Toggle ${label} layer`}
             className={clsx(
-              'flex items-center space-x-1 px-2 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all',
-              active ? color : 'text-zinc-600 border-zinc-800 bg-transparent hover:bg-zinc-800/40'
+              'flex flex-1 min-w-[30%] items-center justify-center space-x-1 px-2 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all',
+              active ? color : 'text-zinc-600 border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800/80 hover:text-zinc-400'
             )}
           >
             {icon}

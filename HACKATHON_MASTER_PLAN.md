@@ -1,4 +1,4 @@
-# 🇮🇳 India Innovates 2026 — JanGraph OS Master Execution Plan
+# 🇮🇳 India Innovates 2026 — Gods-Eye OS Master Execution Plan
 # World's Largest Civic Tech Hackathon | Bharat Mandapam, New Delhi | 28 March 2026
 
 ---
@@ -266,7 +266,7 @@ The demo should follow this exact narrative:
 ```
 STEP 1: "The Brain" (30 seconds)
 → Show 3D Globe spinning to India
-→ "This is JanGraph OS — India's Civic Intelligence Operating System"
+→ "This is Gods-Eye OS — India's Civic Intelligence Operating System"
 → Pulsing sentiment nodes across India
 
 STEP 2: "The Data Pipeline" (45 seconds)
@@ -290,7 +290,7 @@ STEP 4: "The Action Loop" (60 seconds)
 STEP 5: "The Edge" (30 seconds)
 → Show beneficiary tracking: "2,400 eligible but unenrolled in PM-Kisan"
 → Worker GPS map: "340 field workers tracked in real-time"
-→ "JanGraph OS transforms governance from reactive to predictive"
+→ "Gods-Eye OS transforms governance from reactive to predictive"
 ```
 
 #### Task 4.2: README & Architecture Diagram
@@ -412,4 +412,4 @@ For judges to declare us winners, they must see:
 
 ---
 
-*Generated: 20 March 2026 | JanGraph OS v2.0 Sprint Plan*
+*Generated: 20 March 2026 | Gods-Eye OS v2.0 Sprint Plan*

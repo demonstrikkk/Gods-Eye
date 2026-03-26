@@ -166,7 +166,7 @@ export const ExecutiveDashboard: React.FC = () => {
                         <Briefcase className="mr-3 text-primary-light" size={16} /> Critical Booth Alerts
                     </h3>
                     <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                        {criticalBooths.length > 0 ? criticalBooths.slice(0, 8).map((b: any) => (
+                        {criticalBooths?.length > 0 ? criticalBooths.slice(0, 8)?.map((b: any) => (
                             <div key={b.id} className="p-3 rounded-xl bg-danger/5 border border-danger/20 hover:border-danger/40 transition-colors">
                                 <div className="flex justify-between items-start mb-1">
                                     <span className="text-[10px] font-black text-danger uppercase">{b.constituency}</span>

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// JanGraph OS — API Service Layer
+// Gods-Eye OS — API Service Layer
 // All functions hit the real backend. No fallback mock data.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -7,7 +7,10 @@ import type {
   BoothPoint, Booth, Worker, Scheme, GlobalCountry, GlobalSignal, GlobalCorridor, GlobalOverview, SourceHealth, MarketQuote,
   GlobalAsset, CountryAnalysis,
   GeoEvent, FireHotspot, Earthquake, NewsFeed, Alert, QueryResponse,
-  ExpertAnalysisResponse, ExpertAgent
+  ExpertAnalysisResponse, ExpertAgent,
+  VisualIntelligenceResponse, ViChartOutput, ViDiagramOutput, ViParsedIntent,
+  ViDataSource, ViDomain, ViChartTypeInfo, ViDiagramTypeInfo, ViChartType, ViDiagramType,
+  UnifiedIntelligenceResponse, UnifiedCapabilityType, UnifiedConversationMessageInput
 } from '@/types';
 
 const BASE = '/api/v1';
@@ -190,5 +193,204 @@ export const postExpertWhatIf = async (
     }),
   });
   if (!res.ok) throw new Error(`Expert what-if simulation failed: ${res.status}`);
+  return await res.json();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Visual Intelligence API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface VisualIntelligenceRequest {
+  query: string;
+  context?: Record<string, any>;
+  force_chart_type?: ViChartType;
+  force_diagram_type?: ViDiagramType;
+  include_map?: boolean;
+  include_expert_analysis?: boolean;
+}
+
+export const postVisualIntelligence = async (
+  query: string,
+  options?: {
+    context?: Record<string, any>;
+    forceChartType?: ViChartType;
+    forceDiagramType?: ViDiagramType;
+    includeMap?: boolean;
+    includeExpertAnalysis?: boolean;
+  }
+): Promise<{ status: string; data: VisualIntelligenceResponse }> => {
+  const res = await fetch(`${BASE}/visual-intelligence/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      context: options?.context || {},
+      force_chart_type: options?.forceChartType,
+      force_diagram_type: options?.forceDiagramType,
+      include_map: options?.includeMap ?? true,
+      include_expert_analysis: options?.includeExpertAnalysis ?? true,
+    }),
+  });
+  if (!res.ok) throw new Error(`Visual intelligence failed: ${res.status}`);
+  return await res.json();
+};
+
+export const parseVisualIntent = async (
+  query: string
+): Promise<{ status: string; data: ViParsedIntent }> => {
+  const res = await fetch(`${BASE}/visual-intelligence/parse-intent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) throw new Error(`Intent parsing failed: ${res.status}`);
+  return await res.json();
+};
+
+export const generateChart = async (
+  chartType: ViChartType,
+  data: { labels: string[]; datasets: Array<{ label: string; data: number[]; backgroundColor?: string }> },
+  title: string,
+  options?: Record<string, any>
+): Promise<{ status: string; data: ViChartOutput }> => {
+  const res = await fetch(`${BASE}/visual-intelligence/generate-chart`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chart_type: chartType,
+      data,
+      title,
+      options: options || {},
+    }),
+  });
+  if (!res.ok) throw new Error(`Chart generation failed: ${res.status}`);
+  return await res.json();
+};
+
+export const generateDiagram = async (
+  diagramType: ViDiagramType,
+  description: string,
+  context?: Record<string, any>
+): Promise<{ status: string; data: ViDiagramOutput }> => {
+  const res = await fetch(`${BASE}/visual-intelligence/generate-diagram`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      diagram_type: diagramType,
+      description,
+      context: context || {},
+    }),
+  });
+  if (!res.ok) throw new Error(`Diagram generation failed: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchViDataSources = async (): Promise<{
+  status: string;
+  count: number;
+  data: ViDataSource[]
+}> => {
+  const res = await fetch(`${BASE}/visual-intelligence/data-sources`);
+  if (!res.ok) throw new Error(`Failed to fetch data sources: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchViDomains = async (): Promise<{
+  status: string;
+  count: number;
+  data: ViDomain[];
+}> => {
+  const res = await fetch(`${BASE}/visual-intelligence/supported-domains`);
+  if (!res.ok) throw new Error(`Failed to fetch domains: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchViChartTypes = async (): Promise<{
+  status: string;
+  count: number;
+  data: ViChartTypeInfo[];
+}> => {
+  const res = await fetch(`${BASE}/visual-intelligence/chart-types`);
+  if (!res.ok) throw new Error(`Failed to fetch chart types: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchViDiagramTypes = async (): Promise<{
+  status: string;
+  count: number;
+  data: ViDiagramTypeInfo[];
+}> => {
+  const res = await fetch(`${BASE}/visual-intelligence/diagram-types`);
+  if (!res.ok) throw new Error(`Failed to fetch diagram types: ${res.status}`);
+  return await res.json();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified Intelligence API (Single Entry Point for All Capabilities)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const postUnifiedIntelligence = async (
+  query: string,
+  options?: {
+    context?: Record<string, any>;
+    conversation_id?: string;
+    conversation_history?: UnifiedConversationMessageInput[];
+    forced_capabilities?: UnifiedCapabilityType[];
+    max_processing_time?: number;
+    include_debug_info?: boolean;
+  }
+): Promise<UnifiedIntelligenceResponse> => {
+  const res = await fetch(`${BASE}/unified/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      context: options?.context || {},
+      conversation_id: options?.conversation_id,
+      conversation_history: options?.conversation_history || [],
+      forced_capabilities: options?.forced_capabilities,
+      max_processing_time: options?.max_processing_time || 30.0,
+      include_debug_info: options?.include_debug_info || false,
+    }),
+  });
+  if (!res.ok) throw new Error(`Unified intelligence failed: ${res.status}`);
+  const data = await res.json();
+  return data;
+};
+
+export const assessUnifiedQuery = async (
+  query: string
+): Promise<{ status: string; assessment: any }> => {
+  const res = await fetch(`${BASE}/unified/assess`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) throw new Error(`Query assessment failed: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchUnifiedCapabilities = async (): Promise<{
+  status: string;
+  count: number;
+  capabilities: Array<{
+    id: string;
+    name: string;
+    description: string;
+    activation_triggers: string[];
+    example_queries: string[];
+  }>;
+}> => {
+  const res = await fetch(`${BASE}/unified/capabilities`);
+  if (!res.ok) throw new Error(`Failed to fetch unified capabilities: ${res.status}`);
+  return await res.json();
+};
+
+export const fetchUnifiedExamples = async (): Promise<{
+  status: string;
+  examples: Record<string, string[]>;
+}> => {
+  const res = await fetch(`${BASE}/unified/examples`);
+  if (!res.ok) throw new Error(`Failed to fetch unified examples: ${res.status}`);
   return await res.json();
 };

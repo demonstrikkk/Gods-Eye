@@ -17,8 +17,8 @@ import type { CountryAnalysis } from '@/types';
 
 const riskColor = (risk: number) =>
   risk >= 70 ? 'text-red-300 border-red-900/50 bg-red-950/20' :
-  risk >= 50 ? 'text-amber-300 border-amber-900/50 bg-amber-950/20' :
-  'text-emerald-300 border-emerald-900/50 bg-emerald-950/20';
+    risk >= 50 ? 'text-amber-300 border-amber-900/50 bg-amber-950/20' :
+      'text-emerald-300 border-emerald-900/50 bg-emerald-950/20';
 
 const sourceBadge = (status: string) => {
   if (status === 'live' || status === 'local') return 'border-emerald-900/50 bg-emerald-950/20 text-emerald-300';
@@ -179,7 +179,7 @@ export const GlobalTab: React.FC = () => {
 
             {!!analysis.source_status?.length && (
               <div className="flex flex-wrap gap-2">
-                {analysis.source_status.map((source) => (
+                {analysis.source_status?.map((source) => (
                   <div
                     key={source.label}
                     className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest ${sourceBadge(source.status)}`}
@@ -211,7 +211,7 @@ export const GlobalTab: React.FC = () => {
                   <span>Evidence Snapshot</span>
                 </div>
                 <div className="space-y-2">
-                  {analysis.evidence_points.slice(0, 4).map((point) => (
+                  {analysis.evidence_points.slice(0, 4)?.map((point) => (
                     <div key={point} className="text-[11px] leading-relaxed text-zinc-300">
                       {point}
                     </div>
@@ -242,13 +242,13 @@ export const GlobalTab: React.FC = () => {
               </div>
             </div>
 
-            {!!analysis.risk_factors.length && (
+            {!!analysis.risk_factors?.length && (
               <div className="rounded-2xl border border-zinc-800 bg-black/20 p-3">
                 <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                   Key Risk Drivers
                 </div>
                 <div className="space-y-2">
-                  {analysis.risk_factors.slice(0, 3).map((factor) => (
+                  {analysis.risk_factors.slice(0, 3)?.map((factor) => (
                     <div key={factor.factor} className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[11px] font-semibold text-zinc-100">{factor.factor}</div>
@@ -267,7 +267,7 @@ export const GlobalTab: React.FC = () => {
                   Open-Web Validation
                 </div>
                 <div className="space-y-2">
-                  {analysis.search_briefs.results.slice(0, 3).map((item) => (
+                  {analysis.search_briefs.results.slice(0, 3)?.map((item) => (
                     <a
                       key={`${item.url}-${item.source}`}
                       href={item.url}
@@ -287,7 +287,7 @@ export const GlobalTab: React.FC = () => {
             )}
 
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              {quickResearchPrompts(analysis).map((prompt) => (
+              {quickResearchPrompts(analysis)?.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => {
@@ -307,11 +307,11 @@ export const GlobalTab: React.FC = () => {
       <section className="min-h-0 flex-1 rounded-2xl border border-zinc-800/80 bg-zinc-950/65 p-3">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Country Watchlist</div>
-          <div className="text-[10px] text-zinc-500">{filteredCountries.length} matches</div>
+          <div className="text-[10px] text-zinc-500">{filteredCountries?.length} matches</div>
         </div>
 
         <div className="h-full space-y-2 overflow-y-auto pr-1">
-          {filteredCountries.map((country) => (
+          {filteredCountries?.map((country) => (
             <button
               key={country.id}
               onClick={() => setSelected(country.id, 'country')}

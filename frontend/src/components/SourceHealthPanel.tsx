@@ -45,7 +45,7 @@ export const SourceHealthPanel: React.FC = () => {
       </div>
 
       <div className="space-y-2">
-        {health.slice(0, 8).map((item: SourceHealth) => {
+        {health.slice(0, 8)?.map((item: SourceHealth) => {
           const meta = statusMeta(item.status);
           return (
             <div

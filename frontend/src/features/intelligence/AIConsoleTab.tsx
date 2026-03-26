@@ -143,10 +143,11 @@ export const AIConsoleTab: React.FC = () => {
     }
   };
 
-  const handlePendingQuery = useEffectEvent((query: string, agentMode: AgentMode) => {
-    setMode(agentMode);
+  const handlePendingQuery = useEffectEvent((query: string, agentMode: typeof pendingAgentMode) => {
+    const resolvedMode: AgentMode = agentMode === 'expert' ? 'strategic' : agentMode;
+    setMode(resolvedMode);
     setTimeout(() => {
-      sendQuery(query, agentMode);
+      sendQuery(query, resolvedMode);
       clearPendingAgentQuery();
     }, 50);
   });
@@ -159,31 +160,31 @@ export const AIConsoleTab: React.FC = () => {
 
   const contextualPrompts = selectedCountryAnalysis
     ? [
-        `Give me a grounded brief on ${selectedCountryAnalysis.country.name} for the next 14 days.`,
-        `What evidence matters most for ${selectedCountryAnalysis.country.name} right now?`,
-        `Turn ${selectedCountryAnalysis.country.name} into an action checklist for me.`,
-      ]
+      `Give me a grounded brief on ${selectedCountryAnalysis.country.name} for the next 14 days.`,
+      `What evidence matters most for ${selectedCountryAnalysis.country.name} right now?`,
+      `Turn ${selectedCountryAnalysis.country.name} into an action checklist for me.`,
+    ]
     : [];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-[#0d0d12]/40">
-      <div className="shrink-0 border-b border-zinc-800/80 bg-zinc-900/60 p-1.5">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-transparent">
+      <div className="shrink-0 border-b border-white/5 bg-white/5 p-1.5">
         <div className="flex gap-1">
           {(Object.entries(MODE_META) as [AgentMode, { label: string; icon: LucideIcon; color: string; desc: string }][])
-            .map(([candidateMode, meta]) => (
-            <button
-              key={candidateMode}
-              onClick={() => setMode(candidateMode)}
-              className={clsx(
-                'flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-all',
-                mode === candidateMode
-                  ? 'border-zinc-700 bg-zinc-800 text-zinc-100'
-                  : 'border-transparent text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-300',
-              )}
-            >
-              <meta.icon size={11} className={mode === candidateMode ? meta.color : ''} />
-              <span>{meta.label}</span>
-            </button>
+            ?.map(([candidateMode, meta]) => (
+              <button
+                key={candidateMode}
+                onClick={() => setMode(candidateMode)}
+                className={clsx(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-all',
+                  mode === candidateMode
+                    ? 'border-zinc-700 bg-zinc-800 text-zinc-100'
+                    : 'border-transparent text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-300',
+                )}
+              >
+                <meta.icon size={11} className={mode === candidateMode ? meta.color : ''} />
+                <span>{meta.label}</span>
+              </button>
             ))}
         </div>
         <p className="px-2 pt-2 text-[10px] text-zinc-500">{MODE_META[mode].desc}</p>
@@ -196,7 +197,7 @@ export const AIConsoleTab: React.FC = () => {
             <span>{selectedCountryAnalysis.country.name} Research Context</span>
           </div>
           <div className="grid gap-2">
-            {contextualPrompts.map((prompt) => (
+            {contextualPrompts?.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => sendQuery(prompt, 'strategic')}
@@ -210,7 +211,7 @@ export const AIConsoleTab: React.FC = () => {
       )}
 
       <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-3">
-        {!messages.length && (
+        {!messages?.length && (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Zap className="mb-3 text-zinc-700" size={30} />
             <div className="max-w-[240px] text-sm font-semibold text-zinc-200">Research copilot is ready.</div>
@@ -221,7 +222,7 @@ export const AIConsoleTab: React.FC = () => {
         )}
 
         <AnimatePresence>
-          {messages.map((message, index) => (
+          {messages?.map((message, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 10 }}
@@ -335,7 +336,7 @@ const StrategicInsightView: React.FC<{ data: StrategicInsightPayload }> = ({ dat
             Risk Factors
           </span>
           <div className="space-y-1.5">
-            {data.key_risk_factors.slice(0, 3).map((factor, index: number) => (
+            {data.key_risk_factors.slice(0, 3)?.map((factor, index: number) => (
               <div key={`${factor.factor}-${index}`} className="rounded-lg border border-zinc-800 bg-[#0b0b0e] p-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold text-zinc-200">{factor.factor}</span>
@@ -348,7 +349,7 @@ const StrategicInsightView: React.FC<{ data: StrategicInsightPayload }> = ({ dat
         </div>
       )}
 
-      {!!unavailableTools.length && (
+      {!!unavailableTools?.length && (
         <div className="rounded-xl border border-amber-900/40 bg-amber-950/10 p-2.5">
           <div className="text-[9px] font-bold uppercase tracking-widest text-amber-300">Unavailable Inputs</div>
           <div className="mt-1 text-[10px] leading-relaxed text-zinc-300">

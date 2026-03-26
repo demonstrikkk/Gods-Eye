@@ -1,5 +1,5 @@
 """
-JanGraph OS - Global Ontology Seed
+Gods-Eye OS - Global Ontology Seed
 Creates a world-scale intelligence dataset that can coexist with the civic demo
 dataset without changing the local governance model.
 """

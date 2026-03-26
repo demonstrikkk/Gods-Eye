@@ -2,7 +2,7 @@
 Expert Agent Base Classes
 =========================
 
-Foundation for all expert-level reasoning agents in JanGraph OS.
+Foundation for all expert-level reasoning agents in Gods-Eye OS.
 Each agent operates with:
 - Domain expertise
 - Evidence-based reasoning

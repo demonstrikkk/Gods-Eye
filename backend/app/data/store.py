@@ -1,5 +1,5 @@
 """
-JanGraph OS — In-Memory Data Store
+Gods-Eye OS — In-Memory Data Store
 Singleton that loads the seeded civic dataset on first access.
 All API endpoints read from this store. Zero database dependency.
 """
@@ -25,7 +25,7 @@ class CivicDataStore:
 
     def _ensure_loaded(self):
         if self._data is None:
-            logger.info("Generating JanGraph OS civic dataset...")
+            logger.info("Generating Gods-Eye OS civic dataset...")
             self._data = build_civic_dataset()
             self._data["global"] = build_global_ontology_dataset()
             stats = self._data["stats"]

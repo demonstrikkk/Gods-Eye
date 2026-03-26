@@ -1,4 +1,4 @@
-# JanGraph OS Improvements
+# Gods-Eye OS Improvements
 
 This file tracks the practical improvement path for the current codebase, not just the original hackathon vision.
 

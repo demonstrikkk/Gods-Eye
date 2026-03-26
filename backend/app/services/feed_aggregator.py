@@ -64,7 +64,7 @@ REFRESH_INTERVAL = 300  # 5 minutes
 MAX_BRIEFS_STORED = 200  # keep more than 50 for analysis
 MAX_CONCURRENT_FEEDS = 10
 REQUEST_HEADERS = {
-    "User-Agent": "JanGraph-OS/1.0 (+https://localhost)",
+    "User-Agent": "Gods-Eye-OS/1.0 (+https://localhost)",
     "Accept": "application/rss+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5",
 }
 

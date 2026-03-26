@@ -1,5 +1,5 @@
 """
-JanGraph OS Expert Agent System
+Gods-Eye OS Expert Agent System
 ==============================
 
 Elite-level multi-agent reasoning system with:

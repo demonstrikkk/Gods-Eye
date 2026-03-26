@@ -19,16 +19,16 @@ interface ViewItem {
 }
 
 const VIEWS: ViewItem[] = [
-  { key: 'cockpit',      label: 'Cockpit',     icon: <Globe size={12} />,         color: 'text-blue-400' },
-  { key: 'executive',    label: 'Executive',   icon: <BarChart2 size={12} />,      color: 'text-emerald-400' },
-  { key: 'strategic',    label: 'Strategic',   icon: <Brain size={12} />,          color: 'text-purple-400' },
-  { key: 'expert',       label: 'Expert AI',   icon: <Sparkles size={12} />,       color: 'text-amber-400' },
-  { key: 'constituency', label: 'Lens',        icon: <Target size={12} />,         color: 'text-orange-400' },
-  { key: 'workers',      label: 'Workers',     icon: <Users size={12} />,          color: 'text-cyan-400' },
-  { key: 'schemes',      label: 'Schemes',     icon: <Database size={12} />,       color: 'text-teal-400' },
-  { key: 'comms',        label: 'Comms',       icon: <MessageSquare size={12} />,  color: 'text-pink-400' },
-  { key: 'alerts',       label: 'Risk Alerts', icon: <AlertTriangle size={12} />,  color: 'text-red-400' },
-  { key: 'ontology',     label: 'Ontology',    icon: <Network size={12} />,        color: 'text-indigo-400' },
+  { key: 'cockpit', label: 'Cockpit', icon: <Globe size={12} />, color: 'text-blue-400' },
+  { key: 'executive', label: 'Executive', icon: <BarChart2 size={12} />, color: 'text-emerald-400' },
+  { key: 'strategic', label: 'Strategic', icon: <Brain size={12} />, color: 'text-purple-400' },
+  { key: 'expert', label: 'Expert AI', icon: <Sparkles size={12} />, color: 'text-amber-400' },
+  { key: 'constituency', label: 'Lens', icon: <Target size={12} />, color: 'text-orange-400' },
+  { key: 'workers', label: 'Workers', icon: <Users size={12} />, color: 'text-cyan-400' },
+  { key: 'schemes', label: 'Schemes', icon: <Database size={12} />, color: 'text-teal-400' },
+  { key: 'comms', label: 'Comms', icon: <MessageSquare size={12} />, color: 'text-pink-400' },
+  { key: 'alerts', label: 'Risk Alerts', icon: <AlertTriangle size={12} />, color: 'text-red-400' },
+  { key: 'ontology', label: 'Ontology', icon: <Network size={12} />, color: 'text-indigo-400' },
 ];
 
 export const ViewNav: React.FC = () => {
@@ -38,21 +38,21 @@ export const ViewNav: React.FC = () => {
     setActiveView(view);
     setSidebarOpen(true);
     // Map to closest sidebar tab
-    if (view === 'cockpit')      setSidebarTab('global');
-    if (view === 'executive')    setSidebarTab('booths');
-    if (view === 'strategic')    setSidebarTab('ai');
-    if (view === 'expert')       setSidebarTab('expert');
+    if (view === 'cockpit') setSidebarTab('global');
+    if (view === 'executive') setSidebarTab('booths');
+    if (view === 'strategic') setSidebarTab('ai');
+    if (view === 'expert') setSidebarTab('expert');
     if (view === 'constituency') setSidebarTab('booths');
-    if (view === 'workers')      setSidebarTab('workers');
-    if (view === 'schemes')      setSidebarTab('schemes');
-    if (view === 'comms')        setSidebarTab('alerts');
-    if (view === 'alerts')       setSidebarTab('alerts');
-    if (view === 'ontology')     setSidebarTab('global');
+    if (view === 'workers') setSidebarTab('workers');
+    if (view === 'schemes') setSidebarTab('schemes');
+    if (view === 'comms') setSidebarTab('alerts');
+    if (view === 'alerts') setSidebarTab('alerts');
+    if (view === 'ontology') setSidebarTab('global');
   };
 
   return (
     <div className="h-9 w-full bg-[#07070a] border-b border-zinc-800/60 flex items-center px-3 space-x-0.5 shrink-0 overflow-x-auto">
-      {VIEWS.map(({ key, label, icon, color }) => {
+      {VIEWS?.map(({ key, label, icon, color }) => {
         const active = activeView === key;
         return (
           <button

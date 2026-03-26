@@ -13,7 +13,7 @@ const fetchAlerts = async () => {
     const criticalBooths = booths.filter((b: any) => b.sentiment < 40);
 
     // Generate alerts from real negative complaints + critical booths
-    const alerts = complaints.slice(0, 8).map((c: any, i: number) => {
+    const alerts = complaints.slice(0, 8)?.map((c: any, i: number) => {
         const booth = booths.find((b: any) => b.id === c.booth_id);
         return {
             id: `ALT-${i + 1}`,
@@ -27,7 +27,7 @@ const fetchAlerts = async () => {
         };
     });
 
-    return { alerts, criticalBooths, totalNegative: complaints.length };
+    return { alerts, criticalBooths, totalNegative: complaints?.length };
 };
 
 function getTimeAgo(timestamp: string): string {
@@ -60,7 +60,7 @@ export const RiskAlerts: React.FC = () => {
                         <h2 className="text-2xl font-black text-text-main tracking-tighter uppercase">Risk & Incident Alerts</h2>
                         <div className="flex items-center space-x-2 text-[10px] text-text-muted font-mono tracking-[0.2em] uppercase">
                             <Activity size={12} className="text-danger" />
-                            <span>Sentinel Mode: Active // {alerts.length} Incidents Open</span>
+                            <span>Sentinel Mode: Active // {alerts?.length} Incidents Open</span>
                         </div>
                     </div>
                 </div>
@@ -76,7 +76,7 @@ export const RiskAlerts: React.FC = () => {
                 <div className="lg:col-span-2 space-y-4">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin text-primary" size={32} /></div>
-                    ) : alerts.map((alert: any) => (
+                    ) : alerts?.map((alert: any) => (
                         <div key={alert.id} className="glass-panel p-6 border-l-4 border-l-danger hover:scale-[1.005] transition-transform cursor-pointer group relative overflow-hidden">
                             {alert.type === 'Critical' && (
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-danger/5 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -130,12 +130,12 @@ export const RiskAlerts: React.FC = () => {
                             <div className="relative w-36 h-36 border-8 border-border rounded-full flex items-center justify-center">
                                 <div className="absolute inset-0 border-8 border-danger rounded-full border-t-transparent -rotate-45"></div>
                                 <div>
-                                    <div className="text-4xl font-black text-danger leading-none">{criticalBooths.length}</div>
+                                    <div className="text-4xl font-black text-danger leading-none">{criticalBooths?.length}</div>
                                     <div className="text-[9px] font-bold uppercase text-text-muted mt-1">Critical Booths</div>
                                 </div>
                             </div>
                             <p className="text-[11px] text-text-muted leading-relaxed px-4">
-                                {criticalBooths.length} booths are below the 40% sentiment threshold. These require immediate outreach.
+                                {criticalBooths?.length} booths are below the 40% sentiment threshold. These require immediate outreach.
                             </p>
                         </div>
                     </div>
@@ -144,7 +144,7 @@ export const RiskAlerts: React.FC = () => {
                     <div className="glass-panel p-6">
                         <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-4">Auto-Generated Directives</h3>
                         <div className="space-y-3">
-                            {criticalBooths.slice(0, 3).map((b: any) => (
+                            {criticalBooths.slice(0, 3)?.map((b: any) => (
                                 <div key={b.id} className="p-3 bg-danger/5 border border-danger/20 rounded-xl text-xs text-text-main flex items-start">
                                     <div className="w-1.5 h-1.5 rounded-full bg-danger mt-1.5 mr-3 shrink-0"></div>
                                     Deploy awareness campaign for <span className="text-warning font-bold mx-1">{b.top_issue}</span> in {b.name}, {b.constituency}. Sentiment at <span className="text-danger font-bold ml-1">{b.sentiment}%</span>.

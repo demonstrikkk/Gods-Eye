@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// JanGraph OS — Shared Type Definitions
+// Gods-Eye OS — Shared Type Definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface GeoPoint {
@@ -284,7 +284,12 @@ export type SidebarTab =
   | 'schemes'
   | 'alerts'
   | 'ai'
-  | 'expert';
+  | 'expert'
+  | 'visual'
+  | 'unified'
+  | 'battleground'
+  | 'officials'
+  | 'workspace';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Expert Agent System Types
@@ -489,4 +494,333 @@ export interface ExpertAnalysisResponse {
     consensus_strength?: string;
     expert_processing_time_ms?: number;
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Visual Intelligence Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ViDomainType =
+  | 'economics'
+  | 'geopolitics'
+  | 'climate'
+  | 'infrastructure'
+  | 'demographics'
+  | 'defense'
+  | 'trade'
+  | 'technology'
+  | 'energy'
+  | 'agriculture'
+  | 'health'
+  | 'space'
+  | 'logistics'
+  | 'disaster';
+
+export type ViChartType =
+  | 'line'
+  | 'bar'
+  | 'pie'
+  | 'scatter'
+  | 'radar'
+  | 'doughnut'
+  | 'area'
+  | 'horizontalBar';
+
+export type ViDiagramType =
+  | 'workflow'
+  | 'cause_effect'
+  | 'pipeline'
+  | 'infrastructure'
+  | 'network'
+  | 'process'
+  | 'hierarchy'
+  | 'comparison';
+
+export type ViIntentType =
+  | 'comparison'
+  | 'trend'
+  | 'forecast'
+  | 'what_if'
+  | 'analysis'
+  | 'correlation'
+  | 'impact'
+  | 'simulation'
+  | 'overview';
+
+export type ViMapFeatureType =
+  | 'markers'
+  | 'heatmap'
+  | 'routes'
+  | 'polygons'
+  | 'highlight'
+  | 'focus'
+  | 'overlay';
+
+export interface ViParsedIntent {
+  query_id: string;
+  raw_query: string;
+  countries: string[];
+  regions: string[];
+  cities: string[];
+  primary_domain: ViDomainType;
+  secondary_domains: ViDomainType[];
+  domain_confidence: Record<string, number>;
+  intent_type: ViIntentType;
+  time_range?: { start_year: number; end_year: number };
+  requires_chart: boolean;
+  chart_type?: ViChartType;
+  requires_diagram: boolean;
+  diagram_type?: ViDiagramType;
+  requires_map: boolean;
+  map_features: ViMapFeatureType[];
+  indicators: string[];
+  comparison_entities: string[];
+  parse_confidence: number;
+}
+
+export interface ViChartOutput {
+  chart_url: string;
+  chart_type: ViChartType;
+  title: string;
+  config: Record<string, any>;
+  data_summary: string;
+  insight?: string;
+}
+
+export interface ViDiagramOutput {
+  image_url: string;
+  diagram_type: ViDiagramType;
+  prompt_used: string;
+  description: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ViGeoEntity {
+  name: string;
+  entity_type: string;
+  iso_code?: string;
+  lat?: number;
+  lng?: number;
+  confidence: number;
+}
+
+export interface ViMapMarker {
+  lat: number;
+  lng: number;
+  label: string;
+  marker_type: string;
+  description?: string;
+  color: string;
+}
+
+export interface ViMapRoute {
+  from_lat: number;
+  from_lng: number;
+  to_lat: number;
+  to_lng: number;
+  route_type: string;
+  label?: string;
+  color: string;
+}
+
+export interface ViMapData {
+  commands: Array<Record<string, any>>;
+  affected_regions: string[];
+  geo_entities: ViGeoEntity[];
+  markers: ViMapMarker[];
+  routes: ViMapRoute[];
+  heatmap_data?: Record<string, number>;
+  coordinate_data?: Record<string, any>;
+  layer_recommendations: string[];
+}
+
+export interface ViChartInsight {
+  chart_id: string;
+  trend_description: string;
+  key_values: string[];
+  notable_patterns: string[];
+}
+
+export interface ViDiagramInsight {
+  diagram_id: string;
+  flow_description: string;
+  key_elements: string[];
+  relationships: string[];
+}
+
+export interface ViMapInsight {
+  geographic_focus: string;
+  spatial_patterns: string[];
+  regional_highlights: string[];
+}
+
+export interface ViInsightSynthesis {
+  executive_summary: string;
+  key_findings: string[];
+  cross_domain_connections: string[];
+  causal_chain: string[];
+  chart_insights: ViChartInsight[];
+  diagram_insights: ViDiagramInsight[];
+  map_insights?: ViMapInsight;
+  recommendations: string[];
+  data_sources: string[];
+  confidence_score: number;
+}
+
+export interface VisualIntelligenceResponse {
+  query_id: string;
+  parsed_intent: ViParsedIntent;
+  data_sources: string[];
+  data_quality_score: number;
+  charts: ViChartOutput[];
+  diagrams: ViDiagramOutput[];
+  map_data: ViMapData;
+  insight: ViInsightSynthesis;
+  expert_analysis?: ExpertAnalysisResponse;
+  processing_time_ms: number;
+  timestamp: string;
+}
+
+export interface ViDataSource {
+  id: string;
+  name: string;
+  status: 'available' | 'limited' | 'unavailable';
+  indicators: string[];
+  last_check?: string;
+}
+
+export interface ViDomain {
+  id: string;
+  name: string;
+  description: string;
+  example_queries: string[];
+}
+
+export interface ViChartTypeInfo {
+  id: ViChartType;
+  name: string;
+  description: string;
+  use_cases: string[];
+}
+
+export interface ViDiagramTypeInfo {
+  id: ViDiagramType;
+  name: string;
+  description: string;
+  use_cases: string[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified Intelligence Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type UnifiedCapabilityType = 'reasoning' | 'tools' | 'visuals' | 'map';
+
+export interface UnifiedConversationMessageInput {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+}
+
+export interface UnifiedAssistantResponseSection {
+  title: string;
+  content: string;
+  tone: string;
+}
+
+export interface UnifiedAssistantResponse {
+  title: string;
+  executive_brief: string;
+  key_takeaways: string[];
+  next_actions: string[];
+  suggested_follow_ups: string[];
+  memory_summary: string;
+  response_blocks: UnifiedAssistantResponseSection[];
+  artifact_overview: {
+    charts: number;
+    diagrams: number;
+    map_markers: number;
+    map_routes: number;
+    successful_capabilities: number;
+    failed_capabilities: number;
+  };
+  response_mode: string;
+}
+
+export interface UnifiedQueryAssessment {
+  complexity: 'simple' | 'moderate' | 'complex' | 'very_complex';
+  domains: string[];
+  has_geographic_entities: boolean;
+  has_data_indicators: boolean;
+  has_time_dimension: boolean;
+  requires_external_data: boolean;
+  requires_multi_perspective: boolean;
+  confidence: number;
+  suggested_capabilities: string[];
+}
+
+export interface UnifiedReasoningResult {
+  executive_summary: string;
+  analysis: string;
+  key_findings: string[];
+  confidence: number;
+  expert_agents_used: string[];
+  consensus_achieved: boolean;
+  risk_factors: Array<{ factor: string; severity: string; description: string }>;
+  strategic_recommendations: string[];
+  uncertainty_factors: string[];
+  timeline: Array<{ time: string; event: string; impact: string; type: string }>;
+  processing_time_ms: number;
+}
+
+export interface UnifiedToolsResult {
+  tools_executed: string[];
+  data_sources: string[];
+  tool_outputs: Record<string, any>;
+  insights: string[];
+  unavailable_tools: Record<string, any>;
+  processing_time_ms: number;
+}
+
+export interface UnifiedVisualsResult {
+  charts: ViChartOutput[];
+  diagrams: ViDiagramOutput[];
+  chart_insights: string[];
+  diagram_insights: string[];
+  processing_time_ms: number;
+}
+
+export interface UnifiedMapResult {
+  commands: Array<Record<string, any>>;
+  affected_regions: string[];
+  markers: ViMapMarker[];
+  routes: ViMapRoute[];
+  heatmap_data?: Record<string, number>;
+  processing_time_ms: number;
+}
+
+export interface UnifiedIntelligenceResponse {
+  status: string;
+  query_id: string;
+  conversation_id: string;
+  query: string;
+  assessment: UnifiedQueryAssessment;
+  reasoning?: UnifiedReasoningResult;
+  tools?: UnifiedToolsResult;
+  visuals?: UnifiedVisualsResult;
+  map_intelligence?: UnifiedMapResult;
+  unified_summary: string;
+  assistant_response: UnifiedAssistantResponse;
+  confidence_score: number;
+  data_sources_used: string[];
+  capabilities_activated: string[];
+  capability_statuses: Array<{
+    capability: UnifiedCapabilityType;
+    success: boolean;
+    error_message?: string | null;
+    fallback_used?: boolean;
+    execution_time_ms: number;
+  }>;
+  total_processing_time_ms: number;
+  timestamp: string;
 }

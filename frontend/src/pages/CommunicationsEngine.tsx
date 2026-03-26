@@ -79,7 +79,7 @@ export const CommunicationsEngine: React.FC = () => {
                             </h3>
                         </div>
                         <div className="space-y-3">
-                            {mockCampaigns.map(camp => (
+                            {mockCampaigns?.map(camp => (
                                 <div key={camp.id} className="bg-background/40 border border-border/50 rounded-xl p-4 flex items-center justify-between group hover:border-primary/40 transition-all cursor-pointer">
                                     <div className="flex items-center space-x-4">
                                         <div className={`p-2 rounded-lg bg-panel ${camp.status === 'Active' ? 'shadow-[0_0_10px_rgba(16,185,129,0.2)]' : ''}`}>
@@ -115,7 +115,7 @@ export const CommunicationsEngine: React.FC = () => {
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {isLoading ? (
                             <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-primary" size={24} /></div>
-                        ) : recentComplaints.map((msg: any) => (
+                        ) : recentComplaints?.map((msg: any) => (
                             <div key={msg.id} className="p-4 rounded-2xl bg-background/80 border border-border/60 hover:border-primary/30 transition-all shadow-glass">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-[10px] font-black text-text-muted uppercase tracking-tighter">{msg.citizen_name}</span>

@@ -1,6 +1,6 @@
-# JanGraph OS
+# Gods-Eye OS
 
-JanGraph OS is an intelligence command platform that combines:
+Gods-Eye OS is an intelligence command platform that combines:
 
 - A global ontology cockpit (countries, corridors, signals, strategic assets)
 - A civic operations intelligence layer (booths, citizens, workers, schemes, complaints)

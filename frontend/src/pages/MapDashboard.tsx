@@ -125,13 +125,13 @@ export const MapDashboard: React.FC = () => {
                             <span className="text-[10px] bg-primary/20 text-primary-light px-2 py-0.5 rounded">LIVE</span>
                         </div>
                         <div className="space-y-2">
-                            {points?.filter((p: any) => p.sentiment < 40).slice(0, 6).map((p: any) => (
+                            {points?.filter((p: any) => p.sentiment < 40).slice(0, 6)?.map((p: any) => (
                                 <div key={p.id} className="p-2 rounded bg-danger/5 border border-danger/20 text-[11px]">
                                     <div className="font-bold text-danger">{p.constituency} — {p.name}</div>
                                     <div className="text-text-muted mt-1">Sentiment: {p.sentiment}% | Issue: {p.top_issue}</div>
                                 </div>
                             ))}
-                            {(!points || points.filter((p: any) => p.sentiment < 40).length === 0) && (
+                            {(!points || points.filter((p: any) => p.sentiment < 40)?.length === 0) && (
                                 <div className="text-[11px] text-text-muted text-center py-4">No critical alerts</div>
                             )}
                         </div>

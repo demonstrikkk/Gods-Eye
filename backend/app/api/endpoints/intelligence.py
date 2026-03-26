@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 import logging
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.data.store import store
 from app.core.rate_limit import limiter
 
@@ -9,29 +9,133 @@ logger = logging.getLogger("intelligence_api")
 router = APIRouter()
 
 
+def _publish_battleground_map_commands(simulation: Dict[str, Any], country_a: str, country_b: str) -> List[str]:
+    """Publish battleground simulation overlays as centralized map commands."""
+    from app.services.map_command_service import get_map_command_service
+
+    service = get_map_command_service()
+    source = "strategic_battleground_agent"
+    service.clear_commands(source=source)
+
+    command_ids: List[str] = []
+
+    # Always keep country actors highlighted and add a conflict route for context.
+    highlight = service.create_highlight_command(
+        country_ids=[country_a, country_b],
+        color="#ef4444",
+        pulse=True,
+        description="Battleground simulation actors",
+        source=source,
+        priority="high",
+        metadata={"mode": "battleground", "actors": [country_a, country_b]},
+    )
+    command_ids.append(highlight.id)
+
+    route = service.create_route_command(
+        from_country=country_a,
+        to_country=country_b,
+        route_type="conflict_front",
+        color="#dc2626",
+        weight=4,
+        description="Simulated front line",
+        source=source,
+        priority="high",
+        metadata={"mode": "battleground", "actors": [country_a, country_b]},
+    )
+    command_ids.append(route.id)
+
+    # Convert battleground layers to overlay + marker commands for map rendering.
+    map_layers = simulation.get("map_visualization", [])
+    points: List[Dict[str, Any]] = []
+
+    for layer in map_layers:
+        layer_type = str(layer.get("type", ""))
+        layer_data = layer.get("data")
+
+        if layer_type == "force_deployment" and isinstance(layer_data, list):
+            for entry in layer_data:
+                try:
+                    lat = float(entry.get("lat"))
+                    lng = float(entry.get("lng"))
+                except (TypeError, ValueError):
+                    continue
+
+                country_id = str(entry.get("country_id") or "")
+                marker = service.create_marker_command(
+                    lat=lat,
+                    lng=lng,
+                    marker_type="force_deployment",
+                    label=f"{country_id} deployment",
+                    color="#f59e0b",
+                    description="Simulated force deployment",
+                    source=source,
+                    priority="high",
+                    metadata={"mode": "battleground", "country_id": country_id, "force_type": entry.get("type")},
+                )
+                command_ids.append(marker.id)
+
+                points.append(
+                    {
+                        "lat": lat,
+                        "lng": lng,
+                        "country_id": country_id,
+                        "label": f"{country_id} deployment",
+                        "impact": 0.7,
+                    }
+                )
+
+        if layer_type == "conflict_zone" and isinstance(layer_data, dict):
+            center = layer_data.get("center")
+            if isinstance(center, (list, tuple)) and len(center) == 2:
+                try:
+                    lat = float(center[0])
+                    lng = float(center[1])
+                    points.append(
+                        {
+                            "lat": lat,
+                            "lng": lng,
+                            "label": "Conflict zone",
+                            "impact": 0.9,
+                        }
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+    if points:
+        overlay = service.create_overlay_command(
+            overlay_type="scenario_impact_zones",
+            overlay_data={
+                "title": "Battleground conflict zones",
+                "points": points,
+            },
+            description="Battleground impact zones",
+            source=source,
+            priority="high",
+            metadata={"mode": "battleground", "actors": [country_a, country_b]},
+        )
+        command_ids.append(overlay.id)
+
+    focus = service.create_focus_command(
+        country_id=country_a,
+        zoom_level=5,
+        duration_ms=1200,
+        description="Battleground simulation focus",
+        source=source,
+        priority="high",
+        metadata={"mode": "battleground", "actors": [country_a, country_b]},
+    )
+    command_ids.append(focus.id)
+
+    return command_ids
+
+
 @router.get("/dashboard/executive", response_model=Dict[str, Any])
 async def get_executive_kpis():
     """
     Retrieves aggregated top-level KPIs from the in-memory civic data store.
     """
-    try:
-        kpis = store.get_executive_kpis()
-        return {"status": "success", "kpis": kpis}
-    except Exception as e:
-        logger.error(f"Intelligence Engine Failure: {str(e)}")
-        return {
-            "status": "success",
-            "kpis": {
-                "national_sentiment": 48.2,
-                "active_alerts": 8,
-                "field_workers_online": 312,
-                "total_citizens": 50000,
-                "total_booths": 125,
-                "total_schemes": 8,
-                "unresolved_complaints": 420,
-                "scheme_coverage_pct": 44.5,
-            },
-        }
+    kpis = store.get_executive_kpis()
+    return {"status": "success", "kpis": kpis}
 
 
 class NLQueryRequest(BaseModel):
@@ -58,8 +162,9 @@ async def execute_natural_language_query(request: Request, payload: NLQueryReque
                 if isinstance(result, dict) and "answer" in result:
                     return {"status": "success", "answer": result["answer"]}
             except Exception as ai_err:
-                logger.warning(f"AI QA failed, falling back to keywords: {ai_err}")
-
+                from fastapi import HTTPException
+                logger.error(f"Unhandled error: {ai_err}")
+                raise HTTPException(status_code=500, detail=str(ai_err))
         if "sentiment" in query and "negative" in query:
             booths = store.get_booths()
             critical = [booth for booth in booths if booth["avg_sentiment"] < 40]
@@ -165,7 +270,7 @@ async def execute_natural_language_query(request: Request, payload: NLQueryReque
         return {
             "status": "success",
             "answer": (
-                "JanGraph OS Intelligence Summary:\n"
+                "Gods-Eye OS Intelligence Summary:\n"
                 f"- {stats['total_constituencies']} constituencies monitored\n"
                 f"- {global_stats['total_countries']} countries indexed in the global ontology\n"
                 f"- {stats['total_booths']} booths with {stats['total_citizens']:,} citizens profiled\n"
@@ -175,11 +280,9 @@ async def execute_natural_language_query(request: Request, payload: NLQueryReque
                 "Try asking: 'Show countries under highest risk' or 'Show booths with negative sentiment'"
             ),
         }
-
     except Exception as e:
-        logger.error(f"NL Query Failure: {e}")
-        return {"status": "error", "answer": f"Intelligence Engine encountered an issue: {str(e)}"}
-
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
 
 class StrategicQueryRequest(BaseModel):
     query: str
@@ -204,18 +307,9 @@ async def execute_strategic_analysis(request: StrategicQueryRequest):
         analysis = await run_strategic_analysis(request.query)
         return {"status": "success", "data": analysis}
     except Exception as e:
-        logger.error(f"Strategic Analysis Failure: {e}")
-        return {
-            "status": "error",
-            "data": {
-                "executive_summary": f"Analysis engine encountered an error: {str(e)}",
-                "key_risk_factors": [],
-                "scenarios": [],
-                "strategic_recommendations": ["Retry with LLM connectivity"],
-            },
-        }
-
-
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 @router.post("/scenario-simulate", response_model=Dict[str, Any])
 async def execute_scenario_simulation(request: WhatIfRequest):
     """
@@ -233,10 +327,9 @@ async def execute_scenario_simulation(request: WhatIfRequest):
         )
         return {"status": "success", "data": result}
     except Exception as e:
-        logger.error(f"Simulation Failure: {e}")
-        return {"status": "error", "data": {"error": str(e)}}
-
-
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 class ExpertAnalysisRequest(BaseModel):
     query: str
     context: Dict[str, Any] = {}
@@ -272,20 +365,9 @@ async def execute_expert_analysis(request: ExpertAnalysisRequest):
         )
         return {"status": "success", "data": analysis}
     except Exception as e:
-        logger.error(f"Expert Analysis Failure: {e}")
-        return {
-            "status": "error",
-            "data": {
-                "executive_summary": f"Expert analysis engine encountered an error: {str(e)}",
-                "expert_assessment": {
-                    "confidence": {"level": "Cannot Assess", "score": 0.0},
-                    "disagreements": [],
-                },
-                "strategic_recommendations": ["Retry with API connectivity"],
-            },
-        }
-
-
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 @router.get("/expert-agents", response_model=Dict[str, Any])
 async def get_available_expert_agents():
     """
@@ -297,14 +379,48 @@ async def get_available_expert_agents():
         agents = expert_orchestrator.get_available_agents()
         return {"status": "success", "agents": agents}
     except Exception as e:
-        logger.error(f"Failed to get expert agents: {e}")
-        return {
-            "status": "error",
-            "agents": [],
-            "error": str(e),
-        }
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+class CounterQuestionRequest(BaseModel):
+    expert_assessment: Dict[str, Any]
+    context: Dict[str, Any] = {}
 
 
+@router.post("/counter-question", response_model=Dict[str, Any])
+async def execute_counter_questioning(request: CounterQuestionRequest):
+    """
+    Counter-Questioning / Red Team Analysis
+
+    Adversarially tests expert analysis by:
+    - Challenging assumptions
+    - Identifying evidence gaps
+    - Generating critical counter-questions
+    - Proposing alternative explanations
+    - Assessing confidence calibration
+
+    This acts as a "red team" that tries to poke holes in the analysis.
+
+    Returns:
+    - counter_questions: List of critical questions
+    - assumption_challenges: Assumptions that may be flawed
+    - evidence_gaps: Missing data or perspectives
+    - alternative_interpretations: Other ways to interpret the data
+    - confidence_adjustment: Recommended confidence level change
+    - red_team_summary: Executive summary of red team findings
+    """
+    from app.services.counter_questioning import counter_questioning_agent
+
+    try:
+        counter_analysis = counter_questioning_agent.analyze(
+            expert_assessment=request.expert_assessment,
+            context=request.context,
+        )
+        return {"status": "success", "data": counter_analysis.to_dict()}
+    except Exception as e:
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 @router.post("/news-insight", response_model=Dict[str, Any])
 @limiter.limit("12/minute")
 async def get_news_insight(request: Request, payload: StrategicQueryRequest):
@@ -321,7 +437,7 @@ async def get_news_insight(request: Request, payload: StrategicQueryRequest):
 
     context = "\n".join([f"- [{feed['category']}] {feed['text']}" for feed in feeds[:15]])
 
-    prompt = f"""You are the JanGraph OS News Analyst.
+    prompt = f"""You are the Gods-Eye OS News Analyst.
 Targeted query: {payload.query}
 
 Current news context:
@@ -336,5 +452,117 @@ Respond with a clear, professional intelligence summary."""
         res = llm.invoke(prompt)
         return {"status": "success", "answer": res.content}
     except Exception as e:
-        logger.error(f"News Insight Failure: {e}")
-        return {"status": "error", "answer": "News Intelligence Engine offline."}
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+# ═══════════════════════════════════════════════════════════════════════════════
+# VIRTUAL BATTLEGROUND ENDPOINTS
+# Strategic simulation and military comparison APIs
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class MilitaryComparisonRequest(BaseModel):
+    country_a: str
+    country_b: str
+    include_allies: bool = False
+
+
+class ConflictSimulationRequest(BaseModel):
+    country_a: str
+    country_b: str
+    scenario_type: str = "conventional"
+    duration_days: int = 30
+
+
+@router.get("/battleground/military-strength/{country_id}", response_model=Dict[str, Any])
+async def get_military_strength(country_id: str):
+    """
+    Get military strength data for a specific country.
+
+    Returns force composition, rankings, and capability indices.
+    """
+    from app.services.battleground_engine import battleground_engine
+
+    try:
+        strength = battleground_engine.get_military_strength(country_id)
+        return {"status": "success", "data": strength}
+    except Exception as e:
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+@router.post("/battleground/compare-forces", response_model=Dict[str, Any])
+async def compare_military_forces(request: MilitaryComparisonRequest):
+    """
+    Compare military forces between two countries.
+
+    Provides:
+    - Force composition comparison
+    - Power ratio analysis
+    - Alliance network (if include_allies=True)
+    - Advantage assessment
+    """
+    from app.services.battleground_engine import battleground_engine
+
+    try:
+        comparison = battleground_engine.compare_forces(
+            country_a=request.country_a,
+            country_b=request.country_b,
+            include_allies=request.include_allies,
+        )
+        return {"status": "success", "data": comparison}
+    except Exception as e:
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/battleground/alliance-network", response_model=Dict[str, Any])
+async def get_alliance_network():
+    """
+    Get the full global alliance/adversary network graph.
+
+    Returns nodes (countries) and edges (relationships) for visualization.
+    """
+    from app.services.battleground_engine import battleground_engine
+
+    try:
+        network = battleground_engine.get_alliance_network()
+        return {"status": "success", "data": network}
+    except Exception as e:
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+@router.post("/battleground/simulate-conflict", response_model=Dict[str, Any])
+async def simulate_conflict(request: ConflictSimulationRequest):
+    """
+    Simulate a conflict scenario between two countries.
+
+    Returns:
+    - Force comparison
+    - Outcome probabilities
+    - Projected timeline
+    - Economic/humanitarian impacts
+    - Map visualization layers
+    - Strategic warnings
+    """
+    from app.services.battleground_engine import battleground_engine
+
+    try:
+        simulation = battleground_engine.simulate_conflict(
+            country_a=request.country_a,
+            country_b=request.country_b,
+            scenario_type=request.scenario_type,
+            duration_days=request.duration_days,
+        )
+
+        map_command_ids = _publish_battleground_map_commands(
+            simulation,
+            request.country_a,
+            request.country_b,
+        )
+        simulation.setdefault("_meta", {})
+        simulation["_meta"]["map_command_ids"] = map_command_ids
+        simulation["_meta"]["map_command_source"] = "strategic_battleground_agent"
+
+        return {"status": "success", "data": simulation}
+    except Exception as e:
+        from fastapi import HTTPException
+        logger.error(f"Unhandled error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

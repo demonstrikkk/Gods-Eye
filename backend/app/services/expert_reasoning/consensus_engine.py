@@ -1,5 +1,5 @@
 """
-Consensus Engine for JanGraph OS
+Consensus Engine for Gods-Eye OS
 
 This module synthesizes multi-agent outputs into unified assessments:
 1. Aggregates probabilistic outputs using Bayesian combination

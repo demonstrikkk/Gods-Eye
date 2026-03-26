@@ -30,13 +30,13 @@ export const AlertsTab: React.FC = () => {
 
   const lastUpdated = useLastUpdated(dataUpdatedAt);
   const combined = [
-    ...signals.map((signal: any) => ({ ...signal, kind: 'signal', text: signal.title })),
-    ...news.slice(0, 10).map((feed: any) => ({ ...feed, kind: 'feed' })),
+    ...signals?.map((signal: any) => ({ ...signal, kind: 'signal', text: signal.title })),
+    ...news.slice(0, 10)?.map((feed: any) => ({ ...feed, kind: 'feed' })),
   ].sort((a: any, b: any) => (a.severity === 'High' || a.urgency === 'High' ? -1 : b.severity === 'High' || b.urgency === 'High' ? 1 : 0));
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12]/40 rounded-md overflow-hidden">
-      <div className="p-3 bg-zinc-950/60 border-b border-zinc-800/80 flex items-center justify-between shrink-0">
+    <div className="flex flex-col h-full bg-transparent rounded-md overflow-hidden">
+      <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-[0.2em] font-mono">Global Signals</span>
@@ -57,7 +57,7 @@ export const AlertsTab: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-2 p-3 custom-scrollbar">
-        {combined.map((item: any, index: number) => {
+        {combined?.map((item: any, index: number) => {
           const level = item.severity || item.urgency || 'Low';
           const ui = urgencyUI(level);
           return (

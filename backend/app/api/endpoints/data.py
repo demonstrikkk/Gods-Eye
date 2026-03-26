@@ -1,5 +1,5 @@
 """
-JanGraph OS — Data API Endpoints
+Gods-Eye OS — Data API Endpoints
 Serves all civic intelligence data from the in-memory store.
 """
 from fastapi import APIRouter, Query, HTTPException
@@ -428,3 +428,198 @@ async def get_news_feeds():
 async def get_hyperlocal_alerts():
     from app.services.runtime_intelligence import runtime_engine
     return {"status": "success", "data": runtime_engine.get_alerts()}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GOVERNMENT OFFICIALS ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/officials", response_model=Dict[str, Any])
+async def get_all_officials():
+    """Get all government officials and political figures."""
+    from app.data.officials_data import officials_engine
+
+    officials = officials_engine.get_all_officials()
+    return {"status": "success", "count": len(officials), "data": officials}
+
+
+@router.get("/officials/heads-of-state", response_model=Dict[str, Any])
+async def get_heads_of_state():
+    """Get all heads of state and government."""
+    from app.data.officials_data import officials_engine
+
+    heads = officials_engine.get_heads_of_state()
+    return {"status": "success", "count": len(heads), "data": heads}
+
+
+@router.get("/officials/country/{country_id}", response_model=Dict[str, Any])
+async def get_officials_by_country(country_id: str):
+    """Get officials for a specific country."""
+    from app.data.officials_data import officials_engine
+
+    officials = officials_engine.get_officials_by_country(country_id)
+    return {"status": "success", "count": len(officials), "data": officials}
+
+
+@router.get("/officials/{official_id}", response_model=Dict[str, Any])
+async def get_official(official_id: str):
+    """Get a specific official by ID."""
+    from app.data.officials_data import officials_engine
+
+    official = officials_engine.get_official(official_id)
+    if not official:
+        return {"status": "error", "message": "Official not found"}
+    return {"status": "success", "data": official}
+
+
+@router.get("/officials/search/{query}", response_model=Dict[str, Any])
+async def search_officials(query: str):
+    """Search officials by name or title."""
+    from app.data.officials_data import officials_engine
+
+    results = officials_engine.search_officials(query)
+    return {"status": "success", "count": len(results), "data": results}
+
+
+@router.get("/officials/india-relations", response_model=Dict[str, Any])
+async def get_india_relations():
+    """Get summary of world leaders' stances on India."""
+    from app.data.officials_data import officials_engine
+
+    summary = officials_engine.get_india_relations_summary()
+    return {"status": "success", "data": summary}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POLITICAL PARTIES ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/parties", response_model=Dict[str, Any])
+async def get_all_parties():
+    """Get all political parties."""
+    from app.data.officials_data import officials_engine
+
+    parties = officials_engine.get_all_parties()
+    return {"status": "success", "count": len(parties), "data": parties}
+
+
+@router.get("/parties/country/{country_id}", response_model=Dict[str, Any])
+async def get_parties_by_country(country_id: str):
+    """Get parties for a specific country."""
+    from app.data.officials_data import officials_engine
+
+    parties = officials_engine.get_parties_by_country(country_id)
+    return {"status": "success", "count": len(parties), "data": parties}
+
+
+@router.get("/parties/governing", response_model=Dict[str, Any])
+async def get_governing_parties():
+    """Get currently governing parties worldwide."""
+    from app.data.officials_data import officials_engine
+
+    parties = officials_engine.get_governing_parties()
+    return {"status": "success", "count": len(parties), "data": parties}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ELECTIONS ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/elections", response_model=Dict[str, Any])
+async def get_all_elections():
+    """Get all elections (past, ongoing, upcoming)."""
+    from app.data.officials_data import officials_engine
+
+    elections = officials_engine.get_all_elections()
+    return {"status": "success", "count": len(elections), "data": elections}
+
+
+@router.get("/elections/upcoming", response_model=Dict[str, Any])
+async def get_upcoming_elections():
+    """Get upcoming elections worldwide."""
+    from app.data.officials_data import officials_engine
+
+    elections = officials_engine.get_upcoming_elections()
+    return {"status": "success", "count": len(elections), "data": elections}
+
+
+@router.get("/elections/country/{country_id}", response_model=Dict[str, Any])
+async def get_elections_by_country(country_id: str):
+    """Get elections for a specific country."""
+    from app.data.officials_data import officials_engine
+
+    elections = officials_engine.get_elections_by_country(country_id)
+    return {"status": "success", "count": len(elections), "data": elections}
+
+
+@router.get("/elections/{election_id}", response_model=Dict[str, Any])
+async def get_election(election_id: str):
+    """Get a specific election by ID."""
+    from app.data.officials_data import officials_engine
+
+    election = officials_engine.get_election(election_id)
+    if not election:
+        return {"status": "error", "message": "Election not found"}
+    return {"status": "success", "data": election}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COUNTRY WORKSPACE ENDPOINTS
+# Comprehensive country analysis and comparison
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/country-workspace/{country_id}", response_model=Dict[str, Any])
+async def get_country_workspace(country_id: str):
+    """
+    Get comprehensive workspace data for a country.
+
+    Aggregates:
+    - Country overview (risk, influence, sentiment)
+    - Government officials and political structure
+    - Military capabilities
+    - Recent signals and events
+    - Electoral calendar
+    - Relationships with other countries
+    - Key rivals for comparison
+    """
+    from app.services.country_workspace import country_workspace_aggregator
+
+    try:
+        workspace = country_workspace_aggregator.get_country_workspace(country_id)
+        return {"status": "success", "data": workspace}
+    except Exception as e:
+        logger.error(f"Country workspace generation failed: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/country-compare/{country_a}/{country_b}", response_model=Dict[str, Any])
+async def compare_countries(
+    country_a: str,
+    country_b: str,
+    include_military: bool = Query(default=True),
+    include_political: bool = Query(default=True)
+):
+    """
+    Compare two countries across multiple dimensions.
+
+    Includes:
+    - Overview metrics (risk, influence, sentiment, population)
+    - Military capabilities comparison
+    - Political structure comparison
+    - Relationship status
+    """
+    from app.services.country_workspace import country_workspace_aggregator
+
+    try:
+        comparison = country_workspace_aggregator.get_country_comparison(
+            country_a=country_a,
+            country_b=country_b,
+            include_military=include_military,
+            include_political=include_political,
+        )
+        return {"status": "success", "data": comparison}
+    except Exception as e:
+        logger.error(f"Country comparison failed: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))

@@ -177,18 +177,264 @@ If you want, I can give the same as a strict machine-readable matrix:
 3. Required key
 4. Used by which API route
 5. Current status type (live/fallback/optional)
-6. SourceEndpoint/BaseKey NeededUsed ByStatus TypeReuters World RSShttps://www.reutersagency.com/feed/?best-topics=world&post_type=bestNofeed aggregation -> /data/feeds, /data/newsliveBBC World RSShttp://feeds.bbci.co.uk/news/world/rss.xmlNofeed aggregation -> /data/feeds, /data/newsliveAl Jazeera RSShttps://www.aljazeera.com/xml/rss/all.xmlNofeed aggregation -> /data/feeds, /data/newsliveDW World RSShttps://rss.dw.com/rdf/rss-en-allNofeed aggregation -> /data/feeds, /data/newsliveFrance24 RSShttps://www.france24.com/en/rssNofeed aggregation -> /data/feeds, /data/newsliveDefense News RSShttps://www.defensenews.com/arc/outboundfeeds/rss/Nofeed aggregation -> /data/feeds, /data/newsliveThe Diplomat RSShttps://thediplomat.com/feed/Nofeed aggregation -> /data/feeds, /data/newsliveEconomic Times RSShttps://economictimes.indiatimes.com/rssfeedstopstories.cmsNofeed aggregation -> /data/feeds, /data/newslivePIB RSShttps://pib.gov.in/RssMain.aspxNofeed aggregation -> /data/feeds, /data/newsliveGoogle News RSS (Reuters query)https://news.google.com/rss/search?q=reuters+world+news&hl=en-IN&gl=IN&ceid=IN:enNofallback feed aggregationfallbackGoogle News RSS (Al Jazeera query)https://news.google.com/rss/search?q=al+jazeera+world&hl=en-IN&gl=IN&ceid=IN:enNofallback feed aggregationfallbackGoogle News RSS (PIB query)https://news.google.com/rss/search?q=Press+Information+Bureau+India&hl=en-IN&gl=IN&ceid=IN:enNofallback feed aggregationfallbackGoogle News RSS (IMD/weather)https://news.google.com/rss/search?q=India+Meteorological+Department+weather+alert&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveGoogle News RSS (conflict)https://news.google.com/rss/search?q=global+conflict+protest+military&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveGoogle News RSS (cyber)https://news.google.com/rss/search?q=cyber+attack+ransomware+cisa&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveGoogle News RSS (climate)https://news.google.com/rss/search?q=wildfire+heatwave+flood+weather+alert&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveGoogle News RSS (trade routes)https://news.google.com/rss/search?q=shipping+red+sea+suez+trade+route&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveGoogle News RSS (AI infra)https://news.google.com/rss/search?q=AI+data+center+semiconductor+compute+infrastructure&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveGoogle News RSS (internet outage)https://news.google.com/rss/search?q=internet+outage+network+disruption&hl=en-IN&gl=IN&ceid=IN:enNofeed aggregationliveNewsAPIhttps://newsapi.org/v2/top-headlinesYes (NEWS_API_KEY)feed aggregation -> /data/feeds, /data/newsoptionalGDELThttps://api.gdeltproject.org/api/v2/doc/docNoruntime signals -> /data/geopolitical/events, /data/global/signals, /data/alertsliveUSGS Earthquakeshttps://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojsonNoruntime signals -> /data/earthquakes, /data/global/signals, /data/alertsliveNASA EONET Wildfireshttps://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=12Noruntime signals -> /data/fires, /data/global/signals, /data/alertsliveFREDhttps://api.stlouisfed.org/fred/series/observationsYes (FRED_API_KEY)macro/econ + source health + runtime signal enrichmentoptionalWorld Bank Indicatorshttps://api.worldbank.org/v2/country/{code}/indicator/{indicator}?format=json&per_page=2Nocountry analysis + runtime macro signalsliveEIAhttps://api.eia.gov/v2/seriesid/{series_id}Yes (EIA_API_KEY)energy signal enrichment + source healthoptionaldata.gov.in Discoveryhttps://www.data.gov.in/search/site/{query}†and catalog pagesNodiscover resource IDslive/fallbackdata.gov.in Resource APIhttps://api.data.gov.in/resource/{resource_id}?api-key=...Yes (DATA_GOV_IN_KEY or VITE_DATA_GOV_IN_KEY)governance dataset signals + source healthoptionalOpenSkyhttps://opensky-network.org/api/states/allOptional (username/password)mobility/aviation signals + source healthliveCISA KEVhttps://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.jsonNocyber signals + source healthliveReddit Public Searchhttps://www.reddit.com/search.json?q=geopolitics%20OR%20economy&sort=hot&limit=8Nodiscourse insights + source healthliveDuckDuckGo Searchhttps://duckduckgo.com/html/?q=...Noopen-web briefs + source healthliveYahoo Searchhttps://search.yahoo.com/search?p=...Noopen-web briefs + source healthliveREST Countrieshttps://restcountries.com/v3.1/all?fields=name,cca3,latlng,region,subregion,population,capital,areaNocountry catalog enrichment + source healthliveFinnhub Quoteshttps://finnhub.io/api/v1/quote?symbol=...&token=...Yes (FINNHUB_API_KEY)/data/markets + source healthoptionalOpen-Meteohttps://api.open-meteo.com/v1/forecast?...Noper-country weather enrichment in analysisliveMastodon Public Timeline{MASTODON_API_BASE_URL}/api/v1/timelines/publicNo for public timelinesocial pulse + source healthoptional/liveYouTube Data APIhttps://www.googleapis.com/youtube/v3/searchYes (YOUTUBE_API_KEY)optional sentiment/theme utilityoptionalPolymarkethttps://gamma-api.polymarket.com/markets?limit=8Nooptional market sentiment utilityoptionalGroq LLMGroq chat endpoint via SDKYes (GROQ_API_KEY)intelligence/query, strategic-analysis, scenario, news-insight, NLP pipelineoptional (primary when set)Gemini LLMGemini endpoint via SDKYes (GEMINI_API_KEY)LLM fallback/provider pathoptionalInternal (non-internet) origin matrix
-SourcePath/TypeUsed ByStatus TypeSeeded civic generatorin-memory seeded datasetmost /data civic endpointsalwaysSeeded global ontologyin-memory global dataset/data/global/* base graph/countries/assetsalwaysCurated global assetsstatic ontology assets list/data/global/assets and graph enrichmentalwaysRuntime state storepersisted JSON runtime state/data/global/signals, /data/source-health, /data/markets, alertsalwaysdata.gov catalog cachelocal JSON cachedata.gov discovery fallbackfallbackNeo4j graphgraph DB connector/intelligence/query graph QA + ingestion graph writesoptional/configuredPostgres/PostGISSQLAlchemy engine pathoutreach/data persistence path (where implemented)optional/configuredRediscache connector pathNL query caching pathoptional/configuredIf you want, I can next give this as CSV format in chat so you can paste directly into Sheets.
+6. Source
+Endpoint/Base
+Key Needed
+Used By
+Status Type
+Reuters World RSS
+https://www.reutersagency.com/feed/?best-topics=world&post_type=best
+No
+feed aggregation -> /data/feeds, /data/news
+live
+BBC World RSS
+http://feeds.bbci.co.uk/news/world/rss.xml
+No
+feed aggregation -> /data/feeds, /data/news
+live
+Al Jazeera RSS
+https://www.aljazeera.com/xml/rss/all.xml
+No
+feed aggregation -> /data/feeds, /data/news
+live
+DW World RSS
+https://rss.dw.com/rdf/rss-en-all
+No
+feed aggregation -> /data/feeds, /data/news
+live
+France24 RSS
+https://www.france24.com/en/rss
+No
+feed aggregation -> /data/feeds, /data/news
+live
+Defense News RSS
+https://www.defensenews.com/arc/outboundfeeds/rss/
+No
+feed aggregation -> /data/feeds, /data/news
+live
+The Diplomat RSS
+https://thediplomat.com/feed/
+No
+feed aggregation -> /data/feeds, /data/news
+live
+Economic Times RSS
+https://economictimes.indiatimes.com/rssfeedstopstories.cms
+No
+feed aggregation -> /data/feeds, /data/news
+live
+PIB RSS
+https://pib.gov.in/RssMain.aspx
+No
+feed aggregation -> /data/feeds, /data/news
+live
+Google News RSS (Reuters query)
+https://news.google.com/rss/search?q=reuters+world+news&hl=en-IN&gl=IN&ceid=IN:en
+No
+fallback feed aggregation
+fallback
+Google News RSS (Al Jazeera query)
+https://news.google.com/rss/search?q=al+jazeera+world&hl=en-IN&gl=IN&ceid=IN:en
+No
+fallback feed aggregation
+fallback
+Google News RSS (PIB query)
+https://news.google.com/rss/search?q=Press+Information+Bureau+India&hl=en-IN&gl=IN&ceid=IN:en
+No
+fallback feed aggregation
+fallback
+Google News RSS (IMD/weather)
+https://news.google.com/rss/search?q=India+Meteorological+Department+weather+alert&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+Google News RSS (conflict)
+https://news.google.com/rss/search?q=global+conflict+protest+military&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+Google News RSS (cyber)
+https://news.google.com/rss/search?q=cyber+attack+ransomware+cisa&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+Google News RSS (climate)
+https://news.google.com/rss/search?q=wildfire+heatwave+flood+weather+alert&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+Google News RSS (trade routes)
+https://news.google.com/rss/search?q=shipping+red+sea+suez+trade+route&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+Google News RSS (AI infra)
+https://news.google.com/rss/search?q=AI+data+center+semiconductor+compute+infrastructure&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+Google News RSS (internet outage)
+https://news.google.com/rss/search?q=internet+outage+network+disruption&hl=en-IN&gl=IN&ceid=IN:en
+No
+feed aggregation
+live
+NewsAPI
+https://newsapi.org/v2/top-headlines
+Yes (NEWS_API_KEY)
+feed aggregation -> /data/feeds, /data/news
+optional
+GDELT
+https://api.gdeltproject.org/api/v2/doc/doc
+No
+runtime signals -> /data/geopolitical/events, /data/global/signals, /data/alerts
+live
+USGS Earthquakes
+https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson
+No
+runtime signals -> /data/earthquakes, /data/global/signals, /data/alerts
+live
+NASA EONET Wildfires
+https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=12
+No
+runtime signals -> /data/fires, /data/global/signals, /data/alerts
+live
+FRED
+https://api.stlouisfed.org/fred/series/observations
+Yes (FRED_API_KEY)
+macro/econ + source health + runtime signal enrichment
+optional
+World Bank Indicators
+https://api.worldbank.org/v2/country/{code}/indicator/{indicator}?format=json&per_page=2
+No
+country analysis + runtime macro signals
+live
+EIA
+https://api.eia.gov/v2/seriesid/{series_id}
+Yes (EIA_API_KEY)
+energy signal enrichment + source health
+optional
+data.gov.in Discovery
+https://www.data.gov.in/search/site/{query}ÔøΩand catalog pages
+No
+discover resource IDs
+live/fallback
+data.gov.in Resource API
+https://api.data.gov.in/resource/{resource_id}?api-key=...
+Yes (DATA_GOV_IN_KEY or VITE_DATA_GOV_IN_KEY)
+governance dataset signals + source health
+optional
+OpenSky
+https://opensky-network.org/api/states/all
+Optional (username/password)
+mobility/aviation signals + source health
+live
+CISA KEV
+https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json
+No
+cyber signals + source health
+live
+Reddit Public Search
+https://www.reddit.com/search.json?q=geopolitics%20OR%20economy&sort=hot&limit=8
+No
+discourse insights + source health
+live
+DuckDuckGo Search
+https://duckduckgo.com/html/?q=...
+No
+open-web briefs + source health
+live
+Yahoo Search
+https://search.yahoo.com/search?p=...
+No
+open-web briefs + source health
+live
+REST Countries
+https://restcountries.com/v3.1/all?fields=name,cca3,latlng,region,subregion,population,capital,area
+No
+country catalog enrichment + source health
+live
+Finnhub Quotes
+https://finnhub.io/api/v1/quote?symbol=...&token=...
+Yes (FINNHUB_API_KEY)
+/data/markets + source health
+optional
+Open-Meteo
+https://api.open-meteo.com/v1/forecast?...
+No
+per-country weather enrichment in analysis
+live
+Mastodon Public Timeline
+{MASTODON_API_BASE_URL}/api/v1/timelines/public
+No for public timeline
+social pulse + source health
+optional/live
+YouTube Data API
+https://www.googleapis.com/youtube/v3/search
+Yes (YOUTUBE_API_KEY)
+optional sentiment/theme utility
+optional
+Polymarket
+https://gamma-api.polymarket.com/markets?limit=8
+No
+optional market sentiment utility
+optional
+Groq LLM
+Groq chat endpoint via SDK
+Yes (GROQ_API_KEY)
+intelligence/query, strategic-analysis, scenario, news-insight, NLP pipeline
+optional (primary when set)
+Gemini LLM
+Gemini endpoint via SDK
+Yes (GEMINI_API_KEY)
+LLM fallback/provider path
+optional
+Internal (non-internet) origin matrix
+Source
+Path/Type
+Used By
+Status Type
+Seeded civic generator
+in-memory seeded dataset
+most /data civic endpoints
+always
+Seeded global ontology
+in-memory global dataset
+/data/global/* base graph/countries/assets
+always
+Curated global assets
+static ontology assets list
+/data/global/assets and graph enrichment
+always
+Runtime state store
+persisted JSON runtime state
+/data/global/signals, /data/source-health, /data/markets, alerts
+always
+data.gov catalog cache
+local JSON cache
+data.gov discovery fallback
+fallback
+Neo4j graph
+graph DB connector
+/intelligence/query graph QA + ingestion graph writes
+optional/configured
+Postgres/PostGIS
+SQLAlchemy engine path
+outreach/data persistence path (where implemented)
+optional/configured
+Redis
+cache connector path
+NL query caching path
+optional/configured
+If you want, I can next give this as CSV format in chat so you can paste directly into Sheets.
 
 
 Okay so the build up idea is somewhat  like this we got these all sources as of now to feed the data from 
 
-What I believe shall be the ideal idea is that we develop an application in which there would be an map in 2d/3d both form , which will have layers likewise diplaying different things like economy , defense, army camps, climate  , technology , new news , trade routes etc etc stuff , we would be able  to have discussion with llm provider in which we will be able to ask the stuff and the agent would break  down the stuff automatically and bring out the details from the fetched sources whatever it decides from , it would try to link up different sectors like if user says ìhow to avoid oil crisis in india  amidst the war ì it would  look up at the geopolitics news regarding this fetch data for it , accordingly for the economics side as it would be an great affecting factor and the possible routes and areas with our safety assured and then help in answering while visually displaying them on the map like like could display these beings the current routes  and due to war now we can do all of these to avoid the war and bring what we want similarly likewise okay and other stuff also and qna with the chat so ,it needs to have memory context likewise even . IN the application we could also click on any part of the country and get an analysis of whatever is happening in the latest as such in different sectors , add those contexts to our ai assist even for context . We would need to have web scrapping ability also to scrape off data from different websites even likewise , also like we would be show that these are the schemes that are currently applied and these is the current implementation of all the different schemes , how its affecting , similar schemes in the global also gets told , helpin in counter questioning even if the scheme is good / bad for the nation and help in formulating better possibilities. It would be an virtual strategic battleground in which the would be another mode in which the user can try to do certain changes as to what they feel like they search ì what would happen if india decides to go full war against Pakistanî it would  generate the virtual scenario on the map also displaying like in numbers both side got number of allies , artillery , strength , weakness and would keep us counter questioning to sharpen our reasoning and planning the strategies okay . It needs to have data of all the government members and organisations so the user can see hows responsible for different tasks , say  indiaís army searches ì who all were responsible in the attack of Pulwamaî then it would show the complete response plus on the map display like images of all those people information available on the net with there disclosed locations they came from in the map , Ig It would help them certainly in the planning . It would some the market and whatís happening in it so that users can accordingly plan for what to do to achieve best of the situation in it , ì like oil prices increased ,  how to less burden it in indiaî  , it would fetch the required resources and lay out plan like try to have negotiations , try to find alternatives and invest in electric sector  also as it would be backbone in certain future as oil is uncertain is many reasons actively . It would have all the government officials records , so as to if  there are gonna be elections , then it would provide and complete response display these all are  in charge and actively participating and see activities in social and look for  potential breakouts , gang war and give  predictions to make pre arrangements in early likewise. We will also provide an external data provider . So like in this the  classified info held down by the government , they can put on it , like it would be multi step , first according to there response they look fetch data from all the sources and give response , then with there classified info they would throw the online found details and theres to be provided to an local llm ( for now everything would be on groq  ) as government can afford such stuff and then it would  give the output , nothing goes online, complete privacy , remove the resource and its compelety gone okay
+What I believe shall be the ideal idea is that we develop an application in which there would be an map in 2d/3d both form , which will have layers likewise diplaying different things like economy , defense, army camps, climate  , technology , new news , trade routes etc etc stuff , we would be able  to have discussion with llm provider in which we will be able to ask the stuff and the agent would break  down the stuff automatically and bring out the details from the fetched sources whatever it decides from , it would try to link up different sectors like if user says ÔøΩhow to avoid oil crisis in india  amidst the war ÔøΩ it would  look up at the geopolitics news regarding this fetch data for it , accordingly for the economics side as it would be an great affecting factor and the possible routes and areas with our safety assured and then help in answering while visually displaying them on the map like like could display these beings the current routes  and due to war now we can do all of these to avoid the war and bring what we want similarly likewise okay and other stuff also and qna with the chat so ,it needs to have memory context likewise even . IN the application we could also click on any part of the country and get an analysis of whatever is happening in the latest as such in different sectors , add those contexts to our ai assist even for context . We would need to have web scrapping ability also to scrape off data from different websites even likewise , also like we would be show that these are the schemes that are currently applied and these is the current implementation of all the different schemes , how its affecting , similar schemes in the global also gets told , helpin in counter questioning even if the scheme is good / bad for the nation and help in formulating better possibilities. It would be an virtual strategic battleground in which the would be another mode in which the user can try to do certain changes as to what they feel like they search ÔøΩ what would happen if india decides to go full war against PakistanÔøΩ it would  generate the virtual scenario on the map also displaying like in numbers both side got number of allies , artillery , strength , weakness and would keep us counter questioning to sharpen our reasoning and planning the strategies okay . It needs to have data of all the government members and organisations so the user can see hows responsible for different tasks , say  indiaÔøΩs army searches ÔøΩ who all were responsible in the attack of PulwamaÔøΩ then it would show the complete response plus on the map display like images of all those people information available on the net with there disclosed locations they came from in the map , Ig It would help them certainly in the planning . It would some the market and whatÔøΩs happening in it so that users can accordingly plan for what to do to achieve best of the situation in it , ÔøΩ like oil prices increased ,  how to less burden it in indiaÔøΩ  , it would fetch the required resources and lay out plan like try to have negotiations , try to find alternatives and invest in electric sector  also as it would be backbone in certain future as oil is uncertain is many reasons actively . It would have all the government officials records , so as to if  there are gonna be elections , then it would provide and complete response display these all are  in charge and actively participating and see activities in social and look for  potential breakouts , gang war and give  predictions to make pre arrangements in early likewise. We will also provide an external data provider . So like in this the  classified info held down by the government , they can put on it , like it would be multi step , first according to there response they look fetch data from all the sources and give response , then with there classified info they would throw the online found details and theres to be provided to an local llm ( for now everything would be on groq  ) as government can afford such stuff and then it would  give the output , nothing goes online, complete privacy , remove the resource and its compelety gone okay
 
 
 
-This  is what is currently done in the project okay ìîî) Vision
-JanGraph OS is designed as a dual-domain intelligence platform:
+This  is what is currently done in the project okay ÔøΩÔøΩÔøΩ) Vision
+Gods-Eye OS is designed as a dual-domain intelligence platform:
 1. Global intelligence layer:
 * Countries, corridors, strategic assets, live risk signals, source-health and market pulse.
 * Decision support through country briefs, strategic analysis, and what-if simulation.
@@ -198,36 +444,36 @@ JanGraph OS is designed as a dual-domain intelligence platform:
 3. Agentic intelligence layer:
 * AI-assisted query, planning, tool execution, evidence synthesis, and scenario modeling.
 * Built to degrade gracefully when external sources are unavailable.
-Primary vision statement is reflected in†README.md†and detailed architecture in†ARCHITECTURE.md.
+Primary vision statement is reflected inÔøΩREADME.mdÔøΩand detailed architecture inÔøΩARCHITECTURE.md.
 2) What Is Already Built (Current Reality)
 A lot is already implemented beyond initial hackathon scaffolding.
 Backend foundations:
-1. FastAPI app with startup/shutdown orchestration and API routing in†main.py†and†router.py.
-2. Global+Civic endpoint surface in†data.py.
-3. Intelligence endpoints in†intelligence.py.
-4. Ingestion endpoint for unstructured civic text in†ingestion.py.
-5. Outreach campaign endpoint in†outreach.py.
+1. FastAPI app with startup/shutdown orchestration and API routing inÔøΩmain.pyÔøΩandÔøΩrouter.py.
+2. Global+Civic endpoint surface inÔøΩdata.py.
+3. Intelligence endpoints inÔøΩintelligence.py.
+4. Ingestion endpoint for unstructured civic text inÔøΩingestion.py.
+5. Outreach campaign endpoint inÔøΩoutreach.py.
 Data and state:
-1. Seeded in-memory civic dataset and global ontology dataset via†store.py,†seed.py,†global_seed.py,†global_assets.py.
-2. Runtime persisted state in†runtime_state.json.
-3. data.gov discovery cache in†data_gov_catalog_cache.json.
+1. Seeded in-memory civic dataset and global ontology dataset viaÔøΩstore.py,ÔøΩseed.py,ÔøΩglobal_seed.py,ÔøΩglobal_assets.py.
+2. Runtime persisted state inÔøΩruntime_state.json.
+3. data.gov discovery cache inÔøΩdata_gov_catalog_cache.json.
 Live intelligence ingestion:
-1. Feed loop with RSS + optional NewsAPI in†feed_aggregator.py.
-2. OSINT/source connector layer in†osint_aggregator.py.
-3. Runtime synthesis and enrichment engine in†runtime_intelligence.py.
-4. LLM provider abstraction with Groq/Gemini fallback in†llm_provider.py.
+1. Feed loop with RSS + optional NewsAPI inÔøΩfeed_aggregator.py.
+2. OSINT/source connector layer inÔøΩosint_aggregator.py.
+3. Runtime synthesis and enrichment engine inÔøΩruntime_intelligence.py.
+4. LLM provider abstraction with Groq/Gemini fallback inÔøΩllm_provider.py.
 AI/agentic capabilities:
-1. NL query and graph-aware logic in†nl_query_engine.py.
+1. NL query and graph-aware logic inÔøΩnl_query_engine.py.
 2. Strategic analysis and scenario simulation paths (through intelligence endpoints and strategic service stack).
 3. Expert analysis orchestration and evidence/uncertainty plumbing in agents/services directories.
 Frontend foundations:
-1. Unified cockpit shell in†App.tsx†and†CommandCenter.tsx.
+1. Unified cockpit shell inÔøΩApp.tsxÔøΩandÔøΩCommandCenter.tsx.
 2. Multiple operational views/pages (executive, map, constituency, workers, strategic, ontology, etc.).
-3. API service layer hitting backend endpoints in†api.ts.
+3. API service layer hitting backend endpoints inÔøΩapi.ts.
 4. Map visualization, globe component usage, sidebars, live ticker and market bars wired to backend data paths.
 Testing and quality:
-1. Runtime intelligence behavior tests in†test_runtime_intelligence.py.
-2. Endpoint contract and route uniqueness tests in†test_data_endpoints.py.
+1. Runtime intelligence behavior tests inÔøΩtest_runtime_intelligence.py.
+2. Endpoint contract and route uniqueness tests inÔøΩtest_data_endpoints.py.
 3) Current Architecture
 High-level layered architecture:
 1. Source layer:
@@ -246,8 +492,8 @@ High-level layered architecture:
 * React Query for fetch cadence/caching + Zustand for interaction state.
 7. Visualization and operations layer:
 * 3D/2D map modes, intelligence sidebar, dashboards, alerts, and AI console.
-Architecture documentation:†ARCHITECTURE.md.
-Roadmap hardening plan:†ARCHITECTURE_PLAN.md.
+Architecture documentation:ÔøΩARCHITECTURE.md.
+Roadmap hardening plan:ÔøΩARCHITECTURE_PLAN.md.
 4) End-to-End Workflow (How It Actually Runs)
 Startup flow:
 1. Backend starts.
@@ -306,8 +552,8 @@ Derived outputs:
 6) Infrastructure and Runtime Modes
 Current deployment stance:
 1. Works locally with in-memory seeded base data.
-2. Optional dockerized infra (Postgres/PostGIS, Neo4j, Redis) via†docker-compose.yml.
-3. Environment-driven connectors and keys via root env settings from†config.py.
+2. Optional dockerized infra (Postgres/PostGIS, Neo4j, Redis) viaÔøΩdocker-compose.yml.
+3. Environment-driven connectors and keys via root env settings fromÔøΩconfig.py.
 Resilience approach:
 1. Partial-source failure tolerance.
 2. Runtime state persistence.
@@ -315,9 +561,9 @@ Resilience approach:
 4. Fallback responses for unavailable toolchains.
 7) What Is Planned vs What Is Already Done
 Important distinction:
-1. HACKATHON_MASTER_PLAN.md†includes earlier ìmissing/brokenî audit items from planning phase.
+1. HACKATHON_MASTER_PLAN.mdÔøΩincludes earlier ÔøΩmissing/brokenÔøΩ audit items from planning phase.
 2. Many of those are now implemented in current code (data endpoints, feeds, global runtime loop, strategic paths, multiple dashboards).
-3. ARCHITECTURE_PLAN.md†now acts as a hardening/maturation roadmap, not a ìnothing existsî state.
+3. ARCHITECTURE_PLAN.mdÔøΩnow acts as a hardening/maturation roadmap, not a ÔøΩnothing existsÔøΩ state.
 8) Current Gaps / Maturity Risks
 The app is functional and substantial, but still has production-hardening gaps:
 1. Mixed source-of-truth:
@@ -331,5 +577,52 @@ The app is functional and substantial, but still has production-hardening gaps:
 5. Civic real-mode rollout:
 * Civic pipeline has mock/real mode strategy; real-mode operational profile needs stricter activation gating.
 9) Practical One-Line Summary
-JanGraph OS is already a working intelligence platform with a real backend API, live source ingestion, runtime synthesis, global+civic operational dashboards, and agentic strategic workflows; current roadmap is mainly about hardening reliability, provenance clarity, and production-grade durability rather than building from scratch.
-îîîî 
+Gods-Eye OS is already a working intelligence platform with a real backend API, live source ingestion, runtime synthesis, global+civic operational dashboards, and agentic strategic workflows; current roadmap is mainly about hardening reliability, provenance clarity, and production-grade durability rather than building from scratch.
+ÔøΩÔøΩÔøΩÔøΩ 
+
+
+
+SUGGESTIONS:
+1. üß† Build a REAL reasoning layer
+
+Not just LLM.
+
+Add:
+
+scoring systems
+causal links
+confidence propagation
+2. üîó Bind AI ‚Üî Map (CRITICAL)
+
+Every AI output must:
+
+trigger map updates
+highlight regions
+show impact visually
+
+üëâ This is your killer feature
+
+3. üîÆ Make simulation ACTUAL
+
+Even basic:
+
+rule-based models
+dependency graphs
+scenario trees
+
+Not just text.
+
+4. ‚öñÔ∏è Add TRUST SYSTEM
+
+For every output:
+
+source weight
+confidence score
+disagreement detection
+5. üß± Reduce chaos
+
+You need:
+
+clear data priority hierarchy
+fallback logic standardization
+strict schema enforcement

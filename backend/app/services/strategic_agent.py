@@ -1,6 +1,6 @@
 
 """
-JanGraph OS — Agentic Strategic Intelligence Engine
+Gods-Eye OS — Agentic Strategic Intelligence Engine
 Multi-tool LLM system that breaks complex geopolitical/civic queries into
 sub-tasks, executes tool functions, synthesizes data, and produces
 strategic analysis with scenario simulations.
@@ -11,6 +11,7 @@ Enhanced for hackathon: integrated social media APIs, caching, robust error hand
 import json
 import logging
 import asyncio
+import re
 from functools import wraps
 from typing import Dict, List, Any, Callable
 from datetime import datetime
@@ -202,6 +203,341 @@ def _normalize_plan(raw_plan: Any, query: str) -> Dict[str, Any]:
     return plan
 
 
+def _analysis_text_blob(query: str, analysis: Dict[str, Any]) -> str:
+    """Build a lowercase text blob for mention matching."""
+    parts: List[str] = [query or ""]
+    for key in ("executive_summary", "situation_analysis"):
+        value = analysis.get(key)
+        if isinstance(value, str):
+            parts.append(value)
+    recommendations = analysis.get("strategic_recommendations")
+    if isinstance(recommendations, list):
+        parts.extend(str(item) for item in recommendations if isinstance(item, str))
+    scenarios = analysis.get("scenarios")
+    if isinstance(scenarios, list):
+        parts.extend(json.dumps(item, default=str) for item in scenarios)
+    parts.append(json.dumps(analysis.get("impact_on_india", {}), default=str))
+    return "\n".join(parts).lower()
+
+
+def _extract_mentioned_country_ids(countries: List[Dict[str, Any]], blob: str) -> List[str]:
+    """Extract country IDs whose names or ISO3 code appear in the analysis/query text."""
+    mentioned: List[str] = []
+    for country in countries:
+        country_id = str(country.get("id") or "")
+        name = str(country.get("name") or "").strip().lower()
+        iso3 = str(country.get("iso3") or "").strip().lower()
+        if not country_id or not name:
+            continue
+
+        by_name = name in blob
+        by_iso = bool(iso3 and len(iso3) >= 3 and re.search(rf"\b{re.escape(iso3)}\b", blob))
+        if by_name or by_iso:
+            mentioned.append(country_id)
+
+    return mentioned
+
+
+def publish_analysis_map_commands(
+    query: str,
+    analysis: Dict[str, Any],
+    *,
+    source: str,
+    priority: str,
+) -> List[str]:
+    """
+    Publish highlight/route/heatmap/focus commands inferred from analysis output.
+    Returns generated command IDs.
+    """
+    try:
+        from app.services.runtime_intelligence import runtime_engine
+        from app.services.map_command_service import get_map_command_service
+
+        service = get_map_command_service()
+        service.clear_commands(source=source)
+
+        countries = runtime_engine.get_enriched_countries()
+        if not countries:
+            return []
+
+        country_map = {
+            c["id"]: c
+            for c in countries
+            if c.get("id") and isinstance(c.get("lat"), (int, float)) and isinstance(c.get("lng"), (int, float))
+        }
+        if not country_map:
+            return []
+
+        blob = _analysis_text_blob(query, analysis)
+        mentioned_ids = [country_id for country_id in _extract_mentioned_country_ids(countries, blob) if country_id in country_map]
+
+        command_ids: List[str] = []
+
+        # 1) Highlight explicitly mentioned countries.
+        if mentioned_ids:
+            highlight = service.create_highlight_command(
+                country_ids=mentioned_ids,
+                color="#3b82f6" if priority == "critical" else "#0ea5e9",
+                pulse=True,
+                description="Countries referenced in strategic analysis",
+                source=source,
+                priority=priority,
+                metadata={"query": query[:120], "analysis_mode": source},
+            )
+            command_ids.append(highlight.id)
+
+        # 2) Build a risk heatmap from risk index, weighting mentioned countries.
+        ranked = sorted(country_map.values(), key=lambda c: float(c.get("risk_index", 0)), reverse=True)
+        heatmap_candidates = ranked[:10]
+        for country_id in mentioned_ids:
+            country = country_map.get(country_id)
+            if country and country not in heatmap_candidates:
+                heatmap_candidates.append(country)
+
+        heatmap_points = []
+        for country in heatmap_candidates[:16]:
+            risk_index = float(country.get("risk_index", 0))
+            heatmap_points.append(
+                {
+                    "country_id": country["id"],
+                    "lat": country["lat"],
+                    "lng": country["lng"],
+                    "value": max(0.0, min(1.0, risk_index / 100.0)),
+                    "label": country.get("name", country["id"]),
+                    "mentioned": country["id"] in mentioned_ids,
+                }
+            )
+
+        if heatmap_points:
+            heatmap = service.create_heatmap_command(
+                data_points=heatmap_points,
+                metric="risk_index",
+                color_scale="red",
+                description="Strategic risk heatmap",
+                source=source,
+                priority=priority,
+                metadata={"query": query[:120], "analysis_mode": source},
+            )
+            command_ids.append(heatmap.id)
+
+        # 3) Add route commands for corridors related to trade/conflict cues.
+        corridors = runtime_engine.get_corridors() if hasattr(runtime_engine, "get_corridors") else []
+        route_keywords = ("trade", "corridor", "route", "shipping", "supply", "conflict", "war", "chokepoint")
+        query_has_route_intent = any(keyword in blob for keyword in route_keywords)
+
+        selected_corridors: List[Dict[str, Any]] = []
+        for corridor in corridors:
+            from_id = corridor.get("from_country")
+            to_id = corridor.get("to_country")
+            if from_id not in country_map or to_id not in country_map:
+                continue
+
+            label_blob = " ".join(
+                str(corridor.get(field) or "") for field in ("label", "category", "status")
+            ).lower()
+            mentions_endpoint = from_id in mentioned_ids or to_id in mentioned_ids
+            corridor_match = any(keyword in label_blob for keyword in route_keywords)
+            strong_match = from_id in mentioned_ids and to_id in mentioned_ids
+
+            if strong_match or (query_has_route_intent and (mentions_endpoint or corridor_match)):
+                selected_corridors.append(corridor)
+
+        if not selected_corridors and query_has_route_intent:
+            selected_corridors = sorted(corridors, key=lambda c: float(c.get("weight", 0)), reverse=True)[:2]
+
+        for corridor in selected_corridors[:4]:
+            route = service.create_route_command(
+                from_country=corridor["from_country"],
+                to_country=corridor["to_country"],
+                route_type=str(corridor.get("category", "trade")).lower(),
+                color="#f97316" if "conflict" in str(corridor.get("category", "")).lower() else "#10b981",
+                weight=4 if priority == "critical" else 3,
+                description=f"{corridor.get('label', 'Strategic corridor')} ({corridor.get('status', 'active')})",
+                source=source,
+                priority=priority,
+                metadata={"corridor_id": corridor.get("id"), "query": query[:120]},
+            )
+            command_ids.append(route.id)
+
+        # 4) Focus map on the top mentioned region, otherwise highest-risk country.
+        focus_country_id = mentioned_ids[0] if mentioned_ids else ranked[0].get("id")
+        if focus_country_id and focus_country_id in country_map:
+            focus = service.create_focus_command(
+                country_id=focus_country_id,
+                zoom_level=5,
+                duration_ms=1100,
+                description="Strategic focus region",
+                source=source,
+                priority=priority,
+                metadata={"query": query[:120], "analysis_mode": source},
+            )
+            command_ids.append(focus.id)
+
+        return command_ids
+    except Exception as e:
+        logger.warning(f"Map command generation skipped: {e}")
+        return []
+
+
+def publish_simulation_map_commands(
+    original_context: str,
+    whatif_query: str,
+    simulation_result: Dict[str, Any],
+    *,
+    source: str,
+    priority: str,
+) -> List[str]:
+    """
+    Publish overlay/heatmap/marker/focus commands inferred from what-if simulation output.
+    Returns generated command IDs.
+    """
+    try:
+        from app.services.runtime_intelligence import runtime_engine
+        from app.services.map_command_service import get_map_command_service
+
+        service = get_map_command_service()
+        service.clear_commands(source=source)
+
+        countries = runtime_engine.get_enriched_countries()
+        country_map = {
+            c["id"]: c
+            for c in countries
+            if c.get("id") and isinstance(c.get("lat"), (int, float)) and isinstance(c.get("lng"), (int, float))
+        }
+        if not country_map:
+            return []
+
+        simulation_blob = "\n".join([
+            original_context or "",
+            whatif_query or "",
+            json.dumps(simulation_result, default=str),
+        ]).lower()
+
+        mentioned_ids = [
+            country_id
+            for country_id in _extract_mentioned_country_ids(countries, simulation_blob)
+            if country_id in country_map
+        ]
+
+        command_ids: List[str] = []
+
+        if mentioned_ids:
+            highlight = service.create_highlight_command(
+                country_ids=mentioned_ids,
+                color="#f59e0b",
+                pulse=True,
+                description="Scenario-affected countries",
+                source=source,
+                priority=priority,
+                metadata={"query": whatif_query[:120], "analysis_mode": "simulation"},
+            )
+            command_ids.append(highlight.id)
+
+        revised_scenarios = simulation_result.get("revised_scenarios", [])
+        max_severity = 0.0
+        for scenario in revised_scenarios:
+            try:
+                max_severity = max(max_severity, float(scenario.get("impact_severity", 0)))
+            except Exception:
+                continue
+        normalized_severity = max(0.2, min(1.0, max_severity / 10.0)) if revised_scenarios else 0.35
+
+        heatmap_points: List[Dict[str, Any]] = []
+        if mentioned_ids:
+            for country_id in mentioned_ids[:10]:
+                country = country_map[country_id]
+                heatmap_points.append(
+                    {
+                        "country_id": country_id,
+                        "lat": country["lat"],
+                        "lng": country["lng"],
+                        "value": normalized_severity,
+                        "label": country.get("name", country_id),
+                    }
+                )
+        else:
+            ranked = sorted(country_map.values(), key=lambda c: float(c.get("risk_index", 0)), reverse=True)
+            for country in ranked[:6]:
+                heatmap_points.append(
+                    {
+                        "country_id": country["id"],
+                        "lat": country["lat"],
+                        "lng": country["lng"],
+                        "value": max(0.2, min(1.0, float(country.get("risk_index", 0)) / 100.0)),
+                        "label": country.get("name", country["id"]),
+                    }
+                )
+
+        if heatmap_points:
+            heatmap = service.create_heatmap_command(
+                data_points=heatmap_points,
+                metric="scenario_impact",
+                color_scale="amber",
+                description="Scenario impact intensity",
+                source=source,
+                priority=priority,
+                metadata={"query": whatif_query[:120], "analysis_mode": "simulation"},
+            )
+            command_ids.append(heatmap.id)
+
+        overlay_payload = {
+            "title": simulation_result.get("simulation_title", f"What-If: {whatif_query[:80]}"),
+            "outcome": simulation_result.get("revised_outcome", ""),
+            "scenarios": [
+                {
+                    "name": s.get("name"),
+                    "probability": s.get("probability"),
+                    "impact_severity": s.get("impact_severity"),
+                }
+                for s in revised_scenarios[:4]
+                if isinstance(s, dict)
+            ],
+            "chain_reactions": simulation_result.get("chain_reactions", [])[:4],
+            "modified_assumptions": simulation_result.get("modified_assumptions", [])[:6],
+        }
+        overlay = service.create_overlay_command(
+            overlay_type="scenario_summary",
+            overlay_data=overlay_payload,
+            description="What-if simulation overlay",
+            source=source,
+            priority=priority,
+            metadata={"query": whatif_query[:120], "analysis_mode": "simulation"},
+        )
+        command_ids.append(overlay.id)
+
+        for point in heatmap_points[:3]:
+            marker = service.create_marker_command(
+                lat=float(point["lat"]),
+                lng=float(point["lng"]),
+                marker_type="scenario",
+                label=f"Impact {int(float(point['value']) * 100)}%",
+                color="#f97316" if float(point["value"]) >= 0.6 else "#f59e0b",
+                description=f"Scenario marker: {point.get('label', 'Region')}",
+                source=source,
+                priority=priority,
+                metadata={"country_id": point.get("country_id"), "query": whatif_query[:120]},
+            )
+            command_ids.append(marker.id)
+
+        focus_country_id = mentioned_ids[0] if mentioned_ids else (heatmap_points[0].get("country_id") if heatmap_points else None)
+        if focus_country_id and focus_country_id in country_map:
+            focus = service.create_focus_command(
+                country_id=focus_country_id,
+                zoom_level=5,
+                duration_ms=1200,
+                description="Simulation focus region",
+                source=source,
+                priority=priority,
+                metadata={"query": whatif_query[:120], "analysis_mode": "simulation"},
+            )
+            command_ids.append(focus.id)
+
+        return command_ids
+    except Exception as e:
+        logger.warning(f"Simulation map command generation skipped: {e}")
+        return []
+
+
 async def _invoke_llm(llm: Any, prompt: str):
     return await asyncio.to_thread(llm.invoke, prompt)
 
@@ -247,13 +583,13 @@ def _aggregate_top_issues(booths) -> List[Dict]:
 
 @cache_tool(ttl_seconds=60)
 def tool_civic_sentiment() -> Dict:
-    """Returns national and booth-level sentiment data from JanGraph civic store."""
+    """Returns national and booth-level sentiment data from Gods-Eye civic store."""
     try:
         stats = store.get_stats()
         booths = store.get_booths()
         critical = [b for b in booths if b["avg_sentiment"] < 40]
         return {
-            "source": "JanGraph Civic Intelligence Store",
+            "source": "Gods-Eye Civic Intelligence Store",
             "status": "local",
             "national_sentiment": stats["national_avg_sentiment"],
             "total_citizens": stats["total_citizens"],
@@ -267,7 +603,7 @@ def tool_civic_sentiment() -> Dict:
         }
     except Exception as e:
         logger.error(f"tool_civic_sentiment failed: {e}")
-        return {"error": str(e), "source": "JanGraph Civic Store (fallback)"}
+        return {"error": str(e), "source": "Gods-Eye Civic Store (fallback)"}
 
 @cache_tool(ttl_seconds=300)
 def tool_scheme_coverage() -> Dict:
@@ -276,7 +612,7 @@ def tool_scheme_coverage() -> Dict:
         schemes = store.get_schemes()
         stats = store.get_stats()
         return {
-            "source": "JanGraph Beneficiary Linkage Engine",
+            "source": "Gods-Eye Beneficiary Linkage Engine",
             "status": "local",
             "total_schemes": len(schemes),
             "total_citizens_tracked": stats["total_citizens"],
@@ -296,7 +632,7 @@ def tool_worker_deployment() -> Dict:
         online = [w for w in workers if w["status"] == "Online"]
         avg_perf = round(sum(w["performance_score"] for w in workers) / len(workers), 1) if workers else 0
         return {
-            "source": "JanGraph Worker Operations",
+            "source": "Gods-Eye Worker Operations",
             "status": "local",
             "total_workers": len(workers),
             "online": len(online),
@@ -473,7 +809,7 @@ def tool_news_intelligence() -> Dict:
                 {"category": "Defense", "text": "Indian Navy expands patrol operations in Indian Ocean Region", "urgency": "High"},
             ]
         return {
-            "source": "JanGraph Live Intelligence Feed Aggregator",
+            "source": "Gods-Eye Live Intelligence Feed Aggregator",
             "total_feeds_ingested": len(feeds),
             "latest_briefs": feeds[:10],
         }
@@ -515,9 +851,9 @@ def tool_news_intelligence() -> Dict:
     try:
         feeds = feed_engine.get_feeds()
         if not feeds:
-            return _tool_unavailable("JanGraph Live Intelligence Feed Aggregator", "No live RSS or news briefs are currently cached.")
+            return _tool_unavailable("Gods-Eye Live Intelligence Feed Aggregator", "No live RSS or news briefs are currently cached.")
         return {
-            "source": "JanGraph Live Intelligence Feed Aggregator",
+            "source": "Gods-Eye Live Intelligence Feed Aggregator",
             "status": "live",
             "total_feeds_ingested": len(feeds),
             "latest_briefs": feeds[:10],
@@ -562,7 +898,7 @@ TOOL_REGISTRY = {
 # PROMPTS (refined for better reasoning)
 # ============================================================
 
-PLANNER_PROMPT = """You are the JanGraph OS Planner Agent.
+PLANNER_PROMPT = """You are the Gods-Eye OS Planner Agent.
 
 Given a user query about geopolitics, economics, governance, or civic intelligence,
 determine which data tools should be called to synthesize a comprehensive answer.
@@ -588,7 +924,7 @@ Respond with ONLY a valid JSON object:
 
 User Query: {query}"""
 
-REASONING_PROMPT = """You are the JanGraph OS Strategic Reasoning Agent.
+REASONING_PROMPT = """You are the Gods-Eye OS Strategic Reasoning Agent.
 
 The user asked: "{query}"
 
@@ -678,7 +1014,7 @@ Respond with ONLY valid JSON:
   }}
 }}"""
 
-WHATIF_PROMPT = """You are the JanGraph OS What-If Simulation Engine.
+WHATIF_PROMPT = """You are the Gods-Eye OS What-If Simulation Engine.
 
 Original analysis context:
 {original_context}
@@ -761,14 +1097,21 @@ async def run_strategic_analysis(query: str) -> Dict[str, Any]:
     # --- Step 3: Reasoning ---
     if not tool_outputs:
         fallback = _fallback_analysis(query)
+        map_command_ids = publish_analysis_map_commands(
+            query,
+            fallback,
+            source="strategic_agent",
+            priority="critical",
+        )
         fallback["_meta"] = {
             "query": query,
             "tools_used": [],
             "unavailable_tools": unavailable_tools,
             "grounding_mode": "local_fallback_only",
             "plan": plan,
+            "map_command_ids": map_command_ids,
             "timestamp": datetime.now().isoformat(),
-            "engine": "JanGraph Strategic Intelligence v3.1",
+            "engine": "Gods-Eye Strategic Intelligence v3.1",
         }
         return fallback
 
@@ -791,8 +1134,17 @@ async def run_strategic_analysis(query: str) -> Dict[str, Any]:
         "grounding_mode": "real_and_local_only",
         "plan": plan,
         "timestamp": datetime.now().isoformat(),
-        "engine": "JanGraph Strategic Intelligence v3.1"
+        "engine": "Gods-Eye Strategic Intelligence v3.1"
     }
+
+    map_command_ids = publish_analysis_map_commands(
+        query,
+        analysis,
+        source="strategic_agent",
+        priority="critical",
+    )
+    analysis["_meta"]["map_command_ids"] = map_command_ids
+
     return analysis
 
 async def run_whatif_simulation(original_context: str, whatif_query: str, variables: Dict) -> Dict[str, Any]:
@@ -805,15 +1157,23 @@ async def run_whatif_simulation(original_context: str, whatif_query: str, variab
             variables=json.dumps(variables)
         ))
         result = _parse_json(response.content)
+        map_command_ids = publish_simulation_map_commands(
+            original_context,
+            whatif_query,
+            result,
+            source="strategic_simulation_agent",
+            priority="high",
+        )
         result["_meta"] = {
             "query": whatif_query,
             "variables_modified": variables,
+            "map_command_ids": map_command_ids,
             "timestamp": datetime.now().isoformat()
         }
         return result
     except Exception as e:
         logger.error(f"What-if simulation failed: {e}", exc_info=True)
-        return {
+        fallback = {
             "simulation_title": f"What-If: {whatif_query}",
             "error": str(e),
             "modified_assumptions": list(variables.keys()),
@@ -823,3 +1183,17 @@ async def run_whatif_simulation(original_context: str, whatif_query: str, variab
             "chain_reactions": [],
             "revised_recommendations": ["Ensure Groq API connectivity for full simulation capabilities."]
         }
+        map_command_ids = publish_simulation_map_commands(
+            original_context,
+            whatif_query,
+            fallback,
+            source="strategic_simulation_agent",
+            priority="high",
+        )
+        fallback["_meta"] = {
+            "query": whatif_query,
+            "variables_modified": variables,
+            "map_command_ids": map_command_ids,
+            "timestamp": datetime.now().isoformat(),
+        }
+        return fallback

@@ -19,17 +19,27 @@ class CivicIntelligenceQA:
     def __init__(self):
         # Establish Langchain Neo4j Integration
         # Caution: This requires the db to be reachable. Handled gracefully.
-        try:
-            self.graph = Neo4jGraph(
-                url=settings.NEO4J_URI,
-                username=settings.NEO4J_USER,
-                password=settings.NEO4J_PASSWORD
-            )
-            # Pull down the schema definitions automatically for LLM context
-            self.graph.refresh_schema()
-        except Exception as e:
-            logger.warning(f"Neo4j Integration unavailable at bootstrap, NL Query disabled: {e}")
-            self.graph = None
+        self.graph = None
+        last_error = None
+        for uri in settings.neo4j_connection_uris:
+            try:
+                self.graph = Neo4jGraph(
+                    url=uri,
+                    username=settings.NEO4J_USER,
+                    password=settings.NEO4J_PASSWORD,
+                    database=settings.NEO4J_DATABASE,
+                )
+                # Pull down the schema definitions automatically for LLM context
+                self.graph.refresh_schema()
+                logger.info(f"Neo4j graph connected for NL query engine via {uri}")
+                break
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Neo4j Integration unavailable at {uri}, NL Query disabled: {e}")
+                self.graph = None
+
+        if self.graph is None:
+            logger.warning(f"Neo4j Integration unavailable at bootstrap across all URIs: {last_error}")
 
     def execute_query(self, user_question: str) -> str:
         if not self.graph:

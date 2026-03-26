@@ -1,15 +1,17 @@
+import { divIcon } from 'leaflet';
 
+export type VisualKey =
+  | 'country'
+  | 'economics'
+  | 'governance'
+  | 'climate'
+  | 'defense'
+  | 'conflict'
+  | 'infrastructure'
+  | 'mobility'
+  | 'cyber'
+  | 'news';
 
-import { divIcon, IconOptions } from 'leaflet';
-
-// -----------------------------------------------------------------------------
-// Types & Configuration
-// -----------------------------------------------------------------------------
-
-/** Visual category keys – automatically derived from the palette configuration. */
-export type VisualKey = keyof typeof paletteConfig;
-
-/** Input data used to determine the marker type. */
 export type MarkerInput = {
   type?: string;
   layer?: string;
@@ -17,46 +19,27 @@ export type MarkerInput = {
   [key: string]: unknown;
 };
 
-/** Style definition for a visual category. */
 export interface CategoryStyle {
-  fill: string;      // primary color
-  accent: string;    // secondary color (strokes, details)
-  glow: string;      // shadow color for the marker
+  fill: string;
+  accent: string;
+  glow: string;
 }
 
-/** Keyword mapping for automatic category detection. */
 export type KeywordMap = Record<string, VisualKey>;
 
-/**
- * Configuration for the marker factory.
- * All fields are optional – defaults are provided.
- */
 export interface MarkerConfig {
-  /** Default marker size in pixels (before scaling). */
   baseSize?: number;
-  /** Size for country markers (usually larger). */
   countryBaseSize?: number;
-  /** Additional size when marker is selected. */
   selectedSizeIncrement?: number;
-  /** Global scaling factor (e.g., for retina displays). */
   sizeScaleFactor?: number;
-  /** Additional CSS for the selection ring. */
   selectionRingStyle?: string;
-  /** Whether to add a glow effect (default true). */
   glowEnabled?: boolean;
-  /** Custom mapping of keywords to visual keys. */
   keywordMap?: KeywordMap;
-  /** Override palette for specific visual keys. */
   paletteOverrides?: Partial<Record<VisualKey, Partial<CategoryStyle>>>;
-  /** Custom SVG generator for a visual key. */
   svgOverrides?: Partial<Record<VisualKey, (fill: string, accent: string) => string>>;
 }
 
-// -----------------------------------------------------------------------------
-// Default Palettes & SVG Templates
-// -----------------------------------------------------------------------------
-
-const defaultPalette = {
+const defaultPalette: Record<VisualKey, CategoryStyle> = {
   country: { fill: '#38bdf8', accent: '#e0f2fe', glow: 'rgba(56,189,248,0.45)' },
   economics: { fill: '#10b981', accent: '#d1fae5', glow: 'rgba(16,185,129,0.42)' },
   governance: { fill: '#84cc16', accent: '#ecfccb', glow: 'rgba(132,204,22,0.42)' },
@@ -67,7 +50,7 @@ const defaultPalette = {
   mobility: { fill: '#d946ef', accent: '#fae8ff', glow: 'rgba(217,70,239,0.44)' },
   cyber: { fill: '#60a5fa', accent: '#dbeafe', glow: 'rgba(96,165,250,0.44)' },
   news: { fill: '#22d3ee', accent: '#cffafe', glow: 'rgba(34,211,238,0.42)' },
-} as const satisfies Record<VisualKey, CategoryStyle>;
+};
 
 const defaultKeywordMap: KeywordMap = {
   economic: 'economics',
@@ -82,10 +65,6 @@ const defaultKeywordMap: KeywordMap = {
   cyber: 'cyber',
   news: 'news',
 };
-
-// -----------------------------------------------------------------------------
-// SVG Templates (as functions for reusability and customisation)
-// -----------------------------------------------------------------------------
 
 const defaultSvgTemplates: Record<VisualKey, (fill: string, accent: string) => string> = {
   country: (fill, accent) => `
@@ -174,14 +153,6 @@ const defaultSvgTemplates: Record<VisualKey, (fill: string, accent: string) => s
   `,
 };
 
-// -----------------------------------------------------------------------------
-// Marker Factory Class (with caching and configuration)
-// -----------------------------------------------------------------------------
-
-/**
- * Factory for creating Leaflet SVG markers.
- * Supports dynamic category detection, full customisation, and performance caching.
- */
 export class SvgMarkerFactory {
   private config: Required<MarkerConfig>;
   private palette: Record<VisualKey, CategoryStyle>;
@@ -191,7 +162,6 @@ export class SvgMarkerFactory {
   private iconCache = new Map<string, ReturnType<typeof divIcon>>();
 
   constructor(config: MarkerConfig = {}) {
-    // Merge defaults with user configuration
     this.config = {
       baseSize: config.baseSize ?? 30,
       countryBaseSize: config.countryBaseSize ?? 34,
@@ -204,42 +174,31 @@ export class SvgMarkerFactory {
       svgOverrides: config.svgOverrides ?? {},
     };
 
-    // Build final palette
     this.palette = { ...defaultPalette };
     for (const [key, overrides] of Object.entries(this.config.paletteOverrides)) {
-      if (this.palette[key as VisualKey]) {
-        this.palette[key as VisualKey] = {
-          ...this.palette[key as VisualKey],
-          ...overrides,
-        };
+      const visualKey = key as VisualKey;
+      if (overrides && this.palette[visualKey]) {
+        this.palette[visualKey] = { ...this.palette[visualKey], ...overrides };
       }
     }
 
-    // Build final SVG templates
     this.svgTemplates = { ...defaultSvgTemplates };
     for (const [key, templateFn] of Object.entries(this.config.svgOverrides)) {
-      if (this.svgTemplates[key as VisualKey]) {
-        this.svgTemplates[key as VisualKey] = templateFn;
+      const visualKey = key as VisualKey;
+      if (templateFn && this.svgTemplates[visualKey]) {
+        this.svgTemplates[visualKey] = templateFn;
       }
     }
 
-    // Build keyword map (case‑insensitive)
     this.keywordMap = Object.fromEntries(
-      Object.entries(this.config.keywordMap).map(([k, v]) => [k.toLowerCase(), v])
+      Object.entries(this.config.keywordMap).map(([keyword, visual]) => [keyword.toLowerCase(), visual]),
     );
   }
 
-  /**
-   * Determine the visual key for a given marker input.
-   */
   public getMarkerVisual(item: MarkerInput): VisualKey {
-    // Direct match for 'country' type
     if (item.type === 'country') return 'country';
 
-    // Combine all relevant string fields and lowercase
     const value = String(item.layer || item.category || item.type || '').toLowerCase();
-
-    // Check keywords
     for (const [keyword, visual] of Object.entries(this.keywordMap)) {
       if (value.includes(keyword)) return visual;
     }
@@ -247,32 +206,24 @@ export class SvgMarkerFactory {
     return 'news';
   }
 
-  /**
-   * Compute the final marker size (in pixels) based on visual key and selection state.
-   */
   public getMarkerSize(visual: VisualKey, selected: boolean): number {
     const base = visual === 'country' ? this.config.countryBaseSize : this.config.baseSize;
     const rawSize = selected ? base + this.config.selectedSizeIncrement : base;
     return Math.round(rawSize * this.config.sizeScaleFactor);
   }
 
-  /**
-   * Generate the complete HTML string for a marker.
-   */
   public getMarkerHtml(item: MarkerInput, selected = false): string {
     const visual = this.getMarkerVisual(item);
     const colors = this.palette[visual];
     const size = this.getMarkerSize(visual, selected);
     const cacheKey = `${visual}|${selected}|${size}`;
 
-    // Return from cache if available
     if (this.htmlCache.has(cacheKey)) {
       return this.htmlCache.get(cacheKey)!;
     }
 
     const svg = this.svgTemplates[visual](colors.fill, colors.accent);
     const glowStyle = this.config.glowEnabled ? `filter: drop-shadow(0 0 10px ${colors.glow});` : '';
-
     const selectionHtml = selected
       ? `<span style="position:absolute;inset:-4px;border:1.6px solid ${colors.fill};border-radius:999px;box-shadow:0 0 14px ${colors.glow};${this.config.selectionRingStyle}"></span>`
       : '';
@@ -298,9 +249,6 @@ export class SvgMarkerFactory {
     return html;
   }
 
-  /**
-   * Create a Leaflet divIcon from a marker input.
-   */
   public createLeafletMarkerIcon(item: MarkerInput, selected = false): ReturnType<typeof divIcon> {
     const visual = this.getMarkerVisual(item);
     const size = this.getMarkerSize(visual, selected);
@@ -322,45 +270,137 @@ export class SvgMarkerFactory {
     return icon;
   }
 
-  /**
-   * Clear all caches (useful after configuration changes).
-   */
   public clearCache(): void {
     this.htmlCache.clear();
     this.iconCache.clear();
   }
 
-  /**
-   * Update configuration at runtime.
-   * Note: this clears all caches automatically.
-   */
   public updateConfig(config: Partial<MarkerConfig>): void {
-    // Merge new config with existing (simplified; you might want a more thorough merge)
-    Object.assign(this.config, config);
-    // Rebuild keyword map
-    this.keywordMap = Object.fromEntries(
-      Object.entries(this.config.keywordMap).map(([k, v]) => [k.toLowerCase(), v])
-    );
+    this.config = {
+      ...this.config,
+      ...config,
+      keywordMap: config.keywordMap ?? this.config.keywordMap,
+      paletteOverrides: config.paletteOverrides ?? this.config.paletteOverrides,
+      svgOverrides: config.svgOverrides ?? this.config.svgOverrides,
+    };
     this.clearCache();
   }
 }
 
-// -----------------------------------------------------------------------------
-// Default Instance & Backward‑Compatible Exports
-// -----------------------------------------------------------------------------
-
-// Create a default factory instance for quick use.
 const defaultFactory = new SvgMarkerFactory();
 
-// Export the same functions as before, but now backed by the factory.
-export const getMarkerVisual = (item: MarkerInput): VisualKey =>
-  defaultFactory.getMarkerVisual(item);
-
-export const getMarkerHtml = (item: MarkerInput, selected = false): string =>
-  defaultFactory.getMarkerHtml(item, selected);
-
-export const createLeafletMarkerIcon = (item: MarkerInput, selected = false) =>
-  defaultFactory.createLeafletMarkerIcon(item, selected);
-
-// Also export the factory class for advanced usage.
+export const getMarkerVisual = (item: MarkerInput): VisualKey => defaultFactory.getMarkerVisual(item);
+export const getMarkerHtml = (item: MarkerInput, selected = false): string => defaultFactory.getMarkerHtml(item, selected);
+export const createLeafletMarkerIcon = (item: MarkerInput, selected = false) => defaultFactory.createLeafletMarkerIcon(item, selected);
 export { defaultFactory as markerFactory };
+
+export const createHighlightMarkerIcon = (
+  item: MarkerInput,
+  highlightColor: string = '#3b82f6',
+  pulseEnabled: boolean = true,
+) => {
+  const visual = defaultFactory.getMarkerVisual(item);
+  const size = defaultFactory.getMarkerSize(visual, true) + 8;
+  const colors = defaultPalette[visual];
+
+  const pulseAnimation = pulseEnabled
+    ? `
+      @keyframes ai-pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.15); opacity: 0.7; }
+      }
+    `
+    : '';
+
+  const pulseStyle = pulseEnabled ? 'animation: ai-pulse 2s ease-in-out infinite;' : '';
+  const svg = defaultSvgTemplates[visual](colors.fill, colors.accent);
+
+  const html = `
+    <style>${pulseAnimation}</style>
+    <div style="
+      position: relative;
+      width: ${size}px;
+      height: ${size}px;
+      display: grid;
+      place-items: center;
+      ${pulseStyle}
+    ">
+      <span style="
+        position: absolute;
+        inset: -6px;
+        border: 2.5px solid ${highlightColor};
+        border-radius: 999px;
+        box-shadow: 0 0 20px ${highlightColor}, 0 0 40px ${highlightColor}40;
+        background: ${highlightColor}15;
+      "></span>
+      <div style="
+        width: ${size - 8}px;
+        height: ${size - 8}px;
+        filter: drop-shadow(0 0 12px ${highlightColor});
+      ">
+        ${svg}
+      </div>
+    </div>
+  `;
+
+  return divIcon({
+    className: 'ai-highlight-marker',
+    html,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2)],
+  });
+};
+
+export const createRiskMarkerIcon = (riskScore: number, _countryName: string) => {
+  const size = 40;
+
+  let bgColor: string;
+  let glowColor: string;
+  if (riskScore >= 0.7) {
+    bgColor = '#ef4444';
+    glowColor = 'rgba(239, 68, 68, 0.6)';
+  } else if (riskScore >= 0.4) {
+    bgColor = '#f59e0b';
+    glowColor = 'rgba(245, 158, 11, 0.6)';
+  } else {
+    bgColor = '#10b981';
+    glowColor = 'rgba(16, 185, 129, 0.6)';
+  }
+
+  const html = `
+    <div style="
+      position: relative;
+      width: ${size}px;
+      height: ${size}px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="
+        width: ${size - 8}px;
+        height: ${size - 8}px;
+        border-radius: 50%;
+        background: ${bgColor};
+        box-shadow: 0 0 15px ${glowColor}, 0 0 30px ${glowColor};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: bold;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      ">
+        ${Math.round(riskScore * 100)}
+      </div>
+    </div>
+  `;
+
+  return divIcon({
+    className: 'risk-marker',
+    html,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2)],
+  });
+};

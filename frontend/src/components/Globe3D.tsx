@@ -36,7 +36,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({ data = [] }) => {
         // Focus on India (Lat: 20.5937, Lng: 78.9629) on load
         if (globeRef.current) {
             globeRef.current.pointOfView({ lat: 22, lng: 80, altitude: 0.8 }, 2000);
-            
+
             // Auto-rotate setup
             const controls = globeRef.current.controls();
             controls.autoRotate = true;
@@ -49,7 +49,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({ data = [] }) => {
 
     // Format data for Globe
     const globeData = useMemo(() => {
-        return data.map(d => ({
+        return data?.map(d => ({
             lat: d.lat,
             lng: d.lng,
             size: Math.max(d.population / 10000, 0.5), // Scale dot size
@@ -84,12 +84,12 @@ export const Globe3D: React.FC<Globe3DProps> = ({ data = [] }) => {
     }, []);
 
     // Rings for Earthquakes
-    const ringsData = useMemo(() => quakes.map(q => ({
+    const ringsData = useMemo(() => quakes?.map(q => ({
         lat: q.lat, lng: q.lng, color: '#f59e0b', maxR: q.magnitude * 2, propagationSpeed: 2, repeatPeriod: 1000
     })), [quakes]);
 
     // Arcs for Events (randomized destination just to look cool)
-    const arcsData = useMemo(() => geoEvents.map(e => ({
+    const arcsData = useMemo(() => geoEvents?.map(e => ({
         startLat: e.lat, startLng: e.lng,
         endLat: e.lat + (Math.random() - 0.5) * 20, endLng: e.lng + (Math.random() - 0.5) * 20,
         color: ['#8b5cf6', '#d946ef'],
@@ -134,7 +134,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({ data = [] }) => {
                     labelResolution={2}
                 />
             )}
-            
+
             <div className="absolute bottom-4 left-4 bg-background/80 border border-border/40 p-3 rounded-lg backdrop-blur-sm pointer-events-none">
                 <div className="text-[10px] font-mono text-text-muted uppercase mb-2">Sentiment Heatmap Legend</div>
                 <div className="flex items-center gap-3">

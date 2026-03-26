@@ -5,7 +5,6 @@ import clsx from 'clsx';
 import { useAppStore } from '@/store';
 import { GlobeEngine } from './GlobeEngine';
 import { FlatMapEngine } from './FlatMapEngine';
-import { LayerControl } from '@/components/LayerControl';
 
 export const MapView: React.FC = () => {
   const { mapMode, setMapMode } = useAppStore();
@@ -49,40 +48,7 @@ export const MapView: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <div className="pointer-events-none absolute top-3 left-3 z-[401] flex flex-col space-y-2">
-        <div className="pointer-events-auto flex items-center overflow-hidden rounded-xl border border-zinc-800 bg-black/70 text-[10px] font-bold uppercase backdrop-blur-md">
-          <button
-            onClick={() => setMapMode('globe')}
-            className={clsx(
-              'flex items-center space-x-1.5 px-3 py-2 transition-all',
-              mapMode === 'globe'
-                ? 'bg-blue-600/80 text-white'
-                : 'text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-300',
-            )}
-          >
-            <Globe size={12} />
-            <span>Globe</span>
-          </button>
-          <div className="h-5 w-px bg-zinc-800" />
-          <button
-            onClick={() => setMapMode('flat')}
-            className={clsx(
-              'flex items-center space-x-1.5 px-3 py-2 transition-all',
-              mapMode === 'flat'
-                ? 'bg-blue-600/80 text-white'
-                : 'text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-300',
-            )}
-          >
-            <Map size={12} />
-            <span>Flat</span>
-          </button>
-        </div>
-
-        <div className="pointer-events-auto">
-          <LayerControl />
-        </div>
-      </div>
     </div>
   );
 };
+

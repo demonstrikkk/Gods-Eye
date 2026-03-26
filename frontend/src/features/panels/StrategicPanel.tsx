@@ -48,7 +48,7 @@ export const StrategicPanel: React.FC = () => {
 
       {/* Quick queries */}
       <div className="flex flex-col space-y-1">
-        {QUICK_QUERIES.map(q => (
+        {QUICK_QUERIES?.map(q => (
           <button
             key={q}
             onClick={() => { setQuery(q); run(q); }}

@@ -70,7 +70,7 @@ export const LiveFeedTicker: React.FC = () => {
           animate={{ x: [0, -2000] }}
           transition={{ x: { repeat: Infinity, repeatType: 'loop', duration: 40, ease: 'linear' } }}
         >
-          {[...displayFeeds, ...displayFeeds, ...displayFeeds].map((feed: any, index: number) => (
+          {[...displayFeeds, ...displayFeeds, ...displayFeeds]?.map((feed: any, index: number) => (
             <div key={`${feed.id}-${index}`} className="flex items-center mx-6">
               <span className="text-[10px] text-text-muted/60 font-mono w-12 text-right mr-3 shrink-0">{feed.time}</span>
               <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded border mr-3 ${getCategoryStyles(feed.category)}`}>

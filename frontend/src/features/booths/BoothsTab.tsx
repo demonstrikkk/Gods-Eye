@@ -30,7 +30,7 @@ export const BoothsTab: React.FC = () => {
 
   const filtered = Array.isArray(booths) ? booths.filter((b: any) =>
     !search || b.name?.toLowerCase().includes(search.toLowerCase())
-      || b.constituency_name?.toLowerCase().includes(search.toLowerCase())
+    || b.constituency_name?.toLowerCase().includes(search.toLowerCase())
   ) : [];
 
   if (isLoading) return <ListSkeleton count={6} />;
@@ -64,13 +64,13 @@ export const BoothsTab: React.FC = () => {
 
       {/* Header row */}
       <div className="flex justify-between items-center mb-2 px-1">
-        <span className="text-[10px] font-mono text-zinc-600 uppercase">{filtered.length} booths</span>
+        <span className="text-[10px] font-mono text-zinc-600 uppercase">{filtered?.length} booths</span>
         <span className="text-[10px] font-mono text-zinc-600">Updated {lastUpdated}</span>
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto space-y-1.5 pr-0.5">
-        {filtered.map((booth: any) => (
+        {filtered?.map((booth: any) => (
           <button
             key={booth.id}
             onClick={() => setSelected(booth.id === selectedId ? null : booth.id, 'booth')}

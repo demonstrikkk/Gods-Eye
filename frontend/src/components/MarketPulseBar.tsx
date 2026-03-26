@@ -12,7 +12,7 @@ export const MarketPulseBar: React.FC = () => {
     staleTime: 30_000,
   });
 
-  if (!quotes.length) return null;
+  if (!quotes?.length) return null;
 
   return (
     <div className="relative flex h-8 w-full items-center overflow-hidden border-b border-zinc-800/70 bg-[#08080b]">
@@ -27,7 +27,7 @@ export const MarketPulseBar: React.FC = () => {
           animate={{ x: [0, -1400] }}
           transition={{ x: { repeat: Infinity, repeatType: 'loop', duration: 28, ease: 'linear' } }}
         >
-          {[...quotes, ...quotes, ...quotes].map((quote: any, index: number) => (
+          {[...quotes, ...quotes, ...quotes]?.map((quote: any, index: number) => (
             <div key={`${quote.symbol}-${index}`} className="mx-5 flex items-center gap-2 text-[11px]">
               <span className="font-bold text-zinc-100">{quote.symbol}</span>
               <span className="text-zinc-400">{quote.price}</span>

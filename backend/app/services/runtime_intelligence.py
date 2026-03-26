@@ -587,6 +587,14 @@ class RuntimeIntelligenceEngine:
             )
         return alerts[:16]
 
+    def get_all_signals(self) -> List[Dict[str, Any]]:
+        """Returns all signals (runtime + seeded) - used by agent orchestrator."""
+        return self.get_dynamic_signals(include_seeded=True)
+
+    def get_corridors(self) -> List[Dict[str, Any]]:
+        """Returns all corridors (runtime + seeded) - used by agent orchestrator."""
+        return self.get_global_corridors(include_seeded=True)
+
     async def _capture_source(
         self,
         *,
