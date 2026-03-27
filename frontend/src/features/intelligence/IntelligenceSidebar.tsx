@@ -1,26 +1,8 @@
-import React from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store';
 import type { SidebarTab } from '@/types';
-import { GlobalTab } from '@/features/global/GlobalTab';
-import { BoothsTab } from '@/features/booths/BoothsTab';
-import { WorkersTab } from '@/features/workers/WorkersTab';
-import { SchemesTab } from '@/features/schemes/SchemesTab';
-import { AlertsTab } from '@/features/intelligence/AlertsTab';
-import { AIConsoleTab } from '@/features/intelligence/AIConsoleTab';
-import ExpertAnalysisTab from '@/features/intelligence/ExpertAnalysisTab';
-import VisualIntelligenceTab from '@/features/intelligence/VisualIntelligenceTab';
-import UnifiedIntelligenceTab from '@/features/intelligence/UnifiedIntelligenceTab';
-import BattlegroundTab from '@/features/intelligence/BattlegroundTab';
-import OfficialsTab from '@/features/intelligence/OfficialsTab';
-import { CountryWorkspaceTab } from '@/features/intelligence/CountryWorkspaceTab';
-import { ExecutivePanel } from '@/features/panels/ExecutivePanel';
-import { GlobalOverviewPanel } from '@/features/panels/GlobalOverviewPanel';
-import { StrategicDashboard } from '@/pages/StrategicDashboard';
-import { OntologyDashboard } from '@/pages/OntologyDashboard';
-import { ConstituencyPanel } from '@/features/panels/ConstituencyPanel';
-import { CommsPanel } from '@/features/panels/CommsPanel';
 import {
   Globe2,
   MapPin,
@@ -29,13 +11,36 @@ import {
   Bell,
   Sparkles,
   ChevronsRight,
-  Brain,
   Swords,
   Crown,
   Folder,
-  BarChart3,
   Layers3,
 } from 'lucide-react';
+
+const GlobalTab = lazy(() => import('@/features/global/GlobalTab').then((module) => ({ default: module.GlobalTab })));
+const BoothsTab = lazy(() => import('@/features/booths/BoothsTab').then((module) => ({ default: module.BoothsTab })));
+const WorkersTab = lazy(() => import('@/features/workers/WorkersTab').then((module) => ({ default: module.WorkersTab })));
+const SchemesTab = lazy(() => import('@/features/schemes/SchemesTab').then((module) => ({ default: module.SchemesTab })));
+const AlertsTab = lazy(() => import('@/features/intelligence/AlertsTab').then((module) => ({ default: module.AlertsTab })));
+const AIConsoleTab = lazy(() => import('@/features/intelligence/AIConsoleTab').then((module) => ({ default: module.AIConsoleTab })));
+const ExpertAnalysisTab = lazy(() => import('@/features/intelligence/ExpertAnalysisTab'));
+const VisualIntelligenceTab = lazy(() => import('@/features/intelligence/VisualIntelligenceTab'));
+const UnifiedIntelligenceTab = lazy(() => import('@/features/intelligence/UnifiedIntelligenceTab'));
+const BattlegroundTab = lazy(() => import('@/features/intelligence/BattlegroundTab'));
+const OfficialsTab = lazy(() => import('@/features/intelligence/OfficialsTab'));
+const CountryWorkspaceTab = lazy(() => import('@/features/intelligence/CountryWorkspaceTab').then((module) => ({ default: module.CountryWorkspaceTab })));
+const ExecutivePanel = lazy(() => import('@/features/panels/ExecutivePanel').then((module) => ({ default: module.ExecutivePanel })));
+const GlobalOverviewPanel = lazy(() => import('@/features/panels/GlobalOverviewPanel').then((module) => ({ default: module.GlobalOverviewPanel })));
+const StrategicDashboard = lazy(() => import('@/pages/StrategicDashboard').then((module) => ({ default: module.StrategicDashboard })));
+const OntologyDashboard = lazy(() => import('@/pages/OntologyDashboard').then((module) => ({ default: module.OntologyDashboard })));
+const ConstituencyPanel = lazy(() => import('@/features/panels/ConstituencyPanel').then((module) => ({ default: module.ConstituencyPanel })));
+const CommsPanel = lazy(() => import('@/features/panels/CommsPanel').then((module) => ({ default: module.CommsPanel })));
+
+const PanelLoading = () => (
+  <div className="rounded-xl border border-white/10 bg-black/25 p-4 text-xs uppercase tracking-[0.2em] text-zinc-500">
+    Loading intelligence panel...
+  </div>
+);
 
 type TabItem = {
   key: SidebarTab;
@@ -58,9 +63,6 @@ const TAB_GROUPS: { title: string; tabs: TabItem[] }[] = [
   {
     title: 'Analyst Tools',
     tabs: [
-      { key: 'ai', label: 'Agent', icon: <Sparkles size={13} /> },
-      { key: 'expert', label: 'Expert', icon: <Brain size={13} /> },
-      { key: 'visual', label: 'Visual', icon: <BarChart3 size={13} /> },
       { key: 'unified', label: 'Unified', icon: <Sparkles size={13} /> },
       { key: 'battleground', label: 'Battle', icon: <Swords size={13} /> },
       { key: 'officials', label: 'Leaders', icon: <Crown size={13} /> },
@@ -126,8 +128,19 @@ function SidebarTabButton({
 }
 
 export const IntelligenceSidebar: React.FC = () => {
-  const { sidebarTab, setSidebarTab, sidebarOpen, setSidebarOpen, activeView, selectedId, selectedType } =
-    useAppStore();
+  const sidebarTab = useAppStore((state) => state.sidebarTab);
+  const setSidebarTab = useAppStore((state) => state.setSidebarTab);
+  const sidebarOpen = useAppStore((state) => state.sidebarOpen);
+  const setSidebarOpen = useAppStore((state) => state.setSidebarOpen);
+  const activeView = useAppStore((state) => state.activeView);
+  const selectedId = useAppStore((state) => state.selectedId);
+  const selectedType = useAppStore((state) => state.selectedType);
+
+  useEffect(() => {
+    if (sidebarTab === 'ai' || sidebarTab === 'expert' || sidebarTab === 'visual') {
+      setSidebarTab('unified');
+    }
+  }, [setSidebarTab, sidebarTab]);
 
   const viewPanel = sidebarTab === 'battleground' ? null : VIEW_PANEL[activeView];
   const panelTitle =
@@ -196,15 +209,21 @@ export const IntelligenceSidebar: React.FC = () => {
           <div className="flex-1 min-h-0 space-y-4 p-4">
             {activeView === 'strategic' ? (
               <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-                <StrategicDashboard />
+                <Suspense fallback={<PanelLoading />}>
+                  <StrategicDashboard />
+                </Suspense>
               </div>
             ) : activeView === 'ontology' ? (
               <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-                <OntologyDashboard />
+                <Suspense fallback={<PanelLoading />}>
+                  <OntologyDashboard />
+                </Suspense>
               </div>
             ) : activeView === 'expert' ? (
               <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-                <ExpertAnalysisTab />
+                <Suspense fallback={<PanelLoading />}>
+                  <ExpertAnalysisTab />
+                </Suspense>
               </div>
             ) : sidebarTab === 'unified' ? (
               <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-cyan-500/15 bg-gradient-to-br from-cyan-500/5 via-white/[0.02] to-violet-500/5 p-3">
@@ -222,7 +241,9 @@ export const IntelligenceSidebar: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                  <UnifiedIntelligenceTab />
+                  <Suspense fallback={<PanelLoading />}>
+                    <UnifiedIntelligenceTab />
+                  </Suspense>
                 </div>
               </div>
             ) : (
@@ -236,7 +257,9 @@ export const IntelligenceSidebar: React.FC = () => {
                     transition={{ duration: 0.18 }}
                     className="rounded-2xl border border-white/5 bg-white/[0.03] p-3"
                   >
-                    {viewPanel}
+                    <Suspense fallback={<PanelLoading />}>
+                      {viewPanel}
+                    </Suspense>
                   </motion.section>
                 )}
 
@@ -277,7 +300,9 @@ export const IntelligenceSidebar: React.FC = () => {
                       transition={{ duration: 0.16 }}
                       className="min-h-0"
                     >
-                      {TAB_CONTENT[sidebarTab]}
+                      <Suspense fallback={<PanelLoading />}>
+                        {TAB_CONTENT[sidebarTab]}
+                      </Suspense>
                     </motion.div>
                   </AnimatePresence>
                 </section>

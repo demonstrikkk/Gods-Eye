@@ -62,7 +62,9 @@ FEEDS = [
 # How often to refresh (seconds)
 REFRESH_INTERVAL = 300  # 5 minutes
 MAX_BRIEFS_STORED = 200  # keep more than 50 for analysis
-MAX_CONCURRENT_FEEDS = 10
+MAX_CONCURRENT_FEEDS = 6
+PER_FEED_TIMEOUT_SECONDS = 18
+PER_FEED_RETRY_ATTEMPTS = 2
 REQUEST_HEADERS = {
     "User-Agent": "Gods-Eye-OS/1.0 (+https://localhost)",
     "Accept": "application/rss+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5",
@@ -75,6 +77,7 @@ class FeedAggregator:
         self._session: Optional[aiohttp.ClientSession] = None
         self._feed_urls: Set[str] = {f["url"] for f in FEEDS}
         self._semaphore = asyncio.Semaphore(MAX_CONCURRENT_FEEDS)
+        self._source_health: Dict[str, Dict] = {}
 
     @staticmethod
     def _candidate_urls(feed_info: Dict) -> List[str]:
@@ -89,27 +92,45 @@ class FeedAggregator:
         failed_attempts: List[str] = []
         async with self._semaphore:
             for candidate_url in self._candidate_urls(feed_info):
-                try:
-                    async with session.get(candidate_url, timeout=aiohttp.ClientTimeout(total=12), allow_redirects=True) as resp:
-                        if resp.status != 200:
-                            failed_attempts.append(f"{candidate_url} -> HTTP {resp.status}")
-                            continue
-                        text = await resp.text(errors="ignore")
-                        used_url = candidate_url
-                        break
-                except asyncio.TimeoutError:
-                    failed_attempts.append(f"{candidate_url} -> timeout")
-                    continue
-                except aiohttp.ClientError as e:
-                    failed_attempts.append(f"{candidate_url} -> network error: {e}")
-                    continue
-                except Exception as e:
-                    failed_attempts.append(f"{candidate_url} -> unexpected error: {e}")
-                    continue
+                for attempt in range(PER_FEED_RETRY_ATTEMPTS):
+                    try:
+                        async with session.get(
+                            candidate_url,
+                            timeout=aiohttp.ClientTimeout(total=PER_FEED_TIMEOUT_SECONDS, connect=6, sock_read=12),
+                            allow_redirects=True,
+                        ) as resp:
+                            if resp.status != 200:
+                                failed_attempts.append(f"{candidate_url} -> HTTP {resp.status}")
+                                continue
+                            text = await resp.text(errors="ignore")
+                            used_url = candidate_url
+                            break
+                    except asyncio.TimeoutError:
+                        failed_attempts.append(f"{candidate_url} -> timeout")
+                    except aiohttp.ClientError as e:
+                        failed_attempts.append(f"{candidate_url} -> network error: {e}")
+                    except Exception as e:
+                        failed_attempts.append(f"{candidate_url} -> unexpected error: {e}")
+
+                    # Short backoff avoids hammering sources that are rate-limited.
+                    if attempt + 1 < PER_FEED_RETRY_ATTEMPTS:
+                        await asyncio.sleep(0.25 * (attempt + 1))
+
+                if text:
+                    break
 
         if not text:
             if failed_attempts:
                 logger.warning(f"Feed {feed_info['name']} unavailable after retries: {'; '.join(failed_attempts[:3])}")
+            self._source_health[feed_info["name"]] = {
+                "id": f"feed-{feed_info['name'].lower().replace(' ', '-')}",
+                "label": feed_info["name"],
+                "mode": "rss",
+                "status": "unavailable",
+                "item_count": 0,
+                "message": "; ".join(failed_attempts[:2]) if failed_attempts else "Feed unavailable",
+                "last_updated": datetime.utcnow().isoformat(),
+            }
             return []
 
         # Parse the RSS in a thread to avoid blocking
@@ -138,6 +159,16 @@ class FeedAggregator:
                 "url": entry.get("link", ""),
                 "published": entry.get("published", ""),
             })
+
+        self._source_health[feed_info["name"]] = {
+            "id": f"feed-{feed_info['name'].lower().replace(' ', '-')}",
+            "label": feed_info["name"],
+            "mode": "rss",
+            "status": "live" if briefs else "limited",
+            "item_count": len(briefs),
+            "message": f"Fetched via {used_url}" if used_url else "Feed parsed with limited entries",
+            "last_updated": datetime.utcnow().isoformat(),
+        }
         return briefs
 
     async def _fetch_newsapi(self, session: aiohttp.ClientSession) -> List[Dict]:
@@ -161,6 +192,15 @@ class FeedAggregator:
                 payload = await resp.json()
         except Exception as e:
             logger.warning(f"NewsAPI fetch failed: {e}")
+            self._source_health["NewsAPI"] = {
+                "id": "feed-newsapi",
+                "label": "NewsAPI",
+                "mode": "api",
+                "status": "unavailable",
+                "item_count": 0,
+                "message": str(e),
+                "last_updated": datetime.utcnow().isoformat(),
+            }
             return []
 
         briefs = []
@@ -181,6 +221,16 @@ class FeedAggregator:
                     "published": article.get("publishedAt", ""),
                 }
             )
+
+        self._source_health["NewsAPI"] = {
+            "id": "feed-newsapi",
+            "label": "NewsAPI",
+            "mode": "api",
+            "status": "live" if briefs else "limited",
+            "item_count": len(briefs),
+            "message": "Top-headlines fetch completed",
+            "last_updated": datetime.utcnow().isoformat(),
+        }
         return briefs
 
     async def fetch_feeds(self):
@@ -223,6 +273,7 @@ class FeedAggregator:
                         {"tool": "NASA", "data": osint_engine.get_nasa_firms(), "cat": "Climate"},
                         {"tool": "Yahoo Search", "data": osint_engine.get_yahoo_search_results(), "cat": "Geopolitics"},
                         {"tool": "DuckDuckGo", "data": osint_engine.get_duckduckgo_search_results(), "cat": "Geopolitics"},
+                        {"tool": "SerpAPI", "data": osint_engine.get_serpapi_search_results(), "cat": "Geopolitics"},
                     ]
                     for report in osint_reports:
                         tool_name = report["tool"]
@@ -246,6 +297,10 @@ class FeedAggregator:
                             top = (data.get("results") or [{}])[0]
                             if top.get("title"):
                                 text = f"[SEARCH] DuckDuckGo pulse: {top.get('title')}"
+                        elif tool_name == "SerpAPI":
+                            top = (data.get("results") or [{}])[0]
+                            if top.get("title"):
+                                text = f"[SEARCH] SerpAPI pulse: {top.get('title')}"
 
                         if text:
                             all_briefs.append({
@@ -297,6 +352,10 @@ class FeedAggregator:
     def get_feeds(self) -> List[Dict]:
         """Return recent briefs from the store."""
         return store.get_recent_feed_briefs(limit=MAX_BRIEFS_STORED)
+
+    def get_source_health(self) -> List[Dict]:
+        """Expose per-source feed availability for UI health panels."""
+        return list(self._source_health.values())
 
     # ------------------------------------------------------------------
     # Classification helpers (same as before)

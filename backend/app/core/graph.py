@@ -7,17 +7,22 @@ logger = logging.getLogger("neo4j")
 _driver_cache = {}
 _active_driver_uri = None
 
+
+def _is_secure_uri(uri: str) -> bool:
+    return uri.startswith("neo4j+s://") or uri.startswith("bolt+s://")
+
+
 def _build_driver(uri: str):
     """Build a driver for one Neo4j endpoint."""
-    is_aura = uri.startswith("neo4j+s")
+    is_secure = _is_secure_uri(uri)
     driver_kwargs = {
-        "auth": (settings.NEO4J_USER, settings.NEO4J_PASSWORD),
+        "auth": settings.neo4j_auth_token,
         "max_connection_lifetime": 200,
         "max_connection_pool_size": 50,
         "connection_acquisition_timeout": 5.0,
         "keep_alive": True,
     }
-    if not is_aura:
+    if not is_secure:
         driver_kwargs["encrypted"] = False
     return AsyncGraphDatabase.driver(uri, **driver_kwargs)
 
@@ -33,7 +38,7 @@ driver = None
 for candidate_uri in settings.neo4j_connection_uris:
     try:
         driver = _get_driver(candidate_uri)
-        logger.info(f"Neo4j Driver initialized: {candidate_uri} (Aura: {candidate_uri.startswith('neo4j+s')})")
+        logger.info(f"Neo4j Driver initialized: {candidate_uri} (Secure TLS: {_is_secure_uri(candidate_uri)})")
         break
     except Exception as e:
         logger.warning(f"Failed to initialize Neo4j Driver for {candidate_uri}: {e}")
@@ -60,12 +65,29 @@ async def get_graph_driver():
             candidate_driver = _get_driver(candidate_uri)
             await candidate_driver.verify_connectivity()
             _active_driver_uri = candidate_uri
+            logger.info(f"Neo4j connectivity verified for {candidate_uri}")
             return candidate_driver
         except Exception as e:
             last_error = e
             logger.warning(f"Neo4j connectivity check failed for {candidate_uri}: {e}")
 
     raise RuntimeError(f"Neo4j driver not initialized: {last_error}")
+
+
+async def verify_graph_connectivity() -> None:
+    """Verify that at least one configured Neo4j endpoint is reachable."""
+    active_driver = await get_graph_driver()
+    await active_driver.verify_connectivity()
+
+
+async def run_neo4j_query(query: str, **parameters):
+    """Execute a parameterized query with database selection in one place."""
+    active_driver = await get_graph_driver()
+    return await active_driver.execute_query(
+        query,
+        database_=settings.NEO4J_DATABASE,
+        **parameters,
+    )
 
 async def get_graph_session():
     """ Dependency for Neo4j Session handling """

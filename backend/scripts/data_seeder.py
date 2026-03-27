@@ -13,6 +13,7 @@ from app.core.database import AsyncSessionLocal, engine, Base
 from app.models.domain import User, Region, RoleType
 from app.core.graph import get_graph_driver, close_graph_driver
 from app.models.graph_schema import initialize_neo4j_constraints
+from app.core.config import settings
 from passlib.hash import bcrypt
 
 logging.basicConfig(level=logging.INFO)
@@ -74,23 +75,68 @@ async def init_graph():
     logger.info("Initializing Neo4j Graph DB...")
     graph_driver = await get_graph_driver()
     await initialize_neo4j_constraints(graph_driver)
-    
-    # Pre-seed Neo4j Graph for Demo Map Nodes
-    query = """
-    MERGE (c1:Citizen {id: 'CIT-001', segment: 'Youth', sentiment: 22})
-    MERGE (b1:Booth {id: 'R2', name: 'Ward 8'})
+
+    # Pre-seed Neo4j graph with parameterized writes.
+    create_records_query = """
+    MERGE (c1:Citizen {id: $citizen1_id})
+    SET c1.segment = $citizen1_segment, c1.sentiment = $citizen1_sentiment
+    MERGE (b1:Booth {id: $booth1_id})
+    SET b1.name = $booth1_name
     MERGE (c1)-[:LIVES_IN]->(b1)
-    MERGE (i1:Issue {name: 'Road completion awareness low', urgency: 5})
-    MERGE (c1)-[r:COMPLAINED_ABOUT]->(i1)
-    
-    MERGE (c2:Citizen {id: 'CIT-002', segment: 'Daily Wage', sentiment: 45})
-    MERGE (b2:Booth {id: 'R1', name: 'Constituency A'})
+    MERGE (i1:Issue {name: $issue1_name})
+    SET i1.urgency = $issue1_urgency
+    MERGE (c1)-[:COMPLAINED_ABOUT]->(i1)
+
+    MERGE (c2:Citizen {id: $citizen2_id})
+    SET c2.segment = $citizen2_segment, c2.sentiment = $citizen2_sentiment
+    MERGE (b2:Booth {id: $booth2_id})
+    SET b2.name = $booth2_name
     MERGE (c2)-[:LIVES_IN]->(b2)
-    MERGE (i2:Issue {name: 'Water Supply Deterioration', urgency: 9})
+    MERGE (i2:Issue {name: $issue2_name})
+    SET i2.urgency = $issue2_urgency
     MERGE (c2)-[:COMPLAINED_ABOUT]->(i2)
     """
-    async with graph_driver.session() as session:
-        await session.run(query)
+    create_summary = (
+        await graph_driver.execute_query(
+            create_records_query,
+            citizen1_id="CIT-001",
+            citizen1_segment="Youth",
+            citizen1_sentiment=22,
+            booth1_id="R2",
+            booth1_name="Ward 8",
+            issue1_name="Road completion awareness low",
+            issue1_urgency=5,
+            citizen2_id="CIT-002",
+            citizen2_segment="Daily Wage",
+            citizen2_sentiment=45,
+            booth2_id="R1",
+            booth2_name="Constituency A",
+            issue2_name="Water Supply Deterioration",
+            issue2_urgency=9,
+            database_=settings.NEO4J_DATABASE,
+        )
+    ).summary
+
+    logger.info(
+        "Neo4j seed write complete: nodes created=%s, relationships created=%s, latency_ms=%s",
+        create_summary.counters.nodes_created,
+        create_summary.counters.relationships_created,
+        create_summary.result_available_after,
+    )
+
+    records, summary, _ = await graph_driver.execute_query(
+        """
+        MATCH (p:Citizen)-[:LIVES_IN]->(:Booth)
+        RETURN p.id AS citizen_id
+        ORDER BY citizen_id
+        """,
+        database_=settings.NEO4J_DATABASE,
+    )
+    logger.info(
+        "Neo4j verification query returned %s records in %s ms",
+        len(records),
+        summary.result_available_after,
+    )
     logger.info("Neo4j Data Seeded successfully.")
 
 async def main():

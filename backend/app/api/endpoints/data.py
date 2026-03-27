@@ -376,8 +376,10 @@ async def get_ontology_graph(booths: int = Query(default=5, le=20), citizens: in
 @router.get("/source-health", response_model=Dict[str, Any])
 async def get_source_health():
     from app.services.runtime_intelligence import runtime_engine
-    health = runtime_engine.get_source_health()
-    return {"status": "success", "count": len(health), "data": health}
+    runtime_health = runtime_engine.get_source_health()
+    feed_health = feed_engine.get_source_health()
+    merged = runtime_health + feed_health
+    return {"status": "success", "count": len(merged), "data": merged}
 
 
 @router.get("/markets", response_model=Dict[str, Any])

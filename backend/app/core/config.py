@@ -15,13 +15,13 @@ class Settings(BaseSettings):
     
     # Neo4j Driver Connection
     # For local Neo4j: "bolt://neo4j:7687"
-    # For Neo4j Aura: "neo4j+s://xxxxx.use1.neo4j.io:7687" (replace xxxxx with your instance)
-    NEO4J_URI: str = "bolt://neo4j:7687"
-    NEO4J_FALLBACK_URIS: str = "bolt://localhost:7687,bolt://neo4j:7687"
-    NEO4J_DATABASE: str = "neo4j"
+    # For Neo4j Aura: "neo4j+s://<instance>.databases.neo4j.io"
+    NEO4J_URI: str = "neo4j+s://fb8f65f3.databases.neo4j.io"
+    NEO4J_FALLBACK_URIS: str = "neo4j+s://fb8f65f3.databases.neo4j.io,bolt://localhost:7687,bolt://neo4j:7687"
+    NEO4J_DATABASE: str = "fb8f65f3"
 
-    NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = "Gods-Eye_secure_graph"
+    NEO4J_USER: str = "<username>"
+    NEO4J_PASSWORD: str = "<password>"
     
     # Cache / Celery
     REDIS_URL: str = "redis://redis:6379/0"
@@ -43,6 +43,7 @@ class Settings(BaseSettings):
 
     # External Intelligence
     NEWS_API_KEY: str = ""
+    SERPAPI_API_KEY: str = ""
     ACLED_API_KEY: str = ""
     GDELT_ENABLED: bool = True
     HUGGINGFACE_API_KEY: str = ""
@@ -104,6 +105,11 @@ class Settings(BaseSettings):
             if candidate and candidate not in uris:
                 uris.append(candidate)
         return uris
+
+    @property
+    def neo4j_auth_token(self) -> tuple[str, str]:
+        """Return Neo4j auth tuple in a single canonical place."""
+        return (self.NEO4J_USER, self.NEO4J_PASSWORD)
 
 
     class Config:

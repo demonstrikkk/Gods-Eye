@@ -101,18 +101,26 @@ class CivicIntelligenceQA:
 
     def _init_graph(self):
         """Initialize Neo4j connection and schema."""
-        try:
-            self.graph = Neo4jGraph(
-                url=settings.NEO4J_URI,
-                username=settings.NEO4J_USER,
-                password=settings.NEO4J_PASSWORD,
-                database=settings.NEO4J_DATABASE  # if needed
-            )
-            self._refresh_schema()
-            logger.info("Neo4j graph connected and schema loaded.")
-        except Exception as e:
-            logger.warning(f"Neo4j integration unavailable: {e}")
-            self.graph = None
+        self.graph = None
+        last_error: Exception | None = None
+        for candidate_uri in settings.neo4j_connection_uris:
+            try:
+                self.graph = Neo4jGraph(
+                    url=candidate_uri,
+                    username=settings.NEO4J_USER,
+                    password=settings.NEO4J_PASSWORD,
+                    database=settings.NEO4J_DATABASE,
+                )
+                self._refresh_schema()
+                logger.info(f"Neo4j graph connected and schema loaded via {candidate_uri}.")
+                break
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Neo4j integration unavailable at {candidate_uri}: {e}")
+                self.graph = None
+
+        if self.graph is None:
+            logger.warning(f"Neo4j integration unavailable across all configured URIs: {last_error}")
 
     def _refresh_schema(self):
         """Refresh the graph schema from Neo4j."""
@@ -832,6 +840,92 @@ class OSINTAggregator:
             return stale or fallback
 
     @classmethod
+    def get_serpapi_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
+        query = query or " OR ".join(cls._search_queries())
+        cache_key = f"search:serpapi:{query.lower()}"
+        cached = cls._cache_get(cache_key, ttl_seconds=300)
+        if cached:
+            return cached
+
+        api_key = settings.SERPAPI_API_KEY
+        if not api_key:
+            stale = cls._cache_get(cache_key, ttl_seconds=3600)
+            if stale:
+                return {
+                    **stale,
+                    "source": "SerpAPI (stale)",
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": "SerpAPI key missing, returning cached open-search payload.",
+                }
+            return {
+                "source": "SerpAPI",
+                "query": query,
+                "results": [],
+                "status": "missing_key",
+                "strategy": "unconfigured",
+                "message": "SERPAPI_API_KEY is not configured.",
+            }
+
+        try:
+            url = "https://serpapi.com/search.json?" + urllib.parse.urlencode(
+                {
+                    "engine": "google",
+                    "q": query,
+                    "num": 10,
+                    "api_key": api_key,
+                }
+            )
+            payload = _json_get(url, headers={"User-Agent": cls.USER_AGENT})
+            organic = payload.get("organic_results", []) if isinstance(payload, dict) else []
+            results = []
+            seen_urls: set[str] = set()
+            for item in organic[:12]:
+                url = str(item.get("link") or "").strip()
+                title = str(item.get("title") or "").strip()
+                if not url or not title or url.lower() in seen_urls:
+                    continue
+                seen_urls.add(url.lower())
+                results.append(
+                    {
+                        "title": title,
+                        "url": url,
+                        "snippet": str(item.get("snippet") or "").strip(),
+                    }
+                )
+                if len(results) >= 8:
+                    break
+
+            response = {
+                "source": "SerpAPI",
+                "query": query,
+                "results": results,
+                "status": "live" if results else "fallback",
+                "strategy": "google_engine",
+            }
+            cls._cache_set(cache_key, response)
+            return response
+        except Exception as e:
+            logger.warning(f"SerpAPI search fetch failed: {e}")
+            stale = cls._cache_get(cache_key, ttl_seconds=3600)
+            if stale:
+                return {
+                    **stale,
+                    "source": "SerpAPI (stale)",
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": "SerpAPI request failed, returning cached payload.",
+                }
+            return {
+                "source": "SerpAPI (fallback)",
+                "query": query,
+                "results": [],
+                "status": "error",
+                "strategy": "request_error",
+                "message": str(e),
+            }
+
+    @classmethod
     def get_country_search_briefs(cls, country_name: str, region: Optional[str] = None) -> Dict[str, Any]:
         query_terms = cls._search_queries(country_name)
         if region:
@@ -839,10 +933,20 @@ class OSINTAggregator:
         query = " OR ".join(query_terms)
         ddg = cls.get_duckduckgo_search_results(query=query)
         yahoo = cls.get_yahoo_search_results(query=query)
+        serpapi = cls.get_serpapi_search_results(query=query)
 
         merged: List[Dict[str, str]] = []
         seen_urls: set[str] = set()
-        for source_name, payload in (("DuckDuckGo", ddg), ("Yahoo", yahoo)):
+        providers = (("DuckDuckGo", ddg), ("Yahoo", yahoo), ("SerpAPI", serpapi))
+        source_health = []
+        for source_name, payload in providers:
+            source_health.append(
+                {
+                    "source": source_name,
+                    "status": payload.get("status", "unknown"),
+                    "count": len(payload.get("results", []) or []),
+                }
+            )
             for item in payload.get("results", []):
                 url = str(item.get("url", "")).strip()
                 title = str(item.get("title", "")).strip()
@@ -850,18 +954,20 @@ class OSINTAggregator:
                     continue
                 seen_urls.add(url)
                 merged.append({"title": title, "url": url, "source": source_name})
-                if len(merged) >= 8:
+                if len(merged) >= 12:
                     break
-            if len(merged) >= 8:
+            if len(merged) >= 12:
                 break
 
-        status = "live" if merged else "fallback"
+        live_sources = [item for item in source_health if item["status"] == "live"]
+        status = "live" if merged and live_sources else "fallback" if merged else "error"
         return {
             "source": "Country Search Briefs",
             "country": country_name,
             "query": query,
             "results": merged,
             "status": status,
+            "providers": source_health,
         }
 
     @classmethod
@@ -992,6 +1098,7 @@ class OSINTAggregator:
             "gdp_current_usd": "NY.GDP.MKTP.CD",
             "inflation_consumer": "FP.CPI.TOTL.ZG",
             "population_total": "SP.POP.TOTL",
+            "debt_to_gdp": "GC.DOD.TOTL.GD.ZS",
         }
         snapshot: Dict[str, Any] = {"source": "World Bank Open Data", "countries": {}}
         try:
@@ -1135,10 +1242,19 @@ class OSINTAggregator:
 
     @classmethod
     def get_data_gov_snapshot(cls) -> Dict[str, Any]:
+        cache_key = "datagov:snapshot"
+        cached_snapshot = cls._cache_get(cache_key, ttl_seconds=900)
         data_gov_key = settings.DATA_GOV_IN_KEY or settings.VITE_DATA_GOV_IN_KEY
         resource_ids = [item.strip() for item in settings.DATA_GOV_IN_RESOURCE_IDS.split(",") if item.strip()]
         query_terms = cls._data_gov_queries()
         if not data_gov_key:
+            if cached_snapshot:
+                return {
+                    **cached_snapshot,
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": "Missing API key for data.gov.in connector. Serving cached snapshot.",
+                }
             return {
                 "source": "data.gov.in",
                 "datasets": [],
@@ -1200,7 +1316,7 @@ class OSINTAggregator:
                 if strategy == "resource_ids"
                 else f"data.gov.in live via {strategy.replace('_', ' ')}."
             )
-            return {
+            response = {
                 "source": "data.gov.in",
                 "datasets": datasets,
                 "status": "live",
@@ -1210,8 +1326,17 @@ class OSINTAggregator:
                 "last_catalog_sync": discovery.get("last_synced"),
                 "message": detail,
             }
+            cls._cache_set(cache_key, response)
+            return response
         except Exception as e:
             logger.warning(f"data.gov.in fetch failed: {e}")
+            if cached_snapshot:
+                return {
+                    **cached_snapshot,
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": "data.gov.in live fetch failed, serving cached snapshot.",
+                }
             return {
                 "source": "data.gov.in (fallback)",
                 "datasets": [],

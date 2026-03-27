@@ -15,6 +15,30 @@ import { ListSkeleton } from '@/components/Skeleton';
 import { useAppStore } from '@/store';
 import type { CountryAnalysis } from '@/types';
 
+const formatMetricValue = (value: number | null | undefined, unit: string): string => {
+  if (value === null || value === undefined || Number.isNaN(value)) return '--';
+  if (unit === '%') return `${value.toFixed(1)}%`;
+  if (unit === 'usd') {
+    if (Math.abs(value) >= 1_000_000_000_000) return `$${(value / 1_000_000_000_000).toFixed(2)}T`;
+    if (Math.abs(value) >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
+    return `$${value.toLocaleString()}`;
+  }
+  if (unit === 'people') {
+    if (Math.abs(value) >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
+    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  }
+  return `${Math.round(value)}`;
+};
+
+const normalizeMetricScore = (metric: { value: number | null; id: string; unit: string }): number => {
+  if (metric.value === null || metric.value === undefined || Number.isNaN(metric.value)) return 0;
+  if (metric.id === 'debt_to_gdp') return Math.max(0, Math.min(100, 100 - metric.value));
+  if (metric.id === 'inflation_consumer') return Math.max(0, Math.min(100, 100 - metric.value * 8));
+  if (metric.id === 'gdp_current_usd') return Math.max(0, Math.min(100, metric.value / 500_000_000_000));
+  if (metric.id === 'population_total') return Math.max(0, Math.min(100, metric.value / 20_000_000));
+  return Math.max(0, Math.min(100, metric.value));
+};
+
 const riskColor = (risk: number) =>
   risk >= 70 ? 'text-red-300 border-red-900/50 bg-red-950/20' :
     risk >= 50 ? 'text-amber-300 border-amber-900/50 bg-amber-950/20' :
@@ -200,6 +224,63 @@ export const GlobalTab: React.FC = () => {
                 </div>
                 <div className="rounded-full border border-emerald-900/40 bg-emerald-950/20 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-emerald-300">
                   Catalog {analysis.country.country_catalog_mode ?? 'seeded'}
+                </div>
+              </div>
+            )}
+
+            {!!analysis.stability_vector?.length && (
+              <div className="rounded-2xl border border-zinc-800 bg-black/20 p-3">
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  Stability Matrix
+                </div>
+                <div className="space-y-2">
+                  {analysis.stability_vector.map((item) => (
+                    <div key={item.label} className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                        <span>{item.label}</span>
+                        <span className="font-bold text-zinc-200">{Math.round(item.score)}</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-zinc-900/80">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-lime-400"
+                          style={{ width: `${Math.max(3, Math.min(100, item.score))}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!!analysis.macro_indicators?.length && (
+              <div className="rounded-2xl border border-zinc-800 bg-black/20 p-3">
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  Macro Signals
+                </div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {analysis.macro_indicators.map((metric) => {
+                    const score = normalizeMetricScore(metric);
+                    const tone = metric.status === 'stress'
+                      ? 'text-red-300 border-red-900/40 bg-red-950/10'
+                      : metric.status === 'watch'
+                        ? 'text-amber-300 border-amber-900/40 bg-amber-950/10'
+                        : 'text-emerald-300 border-emerald-900/40 bg-emerald-950/10';
+
+                    return (
+                      <div key={metric.id} className={`rounded-xl border p-2.5 ${tone}`}>
+                        <div className="flex items-center justify-between text-[10px] uppercase tracking-wider">
+                          <span>{metric.label}</span>
+                          <span className="font-black">{formatMetricValue(metric.value, metric.unit)}</span>
+                        </div>
+                        <div className="mt-2 h-1.5 rounded-full bg-black/40">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400"
+                            style={{ width: `${Math.max(5, score)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

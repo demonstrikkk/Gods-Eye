@@ -414,17 +414,26 @@ class RuntimeIntelligenceEngine:
         weather = osint_engine.get_open_meteo_weather(country["lat"], country["lng"])
         world_bank = osint_engine.get_world_bank_snapshot().get("countries", {}).get(country.get("iso3"), {})
         search_briefs = osint_engine.get_country_search_briefs(country["name"], country.get("region"))
+        search_providers = search_briefs.get("providers", []) if isinstance(search_briefs.get("providers"), list) else []
         world_bank_live = any(
             isinstance(metric, dict) and metric.get("value") is not None
             for metric in world_bank.values()
         )
-        search_live = search_briefs.get("status") == "live" and bool(search_briefs.get("results"))
-        if not search_live:
+        search_live = bool(search_briefs.get("results")) and any(provider.get("status") == "live" for provider in search_providers)
+        search_limited = bool(search_briefs.get("results")) and not search_live
+        search_status = "live" if search_live else "limited" if search_limited else "unavailable"
+        if search_status == "unavailable":
             search_briefs = {
                 **search_briefs,
                 "results": [],
                 "status": "unavailable",
             }
+        corridors = [
+            corridor
+            for corridor in self.get_global_corridors()
+            if corridor.get("from_country") == country_id or corridor.get("to_country") == country_id
+        ][:8]
+        market_quotes = self.get_market_snapshot()[:6]
 
         risk_factors: List[Dict[str, Any]] = []
         if country["risk_index"] >= 70:
@@ -474,7 +483,9 @@ class RuntimeIntelligenceEngine:
             {"label": "Open-Meteo", "status": weather.get("status", "error"), "count": 1 if weather.get("current") else 0},
             {"label": "World Bank", "status": "live" if world_bank_live else "unavailable", "count": len(world_bank) if world_bank_live else 0},
             {"label": "RSS Feeds", "status": "live" if related_feeds else "limited", "count": len(related_feeds)},
-            {"label": "Open Search", "status": "live" if search_live else "unavailable", "count": len(search_briefs.get("results", []))},
+            {"label": "Open Search", "status": search_status, "count": len(search_briefs.get("results", []))},
+            {"label": "Corridors", "status": "live" if corridors else "limited", "count": len(corridors)},
+            {"label": "Market Snapshot", "status": "live" if market_quotes else "limited", "count": len(market_quotes)},
         ]
 
         evidence_points: List[str] = []
@@ -494,6 +505,10 @@ class RuntimeIntelligenceEngine:
             )
         if search_live:
             evidence_points.append(f"{len(search_briefs.get('results', []))} live open-web search hits were retrieved for validation.")
+        elif search_limited:
+            evidence_points.append(f"{len(search_briefs.get('results', []))} cached or fallback search hits were retained with limited confidence.")
+        if corridors:
+            evidence_points.append(f"{len(corridors)} corridor links are currently mapped to {country['name']}.")
         if not evidence_points:
             evidence_points.append("No live external evidence is currently available for this country; rely on mapped ontology context only.")
 
@@ -526,14 +541,140 @@ class RuntimeIntelligenceEngine:
             research_brief_parts.append(
                 f"Open search validation returned {len(search_briefs.get('results', []))} usable links."
             )
+        elif search_limited:
+            research_brief_parts.append(
+                "Open search returned limited fallback evidence; use these links as weak validation only."
+            )
         else:
             research_brief_parts.append(
                 "Open search validation is currently unavailable, so this brief excludes unsupported search claims."
+            )
+        if corridors:
+            research_brief_parts.append(
+                f"The country is linked to {len(corridors)} active corridor records, improving logistics and trade context quality."
+            )
+
+        climate_active = any(signal.get("layer") == "climate" for signal in signals)
+        economic_active = any(signal.get("layer") == "economics" for signal in signals) or world_bank_live
+        geopolitics_active = any(signal.get("layer") == "conflict" for signal in signals)
+        logistics_active = bool(corridors) or any(asset.get("layer") in {"mobility", "infrastructure"} for asset in assets)
+
+        relationship_intelligence: List[Dict[str, Any]] = []
+        if climate_active and economic_active:
+            relationship_intelligence.append(
+                {
+                    "link": "climate<->economy",
+                    "confidence": "high",
+                    "insight": "Climate volatility is currently interacting with economic indicators and should be modeled jointly.",
+                }
+            )
+        if geopolitics_active and logistics_active:
+            relationship_intelligence.append(
+                {
+                    "link": "geopolitics<->trade",
+                    "confidence": "high",
+                    "insight": "Geopolitical signal intensity intersects with mapped corridors and likely trade-route exposure.",
+                }
+            )
+        if logistics_active and (economic_active or country.get("influence_index", 0) >= 65):
+            relationship_intelligence.append(
+                {
+                    "link": "logistics<->growth",
+                    "confidence": "moderate",
+                    "insight": "Mobility and infrastructure posture remains a direct growth-side driver for this country node.",
+                }
+            )
+        if not relationship_intelligence:
+            relationship_intelligence.append(
+                {
+                    "link": "cross-domain",
+                    "confidence": "low",
+                    "insight": "Cross-domain linkage signals are currently weak; continue monitoring for convergence.",
+                }
             )
         research_brief = " ".join(research_brief_parts)
 
         search_highlights = [item.get("title") for item in search_briefs.get("results", [])[:3] if item.get("title")]
         prompt_context = "\n".join(f"- {title}" for title in search_highlights) if search_highlights else "- No live web search highlights available"
+
+        def _metric_value(key: str) -> float | None:
+            metric = world_bank.get(key, {}) if isinstance(world_bank, dict) else {}
+            value = metric.get("value") if isinstance(metric, dict) else None
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        inflation_value = _metric_value("inflation_consumer")
+        debt_value = _metric_value("debt_to_gdp")
+        gdp_value = _metric_value("gdp_current_usd")
+        population_value = _metric_value("population_total")
+
+        macro_indicators = [
+            {
+                "id": "stability_index",
+                "label": "Stability",
+                "value": max(0, min(100, 100 - float(country.get("risk_index", 50)))),
+                "unit": "index",
+                "status": "strong" if country.get("risk_index", 50) < 45 else "watch" if country.get("risk_index", 50) < 70 else "stress",
+            },
+            {
+                "id": "economic_influence",
+                "label": "Economic Influence",
+                "value": float(country.get("influence_index", 0)),
+                "unit": "index",
+                "status": "strong" if country.get("influence_index", 0) >= 70 else "watch",
+            },
+            {
+                "id": "inflation_consumer",
+                "label": "Inflation (CPI)",
+                "value": inflation_value,
+                "unit": "%",
+                "status": "strong" if inflation_value is not None and inflation_value < 4 else "watch" if inflation_value is not None and inflation_value < 7 else "stress",
+            },
+            {
+                "id": "debt_to_gdp",
+                "label": "Debt-to-GDP",
+                "value": debt_value,
+                "unit": "%",
+                "status": "strong" if debt_value is not None and debt_value < 55 else "watch" if debt_value is not None and debt_value < 85 else "stress",
+            },
+            {
+                "id": "population_total",
+                "label": "Population",
+                "value": population_value,
+                "unit": "people",
+                "status": "info",
+            },
+            {
+                "id": "gdp_current_usd",
+                "label": "GDP (current USD)",
+                "value": gdp_value,
+                "unit": "usd",
+                "status": "info",
+            },
+        ]
+
+        stability_vector = [
+            {
+                "label": "Stability",
+                "score": max(0, min(100, 100 - float(country.get("risk_index", 50)))),
+            },
+            {
+                "label": "Economic Condition",
+                "score": max(0, min(100, float(country.get("influence_index", 0)))),
+            },
+            {
+                "label": "Debt Posture",
+                "score": 50 if debt_value is None else max(0, min(100, 100 - debt_value)),
+            },
+            {
+                "label": "Signal Pressure",
+                "score": max(0, min(100, 100 - min(float(country.get("active_signals", 0)) * 8, 100))),
+            },
+        ]
 
         return {
             "country": country,
@@ -555,10 +696,19 @@ class RuntimeIntelligenceEngine:
             "opportunities": opportunities,
             "signals": signals,
             "assets": assets,
+            "corridors": corridors,
             "feeds": related_feeds,
             "search_briefs": search_briefs,
+            "search_provider_status": search_providers,
             "weather": weather,
             "world_bank": world_bank,
+            "economic_snapshot": {
+                "market_quotes": market_quotes,
+                "world_bank_available": world_bank_live,
+            },
+            "macro_indicators": macro_indicators,
+            "stability_vector": stability_vector,
+            "relationship_intelligence": relationship_intelligence,
             "suggested_questions": [
                 f"What are the main escalation pathways for {country['name']} over the next 14 days?",
                 f"How do climate and infrastructure stress interact in {country['name']}?",
@@ -865,6 +1015,13 @@ class RuntimeIntelligenceEngine:
                 mode="free",
                 fetcher=osint_engine.get_duckduckgo_search_results,
                 signal_builder=lambda payload: search_builder(payload, "DuckDuckGo"),
+            ),
+            self._capture_source(
+                source_id="serpapi-search",
+                label="SerpAPI Search",
+                mode="free",
+                fetcher=osint_engine.get_serpapi_search_results,
+                signal_builder=lambda payload: search_builder(payload, "SerpAPI"),
             ),
         )
         country_payload, market_payload = await asyncio.gather(country_task, market_task)

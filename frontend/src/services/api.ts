@@ -336,6 +336,8 @@ export const postUnifiedIntelligence = async (
     conversation_id?: string;
     conversation_history?: UnifiedConversationMessageInput[];
     forced_capabilities?: UnifiedCapabilityType[];
+    manual_capabilities?: UnifiedCapabilityType[];
+    execution_mode?: 'auto' | 'fast' | 'manual' | 'visual_only' | 'reasoning_only' | 'tools_only' | 'map_only';
     max_processing_time?: number;
     include_debug_info?: boolean;
   }
@@ -349,6 +351,8 @@ export const postUnifiedIntelligence = async (
       conversation_id: options?.conversation_id,
       conversation_history: options?.conversation_history || [],
       forced_capabilities: options?.forced_capabilities,
+      manual_capabilities: options?.manual_capabilities,
+      execution_mode: options?.execution_mode || 'auto',
       max_processing_time: options?.max_processing_time || 30.0,
       include_debug_info: options?.include_debug_info || false,
     }),
@@ -356,6 +360,83 @@ export const postUnifiedIntelligence = async (
   if (!res.ok) throw new Error(`Unified intelligence failed: ${res.status}`);
   const data = await res.json();
   return data;
+};
+
+export type UnifiedStreamEvent = {
+  type: string;
+  timestamp?: string;
+  phase?: string;
+  message?: string;
+  [key: string]: any;
+};
+
+export type UnifiedStreamCallbacks = {
+  onOpen?: () => void;
+  onEvent?: (event: UnifiedStreamEvent) => void;
+  onResult?: (response: UnifiedIntelligenceResponse) => void;
+  onError?: (error: string) => void;
+  onClose?: (event: CloseEvent) => void;
+};
+
+export const streamUnifiedIntelligence = (
+  payload: {
+    query: string;
+    context?: Record<string, any>;
+    conversation_id?: string;
+    conversation_history?: UnifiedConversationMessageInput[];
+    forced_capabilities?: UnifiedCapabilityType[];
+    manual_capabilities?: UnifiedCapabilityType[];
+    execution_mode?: 'auto' | 'fast' | 'manual' | 'visual_only' | 'reasoning_only' | 'tools_only' | 'map_only';
+    max_processing_time?: number;
+    include_debug_info?: boolean;
+  },
+  callbacks: UnifiedStreamCallbacks,
+): WebSocket => {
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const wsUrl = `${protocol}://${window.location.host}${BASE}/unified/stream`;
+  const socket = new WebSocket(wsUrl);
+
+  socket.onopen = () => {
+    callbacks.onOpen?.();
+    socket.send(JSON.stringify({
+      query: payload.query,
+      context: payload.context || {},
+      conversation_id: payload.conversation_id,
+      conversation_history: payload.conversation_history || [],
+      forced_capabilities: payload.forced_capabilities,
+      manual_capabilities: payload.manual_capabilities,
+      execution_mode: payload.execution_mode || 'auto',
+      max_processing_time: payload.max_processing_time || 30.0,
+      include_debug_info: payload.include_debug_info || false,
+    }));
+  };
+
+  socket.onmessage = (messageEvent: MessageEvent<string>) => {
+    try {
+      const event = JSON.parse(messageEvent.data) as UnifiedStreamEvent;
+      if (event.type === 'result' && event.response) {
+        callbacks.onResult?.(event.response as UnifiedIntelligenceResponse);
+        return;
+      }
+      if (event.type === 'error') {
+        callbacks.onError?.(String(event.message || 'Unified streaming failed'));
+        return;
+      }
+      callbacks.onEvent?.(event);
+    } catch (err) {
+      callbacks.onError?.(err instanceof Error ? err.message : 'Failed to parse unified stream event');
+    }
+  };
+
+  socket.onerror = () => {
+    callbacks.onError?.('Unified intelligence websocket connection error');
+  };
+
+  socket.onclose = (event) => {
+    callbacks.onClose?.(event);
+  };
+
+  return socket;
 };
 
 export const assessUnifiedQuery = async (

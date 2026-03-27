@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 import logging
+import asyncio
 from pydantic import BaseModel
 from typing import Dict, Any, List
 from app.data.store import store
@@ -151,20 +152,25 @@ async def execute_natural_language_query(request: Request, payload: NLQueryReque
     Attempts real AI reasoning via qa_engine, with deterministic fallbacks.
     """
     from app.services.osint_aggregator import qa_engine
+    from app.services.map_command_service import get_map_command_service
 
     try:
-        query = payload.query or payload.question
-        query = query.lower()
+        query_text = (payload.query or payload.question or "").strip()
+        query = query_text.lower()
 
         if len(query.split()) > 3:
             try:
-                result = qa_engine.execute_query(payload.query)
+                # Keep the endpoint responsive even when deeper QA tooling is slow.
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(qa_engine.execute_query, query_text),
+                    timeout=8.0,
+                )
                 if isinstance(result, dict) and "answer" in result:
                     return {"status": "success", "answer": result["answer"]}
+            except asyncio.TimeoutError:
+                logger.warning("QA engine timeout; falling back to deterministic responder")
             except Exception as ai_err:
-                from fastapi import HTTPException
-                logger.error(f"Unhandled error: {ai_err}")
-                raise HTTPException(status_code=500, detail=str(ai_err))
+                logger.warning(f"QA engine unavailable; falling back: {ai_err}")
         if "sentiment" in query and "negative" in query:
             booths = store.get_booths()
             critical = [booth for booth in booths if booth["avg_sentiment"] < 40]
@@ -230,6 +236,26 @@ async def execute_natural_language_query(request: Request, payload: NLQueryReque
             if country_name in query and any(keyword in query for keyword in ["country", "analy", "brief", "risk", "global", "world", "situation"]):
                 analysis = runtime_engine.get_country_analysis(country["id"])
                 if analysis:
+                    command_service = get_map_command_service()
+                    command_service.create_highlight_command(
+                        country_ids=[country["id"]],
+                        color="#06b6d4",
+                        pulse=True,
+                        description=f"AI query focus: {country['name']}",
+                        source="nl_query_engine",
+                        priority="high",
+                        metadata={"mode": "query", "country_id": country["id"]},
+                    )
+                    command_service.create_focus_command(
+                        country_id=country["id"],
+                        zoom_level=4,
+                        duration_ms=1000,
+                        description=f"Focus on {country['name']}",
+                        source="nl_query_engine",
+                        priority="high",
+                        metadata={"mode": "query", "country_id": country["id"]},
+                    )
+
                     lines = [
                         f"{country['name']} Intelligence Brief:",
                         analysis["summary"],

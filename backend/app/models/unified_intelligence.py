@@ -30,6 +30,17 @@ class QueryComplexity(str, Enum):
     VERY_COMPLEX = "very_complex"
 
 
+class UnifiedExecutionMode(str, Enum):
+    """Execution strategy for unified orchestration."""
+    AUTO = "auto"
+    FAST = "fast"
+    MANUAL = "manual"
+    VISUAL_ONLY = "visual_only"
+    REASONING_ONLY = "reasoning_only"
+    TOOLS_ONLY = "tools_only"
+    MAP_ONLY = "map_only"
+
+
 # =============================================================================
 # Request Models
 # =============================================================================
@@ -49,6 +60,14 @@ class UnifiedIntelligenceRequest(BaseModel):
     forced_capabilities: Optional[List[CapabilityType]] = Field(
         None,
         description="Force specific capabilities (overrides auto-detection)"
+    )
+    manual_capabilities: Optional[List[CapabilityType]] = Field(
+        None,
+        description="Manual capability selection used when execution_mode='manual'"
+    )
+    execution_mode: UnifiedExecutionMode = Field(
+        default=UnifiedExecutionMode.AUTO,
+        description="Orchestration mode: auto, fast, manual, or single-capability modes"
     )
     max_processing_time: Optional[float] = Field(
         30.0,
@@ -256,6 +275,9 @@ class MapIntelligenceResult:
     routes: List[Dict[str, Any]]
     heatmap_data: Optional[Dict[str, float]]
     processing_time_ms: float
+    map_commands: List[Dict[str, Any]] = field(default_factory=list)
+    visual_markers: List[Dict[str, Any]] = field(default_factory=list)
+    spawned_panels: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -264,7 +286,42 @@ class MapIntelligenceResult:
             "markers": self.markers,
             "routes": self.routes,
             "heatmap_data": self.heatmap_data,
+            "map_commands": self.map_commands,
+            "visual_markers": self.visual_markers,
+            "spawned_panels": self.spawned_panels,
             "processing_time_ms": self.processing_time_ms,
+        }
+
+
+@dataclass
+class CockpitState:
+    """Frontend-facing command center state payload."""
+
+    priority_alert: Dict[str, Any]
+    global_threat_level: Dict[str, Any]
+    ontology_pulse: Dict[str, Any]
+    risk_watchlist: List[Dict[str, Any]]
+    operating_logic: Dict[str, Any]
+    active_overlays: List[Dict[str, Any]]
+    subpanels: List[Dict[str, Any]]
+    stream_phases: List[Dict[str, Any]]
+    core_intelligence: List[Dict[str, Any]]
+    demo_mode: bool = False
+    cache_hit: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "priority_alert": self.priority_alert,
+            "global_threat_level": self.global_threat_level,
+            "ontology_pulse": self.ontology_pulse,
+            "risk_watchlist": self.risk_watchlist,
+            "operating_logic": self.operating_logic,
+            "active_overlays": self.active_overlays,
+            "subpanels": self.subpanels,
+            "stream_phases": self.stream_phases,
+            "core_intelligence": self.core_intelligence,
+            "demo_mode": self.demo_mode,
+            "cache_hit": self.cache_hit,
         }
 
 
@@ -287,6 +344,9 @@ class UnifiedIntelligenceResult:
     capability_statuses: List[Dict[str, Any]]
     total_processing_time_ms: float
     timestamp: str
+    map_commands: List[Dict[str, Any]] = field(default_factory=list)
+    visual_markers: List[Dict[str, Any]] = field(default_factory=list)
+    cockpit_state: Optional[CockpitState] = None
 
     # Capability-specific results (only populated if capability was activated)
     reasoning: Optional[ReasoningResult] = None
@@ -308,6 +368,9 @@ class UnifiedIntelligenceResult:
             "assistant_response": self.assistant_response.to_dict(),
             "confidence_score": self.confidence_score,
             "data_sources_used": self.data_sources_used,
+            "map_commands": self.map_commands,
+            "visual_markers": self.visual_markers,
+            "cockpit_state": self.cockpit_state.to_dict() if self.cockpit_state else None,
             "capabilities_activated": self.capabilities_activated,
             "capability_statuses": self.capability_statuses,
             "total_processing_time_ms": self.total_processing_time_ms,
@@ -340,6 +403,9 @@ class UnifiedIntelligenceResponse(BaseModel):
     assistant_response: Dict[str, Any]
     confidence_score: float
     data_sources_used: List[str]
+    map_commands: List[Dict[str, Any]] = Field(default_factory=list)
+    visual_markers: List[Dict[str, Any]] = Field(default_factory=list)
+    cockpit_state: Optional[Dict[str, Any]] = None
 
     # Metadata
     capabilities_activated: List[str]

@@ -75,9 +75,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 from app.services.feed_aggregator import feed_engine
 from app.services.runtime_intelligence import runtime_engine
+from app.core.graph import verify_graph_connectivity, close_graph_driver
 
 @app.on_event("startup")
 async def on_startup():
+    try:
+        await verify_graph_connectivity()
+    except Exception as exc:
+        logging.warning(f"Neo4j connectivity unavailable at startup: {exc}")
     feed_engine.start()
     runtime_engine.start()
 
@@ -85,6 +90,7 @@ async def on_startup():
 async def on_shutdown():
     feed_engine.stop()
     runtime_engine.stop()
+    await close_graph_driver()
 
 app.include_router(api_router, prefix="/api/v1")
 

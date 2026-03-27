@@ -11,7 +11,7 @@ The system automatically detects and activates appropriate capabilities.
 
 import logging
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Request, Query, Body
+from fastapi import APIRouter, HTTPException, Request, Query, Body, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -101,6 +101,9 @@ async def analyze_unified(
             "assistant_response": result.assistant_response.to_dict(),
             "confidence_score": result.confidence_score,
             "data_sources_used": result.data_sources_used,
+            "map_commands": result.map_commands,
+            "visual_markers": result.visual_markers,
+            "cockpit_state": result.cockpit_state.to_dict() if result.cockpit_state else None,
             "capabilities_activated": result.capabilities_activated,
             "capability_statuses": result.capability_statuses,
             "total_processing_time_ms": result.total_processing_time_ms,
@@ -113,6 +116,44 @@ async def analyze_unified(
     except Exception as e:
         logger.error(f"Unified intelligence error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+@router.websocket("/stream")
+@router.websocket("/ws/analyze")
+async def unified_stream(websocket: WebSocket):
+    """WebSocket stream endpoint for phased unified intelligence execution updates."""
+    await websocket.accept()
+    engine = get_unified_intelligence_engine()
+
+    async def send_event(event: Dict[str, Any]):
+        await websocket.send_json(event)
+
+    while True:
+        try:
+            payload = await websocket.receive_json()
+        except WebSocketDisconnect:
+            break
+        except Exception:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Invalid payload received by unified stream endpoint.",
+            })
+            continue
+
+        try:
+            request = UnifiedIntelligenceRequest.model_validate(payload)
+            result = await engine.analyze(request, stream_callback=send_event)
+            await websocket.send_json({
+                "type": "result",
+                "timestamp": result.timestamp,
+                "response": result.to_dict(),
+            })
+        except Exception as e:
+            logger.error(f"Unified stream error: {e}", exc_info=True)
+            await websocket.send_json({
+                "type": "error",
+                "message": str(e),
+            })
 
 
 # =============================================================================
@@ -334,7 +375,11 @@ async def expert_mode_wrapper(
         request = UnifiedIntelligenceRequest(
             query=query,
             context=context,
+            conversation_id=None,
+            conversation_history=[],
             forced_capabilities=[CapabilityType.REASONING],
+            max_processing_time=30.0,
+            include_debug_info=False,
         )
 
         result = await engine.analyze(request)
@@ -375,7 +420,12 @@ async def visual_mode_wrapper(
     try:
         request = UnifiedIntelligenceRequest(
             query=query,
+            context={},
+            conversation_id=None,
+            conversation_history=[],
             forced_capabilities=[CapabilityType.VISUALS],
+            max_processing_time=30.0,
+            include_debug_info=False,
         )
 
         result = await engine.analyze(request)

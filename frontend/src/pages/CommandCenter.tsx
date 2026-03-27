@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { UnifiedTopHUD } from '@/components/UnifiedTopHUD';
 import { MapView } from '@/features/map/MapView';
 import { IntelligenceSidebar } from '@/features/intelligence/IntelligenceSidebar';
@@ -8,13 +8,42 @@ import { useAppStore } from '@/store';
 import { Brain, ChevronsLeft, ChevronsRight, Layers } from 'lucide-react';
 
 export const CommandCenter: React.FC = () => {
-  const { sidebarOpen, setSidebarOpen } = useAppStore();
+  const sidebarOpen = useAppStore((state) => state.sidebarOpen);
+  const setSidebarOpen = useAppStore((state) => state.setSidebarOpen);
+  const liteMode = useAppStore((state) => state.liteMode);
+  const setLiteMode = useAppStore((state) => state.setLiteMode);
+  const mapMode = useAppStore((state) => state.mapMode);
+  const setMapMode = useAppStore((state) => state.setMapMode);
+  const sidebarTab = useAppStore((state) => state.sidebarTab);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+
+  const intelligencePanelWidth = sidebarTab === 'unified' ? 'min(55vw, 840px)' : '500px';
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey) return;
+      if (event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        setLiteMode(!liteMode);
+      }
+      if (event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        setMapMode(mapMode === 'globe' ? 'flat' : 'globe');
+      }
+      if (event.key.toLowerCase() === 'i') {
+        event.preventDefault();
+        setSidebarOpen(!sidebarOpen);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [liteMode, mapMode, setLiteMode, setMapMode, setSidebarOpen, sidebarOpen]);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black font-sans text-white">
       {/* LAYER 0: MapView (Base Level) */}
-      <div className="absolute inset-0 z-0">
+      <div id="map-canvas-root" className="absolute inset-0 z-0">
         <MapView />
       </div>
 
@@ -48,9 +77,10 @@ export const CommandCenter: React.FC = () => {
 
         {/* Right Intelligence Sidebar */}
         <div
-          className={`absolute top-24 bottom-6 right-4 w-[500px] transition-transform duration-300 ease-in-out pointer-events-none ${
+          className={`absolute top-24 bottom-6 right-4 transition-transform duration-300 ease-in-out pointer-events-none ${
             sidebarOpen ? 'translate-x-0' : 'translate-x-[120%]'
           }`}
+          style={{ width: intelligencePanelWidth }}
         >
           <div className="h-full w-full rounded-2xl overflow-hidden shadow-xl flex flex-col pointer-events-auto bg-black/80 backdrop-blur-xl border border-zinc-800/80">
             <IntelligenceSidebar />

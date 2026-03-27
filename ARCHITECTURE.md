@@ -60,6 +60,7 @@ Open Data + Social + RSS + Search
         - Periodically captures and normalizes data from OSINT connectors
         - Builds dynamic signals and source-health snapshots
         - Produces enriched countries and country briefs
+        - Builds cross-domain relationship intelligence in country briefs (climate-economy, geopolitics-trade, logistics-growth)
         - Persists merged runtime state for continuity
 
 - `feed_aggregator.py`
@@ -84,6 +85,8 @@ Open Data + Social + RSS + Search
 
 - NL query endpoint with graph-aware fallback logic
 - Strategic analysis endpoint with multi-tool orchestration
+- Unified intelligence endpoint with additive cockpit/map payload fields
+- Unified intelligence WebSocket stream endpoint for phased reasoning updates
 - What-if simulation endpoint
 - News insight endpoint for feed-context synthesis
 - Executive KPI endpoint
@@ -238,6 +241,21 @@ Documented relationships:
         - tabbed data modes (global, booths, workers, schemes, alerts, AI)
         - view-specific overlays (executive, strategic, ontology, constituency, comms)
 
+### 7.5 Unified Command Workflow (Current)
+
+- Default operator workflow is the unified assistant panel (`UnifiedIntelligenceTab.tsx`)
+- Panel supports:
+        - streaming intermediate reasoning events over WebSocket
+        - local file upload context (CSV/JSON/TXT) with summary-only sensitive mode
+        - direct map command/cockpit state ingestion into shared Zustand store
+        - PDF export path for latest intelligence brief
+
+Shell-level controls:
+
+- Lite mode toggle for performance sessions (`Alt+L`)
+- Map mode swap (`Alt+M`) and panel visibility toggle (`Alt+I`)
+- Lite mode enforces 2D map effective rendering path for predictable runtime behavior
+
 ## 8. Layer Taxonomy
 
 System layer keys:
@@ -263,6 +281,9 @@ These layers are used consistently across backend signal/category mapping and fr
 3. Tool sanitation blocks simulated/fallback payloads from appearing as live intelligence.
 4. Strategic engine exposes unavailable tools in metadata.
 5. Civic engine can stay in mock mode when API budgets or dependencies are constrained.
+6. Open-search connector redundancy now uses DuckDuckGo + Yahoo + SerpAPI, merged with dedupe and provider health metadata.
+7. data.gov.in snapshot retrieval now returns stale cached snapshots when key/connectivity constraints block live refresh.
+8. Neo4j initialization in OSINT query paths now attempts all configured URI candidates for Aura/local fallback.
 
 ## 10. Deployment Topology (Current)
 

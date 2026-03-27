@@ -247,6 +247,34 @@ class MapCommandService:
         self._add_to_history(command)
         return command
 
+    def create_raw_command(
+        self,
+        command_type: CommandType,
+        data: Dict[str, Any],
+        description: str = "Generic map command",
+        source: str = "system",
+        priority: CommandPriority = "medium",
+        metadata: Optional[Dict[str, Any]] = None,
+        command_id: Optional[str] = None,
+        created_at: Optional[str] = None,
+        expires_at: Optional[str] = None,
+    ) -> MapCommand:
+        """Create a generic command payload without shape restrictions."""
+        command = MapCommand(
+            id=command_id or f"cmd-{uuid.uuid4().hex[:8]}",
+            command_type=command_type,
+            priority=priority,
+            data=data,
+            description=description,
+            source=source,
+            created_at=created_at or datetime.utcnow().isoformat(),
+            expires_at=expires_at,
+            metadata=metadata or {},
+        )
+        self._commands[command.id] = command
+        self._add_to_history(command)
+        return command
+
     # ─────────────────────────────────────────────────────────────────────────
     # Command Management
     # ─────────────────────────────────────────────────────────────────────────

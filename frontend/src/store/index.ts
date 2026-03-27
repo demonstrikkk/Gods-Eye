@@ -8,7 +8,49 @@ import type {
   LayerKey,
   SidebarTab,
   UnifiedIntelligenceResponse,
+  CockpitState,
 } from '@/types';
+
+const MAX_MAP_COMMANDS = 450;
+
+const createdAtMs = (value?: string): number => {
+  const parsed = Date.parse(value || '');
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+function normalizeMapCommands<T extends { id: string; created_at?: string }>(commands: T[]): T[] {
+  if (!commands.length) return [];
+  const byId = new Map<string, T>();
+  for (const command of commands) {
+    byId.set(command.id, command);
+  }
+  const deduped = Array.from(byId.values()).sort((left, right) => {
+    return createdAtMs(left.created_at) - createdAtMs(right.created_at);
+  });
+  return deduped.slice(-MAX_MAP_COMMANDS);
+}
+
+function appendMapCommand<T extends { id: string; created_at?: string }>(commands: T[], command: T): T[] {
+  if (!commands.length) return [command];
+
+  const next = [...commands];
+  const existingIndex = next.findIndex((item) => item.id === command.id);
+
+  if (existingIndex >= 0) {
+    next[existingIndex] = command;
+    next.sort((left, right) => createdAtMs(left.created_at) - createdAtMs(right.created_at));
+    return next.slice(-MAX_MAP_COMMANDS);
+  }
+
+  const lastTimestamp = createdAtMs(next[next.length - 1]?.created_at);
+  const incomingTimestamp = createdAtMs(command.created_at);
+  next.push(command);
+  if (incomingTimestamp < lastTimestamp) {
+    next.sort((left, right) => createdAtMs(left.created_at) - createdAtMs(right.created_at));
+  }
+
+  return next.slice(-MAX_MAP_COMMANDS);
+}
 
 export type ActiveView =
   | 'cockpit'
@@ -26,6 +68,8 @@ interface AppState {
   // Map
   mapMode: MapMode;
   setMapMode: (mode: MapMode) => void;
+  liteMode: boolean;
+  setLiteMode: (value: boolean) => void;
 
   // Layers
   activeLayers: Set<LayerKey>;
@@ -102,12 +146,17 @@ interface AppState {
   addUnifiedMessage: (message: AppState['unifiedMessages'][0]) => void;
   replaceUnifiedMessage: (messageId: string, message: Partial<AppState['unifiedMessages'][0]>) => void;
   clearUnifiedConversation: () => void;
+
+  cockpitState: CockpitState | null;
+  setCockpitState: (value: CockpitState | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   // Map defaults
   mapMode: 'globe',
   setMapMode: (mode) => set({ mapMode: mode }),
+  liteMode: false,
+  setLiteMode: (value) => set({ liteMode: value, mapMode: value ? 'flat' : 'globe' }),
 
   // All layers on by default
   activeLayers: new Set<LayerKey>([
@@ -158,7 +207,7 @@ export const useAppStore = create<AppState>((set) => ({
   clearPendingAgentQuery: () => set({ pendingAgentQuery: null }),
 
   // Sidebar
-  sidebarTab: 'global',
+  sidebarTab: 'unified',
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   sidebarOpen: true,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -172,8 +221,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Map Commands
   mapCommands: [],
-  setMapCommands: (commands) => set({ mapCommands: commands }),
-  addMapCommand: (command) => set((state) => ({ mapCommands: [...state.mapCommands, command] })),
+  setMapCommands: (commands) => set({ mapCommands: normalizeMapCommands(commands) }),
+  addMapCommand: (command) => set((state) => ({ mapCommands: appendMapCommand(state.mapCommands, command) })),
   removeMapCommand: (commandId) => set((state) => ({
     mapCommands: state.mapCommands.filter((cmd) => cmd.id !== commandId),
   })),
@@ -190,4 +239,6 @@ export const useAppStore = create<AppState>((set) => ({
     )),
   })),
   clearUnifiedConversation: () => set({ unifiedConversationId: null, unifiedMessages: [] }),
+  cockpitState: null,
+  setCockpitState: (value) => set({ cockpitState: value }),
 }));

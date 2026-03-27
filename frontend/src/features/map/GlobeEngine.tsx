@@ -95,17 +95,15 @@ const colorForHeat = (intensity: number, colorScale: string): string => {
 
 export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
-  const {
-    activeLayers,
-    selectedId,
-    selectedType,
-    setHoveredItem,
-    setSelected,
-    setSidebarTab,
-    setSidebarOpen,
-    expertMapLayers,
-    expertAffectedRegions,
-  } = useAppStore();
+  const activeLayers = useAppStore((state) => state.activeLayers);
+  const selectedId = useAppStore((state) => state.selectedId);
+  const selectedType = useAppStore((state) => state.selectedType);
+  const setHoveredItem = useAppStore((state) => state.setHoveredItem);
+  const setSelected = useAppStore((state) => state.setSelected);
+  const setSidebarTab = useAppStore((state) => state.setSidebarTab);
+  const setSidebarOpen = useAppStore((state) => state.setSidebarOpen);
+  const expertMapLayers = useAppStore((state) => state.expertMapLayers);
+  const expertAffectedRegions = useAppStore((state) => state.expertAffectedRegions);
 
   const { mapCommands } = useMapCommands();
   const executedFocusIdsRef = useRef<Set<string>>(new Set());
@@ -201,11 +199,24 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
     if (!nextFocus) return;
 
     const focusCountry = countriesById.get(String(nextFocus.data?.country_id || ''));
-    if (!focusCountry || !hasCoords(focusCountry)) return;
+    const fallbackLat = Number(nextFocus.data?.lat);
+    const fallbackLng = Number(nextFocus.data?.lng);
+    const lat = focusCountry?.lat ?? fallbackLat;
+    const lng = focusCountry?.lng ?? fallbackLng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const zoomLevel = Number(nextFocus.data?.zoom_level);
+    const altitude = Number.isFinite(zoomLevel)
+      ? Math.max(0.55, Math.min(1.8, 2 - (zoomLevel / 6)))
+      : 0.8;
+    const durationMs = Number(nextFocus.data?.duration_ms);
 
     const globe = getGlobe();
     if (globe) {
-      globe.pointOfView({ lat: focusCountry.lat, lng: focusCountry.lng, altitude: 0.8 }, 1400);
+      globe.pointOfView(
+        { lat, lng, altitude },
+        Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 1400,
+      );
       globe.controls().autoRotate = false;
     }
     executedFocusIdsRef.current.add(nextFocus.id);
@@ -236,14 +247,14 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
   useEffect(() => {
     const globe = getGlobe();
     if (!globe || selectedType !== 'country' || !selectedId) return;
-    const selectedCountry = countries.filter(hasCoords).find((country) => country.id === selectedId);
+    const selectedCountry = countriesById.get(selectedId);
     if (!selectedCountry) return;
     globe.pointOfView(
       { lat: selectedCountry.lat, lng: selectedCountry.lng, altitude: 1.02 },
       1400,
     );
     globe.controls().autoRotate = false;
-  }, [countries, selectedId, selectedType]);
+  }, [countriesById, selectedId, selectedType]);
 
   const filteredSignals = useMemo(() => {
     const selectedSignals = DATA_LAYERS.flatMap((layer) =>
@@ -295,12 +306,23 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
         const toId = String(cmd.data?.to_country || '');
         const fromCountry = countriesById.get(fromId);
         const toCountry = countriesById.get(toId);
-        if (!fromCountry || !toCountry || !hasCoords(fromCountry) || !hasCoords(toCountry)) return null;
+        const fromLat = fromCountry?.lat ?? Number(cmd.data?.from_lat ?? cmd.data?.start_lat);
+        const fromLng = fromCountry?.lng ?? Number(cmd.data?.from_lng ?? cmd.data?.start_lng);
+        const toLat = toCountry?.lat ?? Number(cmd.data?.to_lat ?? cmd.data?.end_lat);
+        const toLng = toCountry?.lng ?? Number(cmd.data?.to_lng ?? cmd.data?.end_lng);
+        if (!Number.isFinite(fromLat) || !Number.isFinite(fromLng) || !Number.isFinite(toLat) || !Number.isFinite(toLng)) {
+          return null;
+        }
         return {
           id: cmd.id,
-          fromCountry,
-          toCountry,
+          fromLat,
+          fromLng,
+          toLat,
+          toLng,
+          fromLabel: fromCountry?.name || String(cmd.data?.from_label || cmd.data?.from_country || 'Origin'),
+          toLabel: toCountry?.name || String(cmd.data?.to_label || cmd.data?.to_country || 'Destination'),
           color: String(cmd.data?.color || '#10b981'),
+          label: String(cmd.data?.label || ''),
         };
       })
       .filter(Boolean);
@@ -326,12 +348,12 @@ export const GlobeEngine: React.FC<GlobeEngineProps> = ({ width, height }) => {
       : [];
 
     const cmdArcs = commandRoutes?.map((route: any) => ({
-      startLat: route.fromCountry.lat,
-      startLng: route.fromCountry.lng,
-      endLat: route.toCountry.lat,
-      endLng: route.toCountry.lng,
+      startLat: route.fromLat,
+      startLng: route.fromLng,
+      endLat: route.toLat,
+      endLng: route.toLng,
       color: [route.color, route.color],
-      label: `${route.fromCountry.name} -> ${route.toCountry.name}`,
+      label: route.label || `${route.fromLabel} -> ${route.toLabel}`,
     })) || [];
 
     const expertArcs = (expertMapLayers || [])

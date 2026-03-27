@@ -3,65 +3,65 @@
     {
       "id": "dyn-gdelt-0",
       "country_id": "CTR-UKR",
-      "title": "  But you were in Palm Beach : Reporter fact - checks Trump to his face on mail - in ballot",
-      "summary": "alternet.org reported a live geopolitical event.",
+      "title": "Nasdaq 100 în corecție , volatilitatea piețelor globale pune presiune pe sectorul tehnologic",
+      "summary": "business24.ro reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "alternet.org",
-      "time": "20260326T200000Z",
+      "source": "business24.ro",
+      "time": "20260327T170000Z",
       "lat": 50.4501,
       "lng": 30.5234
     },
     {
       "id": "dyn-gdelt-1",
       "country_id": "CTR-SAU",
-      "title": "Sheinbaum lamenta exclusión de revocación de mandato en Plan B electoral",
-      "summary": "wradio.com.mx reported a live geopolitical event.",
+      "title": "Irán prohíbe a sus deportistas viajar a países  hostiles : qué pasa con el Mundial 2026 :: Diario Pregon de Jujuy",
+      "summary": "pregon.com.ar reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "wradio.com.mx",
-      "time": "20260326T200000Z",
+      "source": "pregon.com.ar",
+      "time": "20260327T170000Z",
       "lat": 24.7136,
       "lng": 46.6753
     },
     {
       "id": "dyn-gdelt-2",
       "country_id": "CTR-IND",
-      "title": "Cecelia , 83 : Cooking for 90 , raising $4000 for sick children | The Rural",
-      "summary": "therural.com.au reported a live geopolitical event.",
+      "title": "Dombrovskis : Lower Electricity Tax in EU Energy Package",
+      "summary": "athens-times.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "therural.com.au",
-      "time": "20260326T200000Z",
+      "source": "athens-times.com",
+      "time": "20260327T170000Z",
       "lat": 20.5937,
       "lng": 78.9629
     },
     {
       "id": "dyn-gdelt-3",
       "country_id": "CTR-SGP",
-      "title": "Ben Gvir e il selfie davanti al patibolo : lorrida immagine che mostra cosa è diventato Israele",
-      "summary": "globalist.it reported a live geopolitical event.",
+      "title": "Քոչարյանի պաշտոնավարումն էլ էր կոշտ , ինչպես Փաշինյանինը . իրավապաշտպան",
+      "summary": "azatutyun.am reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "globalist.it",
-      "time": "20260326T200000Z",
+      "source": "azatutyun.am",
+      "time": "20260327T170000Z",
       "lat": 1.3521,
       "lng": 103.8198
     },
     {
       "id": "dyn-gdelt-4",
       "country_id": "CTR-BHS",
-      "title": "Netanyahu confidants admit : political , military leadership dont know how much longer",
-      "summary": "ynetnews.com reported a live geopolitical event.",
+      "title": "Ncla stories at Techdirt . ",
+      "summary": "techdirt.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "ynetnews.com",
-      "time": "20260326T200000Z",
+      "source": "techdirt.com",
+      "time": "20260327T170000Z",
       "lat": 38.9072,
       "lng": -77.0369
     },
@@ -116,19 +116,6 @@
       "time": "LIVE",
       "lat": 23.8496,
       "lng": -45.8331
-    },
-    {
-      "id": "quake-us6000shlp",
-      "country_id": "CTR-FLK",
-      "title": "M6.6 seismic event",
-      "summary": "South Shetland Islands",
-      "category": "Climate",
-      "layer": "climate",
-      "severity": "High",
-      "source": "USGS",
-      "time": "LIVE",
-      "lat": -61.1525,
-      "lng": -56.2683
     },
     {
       "id": "fire-EONET_18750",
@@ -287,108 +274,121 @@
       "lng": 46.6753
     },
     {
+      "id": "datagov-0",
+      "country_id": "CTR-IND",
+      "title": "100005bf-954a-4860-9407-189e132155eb",
+      "summary": "data.gov.in dataset refreshed with 0 sampled records.",
+      "category": "Governance",
+      "layer": "governance",
+      "severity": "Low",
+      "source": "data.gov.in",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
       "id": "opensky-0",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF51WH",
+      "title": "Aviation activity: TVF61UE",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 47.5679,
-      "lng": 4.4326
+      "lat": 38.6604,
+      "lng": -9.3863
     },
     {
       "id": "opensky-1",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF44VH",
+      "title": "Aviation activity: TVF47ZR",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 45.5506,
-      "lng": -2.7785
+      "lat": 47.6267,
+      "lng": 1.8054
     },
     {
       "id": "opensky-2",
-      "country_id": "CTR-USA",
-      "title": "Aviation activity: N454MF",
-      "summary": "OpenSky aircraft state linked to United States.",
+      "country_id": "CTR-IND",
+      "title": "Aviation activity: AXB1042",
+      "summary": "OpenSky aircraft state linked to India.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 29.6855,
-      "lng": -95.4567
+      "lat": 27.7277,
+      "lng": 80.3682
     },
     {
       "id": "opensky-3",
-      "country_id": "CTR-USA",
-      "title": "Aviation activity: N759PA",
-      "summary": "OpenSky aircraft state linked to United States.",
+      "country_id": "CTR-FRA",
+      "title": "Aviation activity: TVF44FX",
+      "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 41.4326,
-      "lng": -111.7266
+      "lat": 48.997,
+      "lng": 3.9177
     },
     {
       "id": "opensky-4",
-      "country_id": "CTR-CHL",
-      "title": "Aviation activity: LPE2381",
-      "summary": "OpenSky aircraft state linked to Chile.",
+      "country_id": "CTR-FRA",
+      "title": "Aviation activity: TVF17PT",
+      "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": -33.0537,
-      "lng": -59.6089
+      "lat": 59.6651,
+      "lng": 17.9262
     },
     {
       "id": "opensky-5",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF91KK",
+      "title": "Aviation activity: TVF79ZM",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 48.7959,
-      "lng": 12.615
+      "lat": 47.2202,
+      "lng": 2.3642
     },
     {
       "id": "opensky-6",
-      "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF26YV",
-      "summary": "OpenSky aircraft state linked to France.",
+      "country_id": "CTR-IND",
+      "title": "Aviation activity: AXB1025",
+      "summary": "OpenSky aircraft state linked to India.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 50.1176,
-      "lng": 13.4425
+      "lat": 19.9768,
+      "lng": 85.9713
     },
     {
       "id": "opensky-7",
-      "country_id": "CTR-GBR",
-      "title": "Aviation activity: NPT905",
-      "summary": "OpenSky aircraft state linked to United Kingdom.",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: AAL478",
+      "summary": "OpenSky aircraft state linked to United States.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 50.5626,
-      "lng": -1.5658
+      "lat": 33.3132,
+      "lng": -86.5766
     },
     {
       "id": "cisa-CVE-2026-33634",
@@ -430,7 +430,46 @@
       "lng": 8.6821
     },
     {
-      "id": "yahoo search-0-30982",
+      "id": "yahoo search-0-72332",
+      "country_id": "CTR-IND",
+      "title": "Yahoo Search: Firstpost https://www.firstpost.com › business › india-cuts-windfall India cuts petrol, di",
+      "summary": "Open search signal captured from Yahoo Search.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Yahoo Search",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "yahoo search-1-23996",
+      "country_id": "CTR-IND",
+      "title": "Yahoo Search: humanonline.org https://humanonline.org › news › modi-calls-emergency Modi Calls Emergency",
+      "summary": "Open search signal captured from Yahoo Search.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Yahoo Search",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "yahoo search-2-66846",
+      "country_id": "CTR-IND",
+      "title": "Yahoo Search: LinkedIn https://www.linkedin.com › pulse › iran-israel-war-puts Iran-Israel War Puts Indi",
+      "summary": "Open search signal captured from Yahoo Search.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Yahoo Search",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "yahoo search-3-98002",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: multibagg.ai https://www.multibagg.ai › market-pulse › articles Global Energy Shock: 4% Wo",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -443,40 +482,53 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-1-83010",
+      "id": "serpapi-0-75487",
       "country_id": "CTR-IND",
-      "title": "Yahoo Search: english.bharatexpress.com https://english.bharatexpress.com › india › pm-modi-calls PM Mod",
-      "summary": "Open search signal captured from Yahoo Search.",
+      "title": "SerpAPI: India Energy Supply Crisis: Response & Impact",
+      "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "Yahoo Search",
+      "source": "SerpAPI",
       "time": "LIVE",
       "lat": 28.6139,
       "lng": 77.209
     },
     {
-      "id": "yahoo search-2-73550",
+      "id": "serpapi-1-78209",
       "country_id": "CTR-IND",
-      "title": "Yahoo Search: The Economic Times https://economictimes.indiatimes.com › topic › india india geopolitics ",
-      "summary": "Open search signal captured from Yahoo Search.",
+      "title": "SerpAPI: Iran War: India faces 'triple threat' amid West Asia crisis",
+      "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "Yahoo Search",
+      "source": "SerpAPI",
       "time": "LIVE",
       "lat": 28.6139,
       "lng": 77.209
     },
     {
-      "id": "yahoo search-3-79350",
+      "id": "serpapi-2-56054",
       "country_id": "CTR-IND",
-      "title": "Yahoo Search: bwsecurityworld.com https://bwsecurityworld.com › technology › indias-risk India’s Risk Ou",
-      "summary": "Open search signal captured from Yahoo Search.",
+      "title": "SerpAPI: PM Modi flags global energy shock, shipping disruptions ...",
+      "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "Yahoo Search",
+      "source": "SerpAPI",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "serpapi-3-30504",
+      "country_id": "CTR-IND",
+      "title": "SerpAPI: How vulnerable is India's power grid to global supply chain ...",
+      "summary": "Open search signal captured from SerpAPI.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "SerpAPI",
       "time": "LIVE",
       "lat": 28.6139,
       "lng": 77.209
@@ -490,7 +542,7 @@
       "status": "live",
       "item_count": 5,
       "message": "GDELT Project",
-      "last_updated": "2026-03-26T20:29:19.508004",
+      "last_updated": "2026-03-27T17:36:32.695025",
       "strategy": null
     },
     {
@@ -498,9 +550,9 @@
       "label": "USGS",
       "mode": "free",
       "status": "live",
-      "item_count": 5,
+      "item_count": 4,
       "message": "USGS Earthquake API",
-      "last_updated": "2026-03-26T20:28:13.283643",
+      "last_updated": "2026-03-27T17:36:33.556281",
       "strategy": null
     },
     {
@@ -510,7 +562,7 @@
       "status": "live",
       "item_count": 6,
       "message": "NASA EONET Wildfires",
-      "last_updated": "2026-03-26T20:28:13.757105",
+      "last_updated": "2026-03-27T17:36:34.081446",
       "strategy": null
     },
     {
@@ -520,7 +572,7 @@
       "status": "live",
       "item_count": 0,
       "message": "FRED API",
-      "last_updated": "2026-03-26T20:28:14.485590",
+      "last_updated": "2026-03-27T17:36:35.030235",
       "strategy": null
     },
     {
@@ -530,7 +582,7 @@
       "status": "live",
       "item_count": 5,
       "message": "World Bank Open Data",
-      "last_updated": "2026-03-26T20:29:19.506984",
+      "last_updated": "2026-03-27T17:36:44.968082",
       "strategy": null
     },
     {
@@ -540,18 +592,18 @@
       "status": "live",
       "item_count": 1,
       "message": "EIA API",
-      "last_updated": "2026-03-26T20:29:19.493386",
+      "last_updated": "2026-03-27T17:36:36.547641",
       "strategy": null
     },
     {
       "id": "datagov",
       "label": "data.gov.in",
       "mode": "free",
-      "status": "fallback",
-      "item_count": 0,
-      "message": "No resource ids available yet. Add DATA_GOV_IN_RESOURCE_IDS or allow the cache to warm through query discovery.",
-      "last_updated": "2026-03-26T20:29:19.506984",
-      "strategy": "cached_query_discovery"
+      "status": "live",
+      "item_count": 1,
+      "message": "data.gov.in live via explicit resource ids.",
+      "last_updated": "2026-03-27T17:36:33.232490",
+      "strategy": "resource_ids"
     },
     {
       "id": "opensky",
@@ -560,7 +612,7 @@
       "status": "live",
       "item_count": 8,
       "message": "OpenSky Network (ADS-B)",
-      "last_updated": "2026-03-26T20:28:15.365317",
+      "last_updated": "2026-03-27T17:36:34.508115",
       "strategy": null
     },
     {
@@ -570,7 +622,7 @@
       "status": "live",
       "item_count": 3,
       "message": "CISA KEV Catalog",
-      "last_updated": "2026-03-26T20:28:13.756102",
+      "last_updated": "2026-03-27T17:36:33.746280",
       "strategy": null
     },
     {
@@ -580,7 +632,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Reddit Public JSON",
-      "last_updated": "2026-03-26T20:28:13.785761",
+      "last_updated": "2026-03-27T17:36:34.671199",
       "strategy": null
     },
     {
@@ -590,7 +642,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Mastodon Public Timeline",
-      "last_updated": "2026-03-26T20:28:13.535191",
+      "last_updated": "2026-03-27T17:36:33.494281",
       "strategy": null
     },
     {
@@ -600,7 +652,7 @@
       "status": "live",
       "item_count": 4,
       "message": "Yahoo Search",
-      "last_updated": "2026-03-26T20:28:13.492606",
+      "last_updated": "2026-03-27T17:36:33.835278",
       "strategy": null
     },
     {
@@ -610,8 +662,18 @@
       "status": "fallback",
       "item_count": 0,
       "message": "DuckDuckGo Search",
-      "last_updated": "2026-03-26T20:28:14.872758",
+      "last_updated": "2026-03-27T17:36:34.320219",
       "strategy": null
+    },
+    {
+      "id": "serpapi-search",
+      "label": "SerpAPI Search",
+      "mode": "free",
+      "status": "live",
+      "item_count": 4,
+      "message": "SerpAPI",
+      "last_updated": "2026-03-27T17:36:33.530279",
+      "strategy": "google_engine"
     },
     {
       "id": "country-catalog",
@@ -620,7 +682,7 @@
       "status": "live",
       "item_count": 250,
       "message": "REST Countries",
-      "last_updated": "2026-03-26T20:29:25.486820"
+      "last_updated": "2026-03-27T17:36:50.386544"
     },
     {
       "id": "markets",
@@ -629,41 +691,41 @@
       "status": "live",
       "item_count": 5,
       "message": "Finnhub",
-      "last_updated": "2026-03-26T20:29:25.486820"
+      "last_updated": "2026-03-27T17:36:50.386544"
     }
   ],
   "market_snapshot": [
     {
       "symbol": "SPY",
       "name": "S&P 500 ETF",
-      "price": 645.09,
-      "change_pct": -1.79,
-      "high": 654.85,
-      "low": 644.82
+      "price": 637.19,
+      "change_pct": -1.22,
+      "high": 645.05,
+      "low": 636.59
     },
     {
       "symbol": "QQQ",
       "name": "Nasdaq 100 ETF",
-      "price": 573.79,
-      "change_pct": -2.39,
-      "high": 584.63,
-      "low": 573.43
+      "price": 564.86,
+      "change_pct": -1.56,
+      "high": 573.365,
+      "low": 564.15
     },
     {
       "symbol": "INDA",
       "name": "India ETF",
-      "price": 46.61,
-      "change_pct": -1.71,
-      "high": 47.31,
-      "low": 46.6
+      "price": 45.86,
+      "change_pct": -1.61,
+      "high": 46.11,
+      "low": 45.81
     },
     {
       "symbol": "GLD",
       "name": "Gold ETF",
-      "price": 400.64,
-      "change_pct": -3.76,
-      "high": 411.37,
-      "low": 400.26
+      "price": 413.23,
+      "change_pct": 3.14,
+      "high": 418.4,
+      "low": 405.41
     },
     {
       "symbol": "BTCUSD",
@@ -3676,5 +3738,5 @@
       "area": 110879.0
     }
   ],
-  "last_refresh": "2026-03-26T20:29:25.486820"
+  "last_refresh": "2026-03-27T17:36:50.386544"
 }

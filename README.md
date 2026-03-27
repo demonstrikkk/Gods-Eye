@@ -15,6 +15,14 @@ The system is built to run in degraded environments and can operate with partial
 - World map intelligence with 11 layer families and live overlays
 - Country-level evidence briefs combining signals, feeds, weather, World Bank, and open search results
 - Strategic analysis endpoint that plans tools, executes them in parallel, and synthesizes grounded output
+- Unified intelligence workspace with WebSocket live reasoning stream and phased execution events
+- AI-driven map command payloads (`map_commands`, `visual_markers`) applied in real time on 2D/3D views
+- Local-sensitive file upload context (CSV/JSON/TXT) with summary-only mode by default
+- Intelligence brief export to PDF, including generated analysis sections and map snapshot attempt
+- Lite mode controls and keyboard shortcuts (`Alt+L`, `Alt+M`, `Alt+I`) for performance-sensitive sessions
+- Multi-provider open search reliability (DuckDuckGo, Yahoo, SerpAPI) with stale-cache fallback
+- data.gov.in snapshot fallback strategy that serves cached snapshots when live refresh fails
+- Country analysis relationship intelligence linking climate/economy, geopolitics/trade, and logistics/growth
 - What-if scenario simulation endpoint
 - Civic ingestion endpoint for unstructured text routed through LangGraph-style processing
 - Feed aggregation loop that ingests RSS and open-source intelligence signals
@@ -211,7 +219,10 @@ Note: `docker-compose.yml` currently provisions infra services; backend/frontend
 - `MapView` toggles between globe and flat map.
 - `LayerControl` toggles ontology and signal layers.
 - Selecting a country opens research context in right sidebar.
-- AI Console supports standard query, strategic mode, and news desk mode.
+- Unified AI panel is the default assistant surface and streams intermediate execution state.
+- Upload local files from the unified panel to enrich context with local-only summaries.
+- Export the latest intelligence brief as a PDF directly from the unified panel.
+- Use keyboard shortcuts: `Alt+L` (lite mode), `Alt+M` (map mode), `Alt+I` (intelligence panel).
 
 ## Operational Notes
 

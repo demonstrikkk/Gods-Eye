@@ -5,7 +5,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Callable, Awaitable
 
 from app.models.unified_intelligence import (
     UnifiedIntelligenceRequest,
@@ -14,6 +14,7 @@ from app.models.unified_intelligence import (
     QueryComplexity,
     CapabilitySet,
     CapabilityType,
+    UnifiedExecutionMode,
     ReasoningResult,
     ToolsResult,
     VisualsResult,
@@ -21,6 +22,7 @@ from app.models.unified_intelligence import (
     CapabilityExecutionStatus,
     AssistantResponsePayload,
     AssistantResponseSection,
+    CockpitState,
 )
 from app.services.expert_strategic_agent import run_expert_strategic_analysis
 from app.services.strategic_agent import run_strategic_analysis
@@ -70,8 +72,14 @@ class QueryAssessor:
         "region", "global", "international", "world", "map", "location",
         "geographic", "spatial", "territory", "border", "zone",
     ]
+    VISUAL_TRIGGER_KEYWORDS = [
+        "graph", "chart", "plot", "visualize", "visualization", "dashboard", "bar chart", "line chart", "pie chart",
+    ]
+    EXTERNAL_TRIGGER_KEYWORDS = [
+        "latest", "current", "recent", "real-time", "today", "now", "breaking", "live",
+    ]
 
-    async def assess_query(self, query: str, context: Dict[str, Any] = None) -> QueryAssessment:
+    async def assess_query(self, query: str, context: Optional[Dict[str, Any]] = None) -> QueryAssessment:
         query_lower = query.lower()
         context = context or {}
         reasoning_score = self._count_keywords(query_lower, self.REASONING_KEYWORDS)
@@ -86,11 +94,13 @@ class QueryAssessor:
         has_time_dimension = any(
             kw in query_lower for kw in ["trend", "over time", "historical", "forecast", "future", "past", "year"]
         )
-        requires_external = tools_score > 0 or any(
-            kw in query_lower for kw in ["latest", "current", "recent", "real-time"]
-        )
+        requires_external = tools_score > 0 or any(kw in query_lower for kw in self.EXTERNAL_TRIGGER_KEYWORDS)
         requires_multi_perspective = reasoning_score >= 2 or any(
             kw in query_lower for kw in ["compare", "contrast", "debate", "multiple", "various"]
+        )
+        visual_only_request = any(kw in query_lower for kw in self.VISUAL_TRIGGER_KEYWORDS) and not any(
+            kw in query_lower
+            for kw in ["latest", "current", "recent", "debate", "consensus", "simulate", "what if", "risk", "live"]
         )
 
         complexity = self._assess_complexity(
@@ -103,12 +113,16 @@ class QueryAssessor:
         capabilities = CapabilitySet()
         if complexity in [QueryComplexity.COMPLEX, QueryComplexity.VERY_COMPLEX] or reasoning_score >= 2:
             capabilities.reasoning = True
-        if requires_external or tools_score > 0 or (has_data_indicators and not visuals_score):
+        if requires_external or tools_score > 0:
             capabilities.tools = True
-        if visuals_score > 0 or (has_data_indicators and has_time_dimension):
+        if visuals_score > 0 or (has_data_indicators and has_time_dimension) or visual_only_request:
             capabilities.visuals = True
         if has_geographic:
             capabilities.map_intelligence = True
+        if visual_only_request:
+            capabilities.reasoning = False
+            capabilities.tools = False
+            capabilities.map_intelligence = False
         if capabilities.count() == 0:
             capabilities.reasoning = True
         if context.get("conversation_memory"):
@@ -185,20 +199,131 @@ class UnifiedIntelligenceEngine:
             logger.warning("Unified intelligence LLM synthesis unavailable; using deterministic synthesis.")
             self._llm = None
 
-    async def analyze(self, request: UnifiedIntelligenceRequest) -> UnifiedIntelligenceResult:
+    async def _emit_stream_event(
+        self,
+        stream_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]],
+        event_type: str,
+        **payload: Any,
+    ) -> None:
+        """Emit a best-effort stream event when a callback is provided."""
+        if stream_callback is None:
+            return
+        event = {
+            "type": event_type,
+            "timestamp": datetime.now().isoformat(),
+            **payload,
+        }
+        try:
+            await stream_callback(event)
+        except Exception as exc:
+            logger.debug(f"Stream callback failed for event '{event_type}': {exc}")
+
+    async def analyze(
+        self,
+        request: UnifiedIntelligenceRequest,
+        stream_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
+    ) -> UnifiedIntelligenceResult:
         start_time = time.time()
         query_id = str(uuid.uuid4())[:8]
         conversation_id = request.conversation_id or str(uuid.uuid4())[:12]
+        await self._emit_stream_event(
+            stream_callback,
+            "phase",
+            phase="accepted",
+            message="Request accepted. Preparing orchestration context.",
+            query_id=query_id,
+            conversation_id=conversation_id,
+        )
+
         session = self._get_or_create_session(conversation_id)
         context = self._build_enriched_context(request, session)
+        context["execution_mode"] = request.execution_mode.value
         assessment = await self._assessor.assess_query(request.query, context)
+        await self._emit_stream_event(
+            stream_callback,
+            "phase",
+            phase="assessment",
+            message="Query assessment completed.",
+            assessment=assessment.to_dict(),
+        )
+
         capabilities = self._resolve_capabilities(assessment, request)
+        await self._emit_stream_event(
+            stream_callback,
+            "phase",
+            phase="capabilities_selected",
+            message="Capabilities selected for execution.",
+            capabilities=capabilities.to_list(),
+        )
+
+        execution_timeout = request.max_processing_time or 30.0
+        if request.execution_mode == UnifiedExecutionMode.FAST:
+            execution_timeout = min(execution_timeout, 8.0)
+
         results, statuses = await self._execute_capabilities(
             query_id=query_id,
             query=request.query,
             context=context,
             capabilities=capabilities,
-            max_time=request.max_processing_time or 30.0,
+            max_time=execution_timeout,
+        )
+        for status in statuses:
+            await self._emit_stream_event(
+                stream_callback,
+                "capability",
+                capability=status.capability.value,
+                success=status.success,
+                execution_time_ms=status.execution_time_ms,
+                error_message=status.error_message,
+                fallback_used=status.fallback_used,
+            )
+
+        map_commands: List[Dict[str, Any]] = []
+        visual_markers: List[Dict[str, Any]] = []
+        spawned_panels: List[Dict[str, Any]] = []
+        map_result = results.get("map_intelligence")
+        if map_result:
+            map_commands, visual_markers, spawned_panels = self._derive_unified_map_payload(map_result)
+            map_result.map_commands = map_commands
+            map_result.visual_markers = visual_markers
+            map_result.spawned_panels = spawned_panels
+            persisted_commands = self._persist_map_commands(map_commands)
+            if persisted_commands:
+                map_commands = persisted_commands
+                map_result.map_commands = persisted_commands
+            await self._emit_stream_event(
+                stream_callback,
+                "map_update",
+                message="Map overlays prepared.",
+                map_commands=map_commands[:16],
+                visual_markers=visual_markers[:32],
+                spawned_panels=spawned_panels,
+            )
+
+        cockpit_state = self._build_cockpit_state(
+            assessment=assessment,
+            results=results,
+            statuses=statuses,
+            map_commands=map_commands,
+            visual_markers=visual_markers,
+        )
+        await self._emit_stream_event(
+            stream_callback,
+            "cockpit_state",
+            message="Cockpit state synthesized.",
+            cockpit_state=cockpit_state.to_dict(),
+        )
+
+        await self._emit_stream_event(
+            stream_callback,
+            "thought",
+            phase="synthesis",
+            message="Synthesizing unified assistant response.",
+        )
+
+        allow_cloud_synthesis = (
+            request.execution_mode != UnifiedExecutionMode.FAST
+            and not self._is_sensitive_local_context(context)
         )
         unified_summary = await self._synthesize_unified_summary(request.query, results)
         assistant_response = await self._build_assistant_response(
@@ -208,6 +333,7 @@ class UnifiedIntelligenceEngine:
             statuses=statuses,
             unified_summary=unified_summary,
             session=session,
+            allow_cloud_synthesis=allow_cloud_synthesis,
         )
         data_sources = self._collect_data_sources(results)
         capability_statuses = [status.to_dict() for status in statuses]
@@ -217,7 +343,7 @@ class UnifiedIntelligenceEngine:
 
         self._remember_turn(session, request.query, assistant_response, assessment, capabilities_activated)
 
-        return UnifiedIntelligenceResult(
+        result = UnifiedIntelligenceResult(
             query_id=query_id,
             conversation_id=conversation_id,
             query=request.query,
@@ -230,11 +356,24 @@ class UnifiedIntelligenceEngine:
             assistant_response=assistant_response,
             confidence_score=confidence_score,
             data_sources_used=data_sources,
+            map_commands=map_commands,
+            visual_markers=visual_markers,
+            cockpit_state=cockpit_state,
             capabilities_activated=capabilities_activated,
             capability_statuses=capability_statuses,
             total_processing_time_ms=round(total_time, 2),
             timestamp=datetime.now().isoformat(),
         )
+
+        await self._emit_stream_event(
+            stream_callback,
+            "phase",
+            phase="completed",
+            message="Unified analysis completed.",
+            query_id=query_id,
+            total_processing_time_ms=round(total_time, 2),
+        )
+        return result
 
     def _get_or_create_session(self, conversation_id: str) -> ConversationSession:
         if conversation_id not in self._sessions:
@@ -254,19 +393,65 @@ class UnifiedIntelligenceEngine:
         }
         return context
 
+    def _is_sensitive_local_context(self, context: Dict[str, Any]) -> bool:
+        """Return True when local uploads are marked summary/local-only for cloud transmission safeguards."""
+        local_data = context.get("local_data")
+        if not isinstance(local_data, dict):
+            return False
+        transmission_mode = str(local_data.get("transmission_mode") or "").strip().lower()
+        return transmission_mode in {"summary_only", "local_only", "local_summary_only"}
+
     def _resolve_capabilities(self, assessment: QueryAssessment, request: UnifiedIntelligenceRequest) -> CapabilitySet:
-        capabilities = assessment.suggested_capabilities
-        if request.forced_capabilities:
-            capabilities = CapabilitySet()
-            for cap in request.forced_capabilities:
+        mode = request.execution_mode
+        query_lower = request.query.lower()
+        capabilities = CapabilitySet(
+            reasoning=assessment.suggested_capabilities.reasoning,
+            tools=assessment.suggested_capabilities.tools,
+            visuals=assessment.suggested_capabilities.visuals,
+            map_intelligence=assessment.suggested_capabilities.map_intelligence,
+        )
+
+        def from_capability_list(cap_list: Optional[List[CapabilityType]]) -> CapabilitySet:
+            selected = CapabilitySet()
+            for cap in cap_list or []:
                 if cap == CapabilityType.REASONING:
-                    capabilities.reasoning = True
+                    selected.reasoning = True
                 elif cap == CapabilityType.TOOLS:
-                    capabilities.tools = True
+                    selected.tools = True
                 elif cap == CapabilityType.VISUALS:
-                    capabilities.visuals = True
+                    selected.visuals = True
                 elif cap == CapabilityType.MAP_INTELLIGENCE:
-                    capabilities.map_intelligence = True
+                    selected.map_intelligence = True
+            return selected
+
+        if request.forced_capabilities:
+            return from_capability_list(request.forced_capabilities)
+
+        if mode == UnifiedExecutionMode.MANUAL:
+            manual = from_capability_list(request.manual_capabilities)
+            return manual if manual.count() > 0 else capabilities
+        if mode == UnifiedExecutionMode.VISUAL_ONLY:
+            return CapabilitySet(visuals=True)
+        if mode == UnifiedExecutionMode.REASONING_ONLY:
+            return CapabilitySet(reasoning=True)
+        if mode == UnifiedExecutionMode.TOOLS_ONLY:
+            return CapabilitySet(tools=True)
+        if mode == UnifiedExecutionMode.MAP_ONLY:
+            return CapabilitySet(map_intelligence=True)
+        if mode == UnifiedExecutionMode.FAST:
+            visual_request = any(token in query_lower for token in ["chart", "graph", "plot", "visual", "visualize"])
+            map_request = any(token in query_lower for token in ["map", "region", "country", "geospatial", "where"])
+            external_request = assessment.requires_external_data
+
+            # In fast mode run exactly one primary lane for predictable low latency.
+            if visual_request:
+                return CapabilitySet(visuals=True)
+            if map_request:
+                return CapabilitySet(map_intelligence=True)
+            if external_request:
+                return CapabilitySet(tools=True)
+            return CapabilitySet(reasoning=True)
+
         return capabilities
 
     def _capability_result_key(self, capability: CapabilityType) -> str:
@@ -313,7 +498,7 @@ class UnifiedIntelligenceEngine:
                     CapabilityExecutionStatus(
                         capability=cap_type,
                         success=True,
-                        execution_time_ms=result.processing_time_ms if hasattr(result, "processing_time_ms") else 0.0,
+                        execution_time_ms=float(getattr(result, "processing_time_ms", 0.0)),
                     )
                 )
         return results_dict, statuses
@@ -321,13 +506,26 @@ class UnifiedIntelligenceEngine:
     async def _execute_reasoning(self, query_id: str, query: str, context: Dict[str, Any]) -> Optional[ReasoningResult]:
         try:
             start = time.time()
-            response = await run_expert_strategic_analysis(query=query, context=context)
-            uncertainty = response.get("uncertainty_quantification", {})
+            query_lower = query.lower()
+            force_deep_reasoning = any(
+                token in query_lower
+                for token in ["debate", "consensus", "expert", "scenario", "counterfactual", "probability"]
+            ) or len(query.split()) > 18
+
+            if force_deep_reasoning:
+                response = await run_expert_strategic_analysis(query=query, context=context)
+                uncertainty = response.get("uncertainty_quantification", {})
+                confidence_score = response.get("expert_assessment", {}).get("confidence", {}).get("score", 0.7)
+            else:
+                response = await run_strategic_analysis(query)
+                uncertainty = {}
+                confidence_score = 0.72
+
             return ReasoningResult(
                 executive_summary=response.get("executive_summary", ""),
                 analysis=response.get("situation_analysis", response.get("executive_summary", "")),
                 key_findings=response.get("key_findings", response.get("strategic_recommendations", [])[:5]),
-                confidence=response.get("expert_assessment", {}).get("confidence", {}).get("score", 0.7),
+                confidence=confidence_score,
                 expert_agents_used=response.get("_meta", {}).get("expert_agents_consulted", []),
                 consensus_achieved=response.get("_meta", {}).get("consensus_strength") not in ["weak", "divergent"],
                 processing_time_ms=round((time.time() - start) * 1000, 2),
@@ -343,21 +541,48 @@ class UnifiedIntelligenceEngine:
     async def _execute_tools(self, query_id: str, query: str, context: Dict[str, Any]) -> Optional[ToolsResult]:
         try:
             start = time.time()
-            memory_summary = context.get("conversation_memory", {}).get("memory_summary", "")
-            tool_query = query if not memory_summary else f"{query}\n\nConversation memory:\n{memory_summary}"
-            response = await run_strategic_analysis(tool_query)
-            meta = response.get("_meta", {})
-            tools_used = meta.get("tools_used", [])
-            unavailable_tools = meta.get("unavailable_tools", {})
-            tool_outputs = {key: value for key, value in response.items() if not key.startswith("_")}
-            insights = []
-            if response.get("executive_summary"):
-                insights.append(response["executive_summary"])
-            for factor in response.get("key_risk_factors", [])[:3]:
-                if isinstance(factor, dict):
-                    insights.append(f"{factor.get('factor', 'Signal')}: {factor.get('description', '')}".strip())
-            for recommendation in response.get("strategic_recommendations", [])[:2]:
-                insights.append(f"Action: {recommendation}")
+            query_lower = query.lower()
+            deep_tools_requested = any(
+                token in query_lower
+                for token in ["deep scan", "comprehensive osint", "full tools", "full sweep", "all sources"]
+            )
+
+            if deep_tools_requested:
+                memory_summary = context.get("conversation_memory", {}).get("memory_summary", "")
+                tool_query = query if not memory_summary else f"{query}\n\nConversation memory:\n{memory_summary}"
+                response = await run_strategic_analysis(tool_query)
+                meta = response.get("_meta", {})
+                tools_used = meta.get("tools_used", [])
+                unavailable_tools = meta.get("unavailable_tools", {})
+                tool_outputs = {key: value for key, value in response.items() if not key.startswith("_")}
+                insights = []
+                if response.get("executive_summary"):
+                    insights.append(response["executive_summary"])
+                for factor in response.get("key_risk_factors", [])[:3]:
+                    if isinstance(factor, dict):
+                        insights.append(f"{factor.get('factor', 'Signal')}: {factor.get('description', '')}".strip())
+                for recommendation in response.get("strategic_recommendations", [])[:2]:
+                    insights.append(f"Action: {recommendation}")
+            else:
+                from app.services.runtime_intelligence import runtime_engine
+                from app.services.feed_aggregator import feed_engine
+
+                source_health = runtime_engine.get_source_health()[:10]
+                market_snapshot = runtime_engine.get_market_snapshot()[:5]
+                recent_briefs = feed_engine.get_recent_briefs()[:5]
+                tools_used = ["runtime_source_health", "market_snapshot", "feed_briefs"]
+                unavailable_tools = {}
+                tool_outputs = {
+                    "source_health": source_health,
+                    "market_snapshot": market_snapshot,
+                    "recent_briefs": recent_briefs,
+                }
+                insights = [
+                    f"{len(source_health)} source connectors are currently tracked in runtime health.",
+                    f"{len(market_snapshot)} market snapshot instruments were included.",
+                    f"{len(recent_briefs)} recent feed briefs were captured for quick context.",
+                ]
+
             return ToolsResult(
                 tools_executed=tools_used,
                 data_sources=[tool.replace("_", " ").title() for tool in tools_used],
@@ -419,6 +644,401 @@ class UnifiedIntelligenceEngine:
             logger.error(f"[{query_id}] Map intelligence failed: {e}", exc_info=True)
             return None
 
+    def _normalize_country_id(self, value: Any) -> Optional[str]:
+        """Normalize country identifiers to the CTR-XXX format used by frontend data."""
+        if value is None:
+            return None
+        token = str(value).strip().upper()
+        if not token:
+            return None
+        if token.startswith("CTR-"):
+            return token
+        if len(token) == 3 and token.isalpha():
+            return f"CTR-{token}"
+        return token
+
+    def _normalize_map_command(self, command: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Normalize command dictionaries into shared map-command schema."""
+        raw_type = str(command.get("command_type") or command.get("type") or "").strip().lower()
+        if not raw_type:
+            return None
+
+        allowed_types = {"highlight", "route", "heatmap", "focus", "marker", "overlay", "clear"}
+        if raw_type not in allowed_types:
+            return None
+
+        priority = str(command.get("priority") or "medium").strip().lower()
+        if priority not in {"low", "medium", "high", "critical"}:
+            priority = "medium"
+
+        payload = command.get("data") if isinstance(command.get("data"), dict) else {}
+        if not payload:
+            payload = {
+                key: value
+                for key, value in command.items()
+                if key not in {"id", "command_type", "type", "priority", "description", "source", "created_at", "timestamp", "metadata", "data"}
+            }
+
+        normalized: Dict[str, Any] = {
+            "id": str(command.get("id") or f"cmd-{uuid.uuid4().hex[:8]}"),
+            "command_type": raw_type,
+            "priority": priority,
+            "data": dict(payload),
+            "description": str(command.get("description") or f"{raw_type.title()} command"),
+            "source": str(command.get("source") or "unified_intelligence_engine"),
+            "created_at": str(command.get("created_at") or command.get("timestamp") or datetime.utcnow().isoformat()),
+            "metadata": command.get("metadata") if isinstance(command.get("metadata"), dict) else {},
+        }
+
+        data = normalized["data"]
+        if raw_type == "highlight":
+            country_ids = data.get("country_ids") or command.get("country_ids") or []
+            if isinstance(country_ids, list):
+                normalized_ids = []
+                for country_id in country_ids:
+                    mapped = self._normalize_country_id(country_id)
+                    if mapped:
+                        normalized_ids.append(mapped)
+                data["country_ids"] = normalized_ids
+            data.setdefault("color", command.get("color", "#3b82f6"))
+            data.setdefault("pulse", command.get("pulse", True))
+            data.setdefault("radius", command.get("radius", 400000))
+
+        if raw_type == "focus":
+            country_id = data.get("country_id") or command.get("country_id")
+            normalized_country_id = self._normalize_country_id(country_id)
+            if normalized_country_id:
+                data["country_id"] = normalized_country_id
+            if "lat" not in data and "lat" in command:
+                data["lat"] = command.get("lat")
+            if "lng" not in data and "lng" in command:
+                data["lng"] = command.get("lng")
+            if "zoom_level" not in data and "zoom" in command:
+                data["zoom_level"] = command.get("zoom")
+            if "duration_ms" not in data and "duration" in command:
+                data["duration_ms"] = command.get("duration")
+
+        if raw_type == "route":
+            from_country = data.get("from_country") or command.get("from_country")
+            to_country = data.get("to_country") or command.get("to_country")
+            mapped_from = self._normalize_country_id(from_country)
+            mapped_to = self._normalize_country_id(to_country)
+            if mapped_from:
+                data["from_country"] = mapped_from
+            if mapped_to:
+                data["to_country"] = mapped_to
+            for key in ("from_lat", "from_lng", "to_lat", "to_lng", "start_lat", "start_lng", "end_lat", "end_lng"):
+                if key not in data and key in command:
+                    data[key] = command.get(key)
+            data.setdefault("color", command.get("color", "#10b981"))
+            data.setdefault("weight", command.get("weight", 3))
+
+        if raw_type == "marker":
+            if "lat" not in data and "lat" in command:
+                data["lat"] = command.get("lat")
+            if "lng" not in data and "lng" in command:
+                data["lng"] = command.get("lng")
+            data.setdefault("marker_type", command.get("marker_type", "custom"))
+            data.setdefault("label", command.get("label", "Marker"))
+            data.setdefault("color", command.get("color", "#f59e0b"))
+
+        if raw_type == "heatmap":
+            points = data.get("data_points") or data.get("points") or command.get("data_points") or command.get("points") or []
+            normalized_points: List[Dict[str, Any]] = []
+            if isinstance(points, list):
+                for point in points:
+                    if not isinstance(point, dict):
+                        continue
+                    item: Dict[str, Any] = {}
+                    country_id = self._normalize_country_id(point.get("country_id"))
+                    if country_id:
+                        item["country_id"] = country_id
+                    if point.get("lat") is not None:
+                        item["lat"] = point.get("lat")
+                    if point.get("lng") is not None:
+                        item["lng"] = point.get("lng")
+                    item["value"] = point.get("value", point.get("intensity", point.get("risk", point.get("score", 0))))
+                    if point.get("label"):
+                        item["label"] = point.get("label")
+                    normalized_points.append(item)
+            data["data_points"] = normalized_points
+            data.pop("points", None)
+            data.setdefault("metric", command.get("metric", "value"))
+            data.setdefault("color_scale", command.get("color_scale", "red"))
+
+        if raw_type == "overlay":
+            data.setdefault("overlay_type", command.get("overlay_type", "custom"))
+            if "overlay_data" not in data and isinstance(command.get("overlay_data"), dict):
+                data["overlay_data"] = command.get("overlay_data")
+
+        return normalized
+
+    def _derive_unified_map_payload(
+        self,
+        map_result: MapIntelligenceResult,
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """Build normalized map commands, visual markers, and panel hints."""
+        normalized_commands: List[Dict[str, Any]] = []
+
+        for raw_command in map_result.commands:
+            if isinstance(raw_command, dict):
+                command = self._normalize_map_command(raw_command)
+                if command:
+                    normalized_commands.append(command)
+
+        for marker in map_result.markers:
+            if not isinstance(marker, dict):
+                continue
+            command = self._normalize_map_command(
+                {
+                    "type": "marker",
+                    "lat": marker.get("lat"),
+                    "lng": marker.get("lng"),
+                    "marker_type": marker.get("marker_type", "signal"),
+                    "label": marker.get("label", "Marker"),
+                    "color": marker.get("color", "#f59e0b"),
+                    "description": marker.get("description", "Map marker"),
+                    "source": "unified_intelligence_engine",
+                    "priority": "medium",
+                }
+            )
+            if command:
+                normalized_commands.append(command)
+
+        for route in map_result.routes:
+            if not isinstance(route, dict):
+                continue
+            command = self._normalize_map_command(
+                {
+                    "type": "route",
+                    "from_lat": route.get("from_lat"),
+                    "from_lng": route.get("from_lng"),
+                    "to_lat": route.get("to_lat"),
+                    "to_lng": route.get("to_lng"),
+                    "route_type": route.get("route_type", "route"),
+                    "label": route.get("label", "Route"),
+                    "color": route.get("color", "#10b981"),
+                    "description": route.get("description", "Map route"),
+                    "source": "unified_intelligence_engine",
+                    "priority": "medium",
+                }
+            )
+            if command:
+                normalized_commands.append(command)
+
+        if map_result.heatmap_data:
+            points = []
+            for key, value in map_result.heatmap_data.items():
+                try:
+                    lat_str, lng_str = key.split(",", 1)
+                    points.append({
+                        "lat": float(lat_str),
+                        "lng": float(lng_str),
+                        "value": value,
+                    })
+                except Exception:
+                    continue
+            heatmap_command = self._normalize_map_command(
+                {
+                    "type": "heatmap",
+                    "data_points": points,
+                    "metric": "value",
+                    "color_scale": "red",
+                    "description": "Unified heatmap overlay",
+                    "source": "unified_intelligence_engine",
+                    "priority": "medium",
+                }
+            )
+            if heatmap_command:
+                normalized_commands.append(heatmap_command)
+
+        visual_markers = []
+        for index, marker in enumerate(map_result.markers):
+            if not isinstance(marker, dict):
+                continue
+            lat = marker.get("lat")
+            lng = marker.get("lng")
+            if lat is None or lng is None:
+                continue
+            visual_markers.append(
+                {
+                    "id": str(marker.get("id") or f"vm-{index}-{uuid.uuid4().hex[:6]}"),
+                    "type": str(marker.get("marker_type") or "signal"),
+                    "label": str(marker.get("label") or "Marker"),
+                    "coordinates": {"lat": lat, "lng": lng},
+                    "color": str(marker.get("color") or "#f59e0b"),
+                    "pulse": True,
+                }
+            )
+
+        spawned_panels = []
+        if map_result.affected_regions:
+            spawned_panels.append(
+                {
+                    "id": "regional-focus",
+                    "title": "Regional Focus",
+                    "kind": "regions",
+                    "regions": map_result.affected_regions[:6],
+                }
+            )
+        if map_result.routes:
+            spawned_panels.append(
+                {
+                    "id": "route-watch",
+                    "title": "Route Watch",
+                    "kind": "routes",
+                    "count": len(map_result.routes),
+                }
+            )
+
+        return normalized_commands, visual_markers, spawned_panels
+
+    def _persist_map_commands(self, commands: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Persist normalized commands to shared map command service for real-time map polling."""
+        if not commands:
+            return []
+        try:
+            from app.services.map_command_service import get_map_command_service
+
+            service = get_map_command_service()
+            persisted = []
+            for command in commands:
+                created = service.create_raw_command(
+                    command_type=command["command_type"],
+                    data=command["data"],
+                    description=command.get("description", "Map command"),
+                    source=command.get("source", "unified_intelligence_engine"),
+                    priority=command.get("priority", "medium"),
+                    metadata=command.get("metadata", {}),
+                    command_id=command.get("id"),
+                    created_at=command.get("created_at"),
+                )
+                persisted.append(created.to_dict())
+            return persisted
+        except Exception as exc:
+            logger.warning(f"Failed to persist unified map commands: {exc}")
+            return commands
+
+    def _build_cockpit_state(
+        self,
+        assessment: QueryAssessment,
+        results: Dict[str, Any],
+        statuses: List[CapabilityExecutionStatus],
+        map_commands: List[Dict[str, Any]],
+        visual_markers: List[Dict[str, Any]],
+    ) -> CockpitState:
+        """Build frontend command-center state from unified execution outputs."""
+        reasoning = results.get("reasoning")
+        tools = results.get("tools")
+        visuals = results.get("visuals")
+        map_layer = results.get("map_intelligence")
+
+        success_count = sum(1 for status in statuses if status.success)
+        total_count = len(statuses) or 1
+        success_ratio = success_count / total_count
+
+        threat_score = max(0, min(100, int((1 - success_ratio) * 35 + (assessment.confidence * 65))))
+        if threat_score >= 78:
+            threat_severity = "critical"
+        elif threat_score >= 62:
+            threat_severity = "high"
+        elif threat_score >= 45:
+            threat_severity = "elevated"
+        else:
+            threat_severity = "stable"
+
+        top_finding = "No high-signal finding was produced."
+        if reasoning and reasoning.key_findings:
+            top_finding = reasoning.key_findings[0]
+        elif tools and tools.insights:
+            top_finding = tools.insights[0]
+
+        command_types: Dict[str, int] = {}
+        for command in map_commands:
+            command_type = str(command.get("command_type") or "unknown")
+            command_types[command_type] = command_types.get(command_type, 0) + 1
+
+        active_overlays = [
+            {
+                "key": key,
+                "count": count,
+                "delta": max(0, count - 1),
+                "color": "#3b82f6" if key in {"focus", "highlight"} else "#f59e0b",
+                "icon": key,
+            }
+            for key, count in sorted(command_types.items(), key=lambda item: item[1], reverse=True)
+        ]
+
+        stream_phases = [
+            {
+                "agent": status.capability.value,
+                "phase": "completed" if status.success else "failed",
+                "status": "ok" if status.success else "error",
+            }
+            for status in statuses
+        ]
+
+        core_intelligence = []
+        if reasoning and reasoning.key_findings:
+            core_intelligence.extend(
+                {
+                    "id": f"core-{index}",
+                    "label": finding[:84],
+                    "description": finding,
+                }
+                for index, finding in enumerate(reasoning.key_findings[:3])
+            )
+        if not core_intelligence and tools and tools.insights:
+            core_intelligence.extend(
+                {
+                    "id": f"tool-{index}",
+                    "label": insight[:84],
+                    "description": insight,
+                }
+                for index, insight in enumerate(tools.insights[:3])
+            )
+
+        return CockpitState(
+            priority_alert={
+                "title": "Priority Intelligence Alert",
+                "body": top_finding,
+                "severity": threat_severity,
+                "dismissible": True,
+            },
+            global_threat_level={
+                "label": f"{threat_severity.title()} Watch",
+                "score": threat_score,
+                "severity": threat_severity,
+            },
+            ontology_pulse={
+                "countries": len(map_layer.affected_regions) if map_layer else 0,
+                "signals": len(reasoning.key_findings) if reasoning else 0,
+                "sources": len(tools.data_sources) if tools else 0,
+            },
+            risk_watchlist=[
+                {"title": risk, "severity": "elevated"}
+                for risk in (reasoning.uncertainty_factors[:4] if reasoning else [])
+            ],
+            operating_logic={
+                "title": "Unified Capability Execution",
+                "summary": f"{success_count}/{total_count} capabilities completed successfully.",
+            },
+            active_overlays=active_overlays,
+            subpanels=[
+                {
+                    "id": "visual-payload",
+                    "title": "Visual Payload",
+                    "charts": len(visuals.charts) if visuals else 0,
+                    "diagrams": len(visuals.diagrams) if visuals else 0,
+                    "markers": len(visual_markers),
+                }
+            ],
+            stream_phases=stream_phases,
+            core_intelligence=core_intelligence,
+            demo_mode=False,
+            cache_hit=False,
+        )
+
     async def _synthesize_unified_summary(self, query: str, results: Dict[str, Any]) -> str:
         parts: List[str] = []
         if results.get("reasoning"):
@@ -447,8 +1067,9 @@ class UnifiedIntelligenceEngine:
         statuses: List[CapabilityExecutionStatus],
         unified_summary: str,
         session: ConversationSession,
+        allow_cloud_synthesis: bool = True,
     ) -> AssistantResponsePayload:
-        if self._llm is not None:
+        if allow_cloud_synthesis and self._llm is not None:
             llm_payload = await self._try_llm_assistant_response(
                 query=query,
                 assessment=assessment,
@@ -471,18 +1092,27 @@ class UnifiedIntelligenceEngine:
         session: ConversationSession,
     ) -> Optional[AssistantResponsePayload]:
         try:
+            llm = self._llm
+            if llm is None:
+                return None
+
+            reasoning_result = results.get("reasoning")
+            tools_result = results.get("tools")
+            visuals_result = results.get("visuals")
+            map_result = results.get("map_intelligence")
+
             compact = {
                 "assessment": assessment.to_dict(),
                 "summary": unified_summary,
-                "reasoning": results.get("reasoning").to_dict() if results.get("reasoning") else None,
-                "tools": results.get("tools").to_dict() if results.get("tools") else None,
+                "reasoning": reasoning_result.to_dict() if reasoning_result else None,
+                "tools": tools_result.to_dict() if tools_result else None,
                 "visuals": {
-                    "chart_count": len(results["visuals"].charts),
-                    "diagram_count": len(results["visuals"].diagrams),
-                    "chart_insights": results["visuals"].chart_insights[:3],
-                    "diagram_insights": results["visuals"].diagram_insights[:2],
-                } if results.get("visuals") else None,
-                "map_intelligence": results.get("map_intelligence").to_dict() if results.get("map_intelligence") else None,
+                    "chart_count": len(visuals_result.charts),
+                    "diagram_count": len(visuals_result.diagrams),
+                    "chart_insights": visuals_result.chart_insights[:3],
+                    "diagram_insights": visuals_result.diagram_insights[:2],
+                } if visuals_result else None,
+                "map_intelligence": map_result.to_dict() if map_result else None,
                 "statuses": [status.to_dict() for status in statuses],
                 "memory_summary": session.memory_summary,
             }
@@ -490,10 +1120,15 @@ class UnifiedIntelligenceEngine:
                 "You are a unified intelligence assistant. Produce a sharp, practical answer like an elite AI analyst assistant. "
                 "Keep uncertainty explicit and avoid hype. Return ONLY valid JSON with keys "
                 "title, executive_brief, key_takeaways, next_actions, suggested_follow_ups, memory_summary, response_blocks. "
-                "Each response_blocks item must contain title, content, tone.\n\n"
+                "Each response_blocks item must contain title, content, tone.\n"
+                "Use a Modular Component framework in response block content:\n"
+                "1) Markdown for text sections, with clear ### headers when needed.\n"
+                "2) Wrap structured content in custom tags such as <Box title=\"Key Metrics\">...</Box> and <Card type=\"analysis\">...</Card>.\n"
+                "3) For trends or statistics, emit <Chart type=\"line|bar|pie\" data={JSON_ARRAY}> where JSON_ARRAY is valid JSON.\n"
+                "4) Prioritize progressive disclosure: critical summary first, then details.\n\n"
                 f"User query: {query}\nPayload: {json.dumps(compact, default=str)[:12000]}"
             )
-            response = await self._llm.ainvoke(prompt)
+            response = await llm.ainvoke(prompt)
             payload = self._parse_json_blob(getattr(response, "content", str(response)))
             return AssistantResponsePayload(
                 title=payload.get("title", self._derive_title(query, assessment)),
@@ -543,6 +1178,13 @@ class UnifiedIntelligenceEngine:
             actions.append(f"Validate geographic exposure in {', '.join(map_data.affected_regions[:3])}.")
         if not takeaways:
             takeaways.append(unified_summary)
+        capability_chart_data = json.dumps([
+            {"metric": "reasoning", "value": 1 if results.get("reasoning") else 0},
+            {"metric": "tools", "value": 1 if results.get("tools") else 0},
+            {"metric": "visuals", "value": 1 if results.get("visuals") else 0},
+            {"metric": "map", "value": 1 if results.get("map_intelligence") else 0},
+            {"metric": "confidence", "value": round(self._calculate_overall_confidence(results, statuses) * 100, 2)},
+        ])
         blocks = [AssistantResponseSection(title="What matters now", content=unified_summary, tone="priority")]
         evidence_parts = []
         if tools and tools.data_sources:
@@ -552,9 +1194,26 @@ class UnifiedIntelligenceEngine:
         if reasoning and reasoning.uncertainty_factors:
             evidence_parts.append("Uncertainty: " + "; ".join(reasoning.uncertainty_factors[:3]))
         if evidence_parts:
-            blocks.append(AssistantResponseSection(title="Evidence and caveats", content=" ".join(evidence_parts), tone="evidence"))
+            blocks.append(
+                AssistantResponseSection(
+                    title="Evidence and caveats",
+                    content=(
+                        f"<Box title=\"Evidence & Caveats\">{' '.join(evidence_parts)}</Box>\n"
+                        f"<Card type=\"graph\"><Chart type=\"bar\" data={capability_chart_data}></Chart></Card>"
+                    ),
+                    tone="evidence",
+                )
+            )
         if actions:
-            blocks.append(AssistantResponseSection(title="Recommended next moves", content=" ".join(f"{idx + 1}. {item}" for idx, item in enumerate(actions[:3])), tone="action"))
+            blocks.append(
+                AssistantResponseSection(
+                    title="Recommended next moves",
+                    content=(
+                        f"<Card type=\"analysis\">{' '.join(f'{idx + 1}. {item}' for idx, item in enumerate(actions[:3]))}</Card>"
+                    ),
+                    tone="action",
+                )
+            )
         return AssistantResponsePayload(
             title=self._derive_title(query, assessment),
             executive_brief=unified_summary,

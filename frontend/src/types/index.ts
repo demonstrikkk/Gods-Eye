@@ -173,6 +173,17 @@ export interface CountryAnalysis {
     results: Array<{ title: string; url: string; source: string }>;
   };
   world_bank?: Record<string, any>;
+  macro_indicators?: Array<{
+    id: string;
+    label: string;
+    value: number | null;
+    unit: string;
+    status: string;
+  }>;
+  stability_vector?: Array<{
+    label: string;
+    score: number;
+  }>;
   suggested_questions: string[];
   ai_prompt: string;
 }
@@ -715,6 +726,14 @@ export interface ViDiagramTypeInfo {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type UnifiedCapabilityType = 'reasoning' | 'tools' | 'visuals' | 'map';
+export type UnifiedExecutionMode =
+  | 'auto'
+  | 'fast'
+  | 'manual'
+  | 'visual_only'
+  | 'reasoning_only'
+  | 'tools_only'
+  | 'map_only';
 
 export interface UnifiedConversationMessageInput {
   role: 'system' | 'user' | 'assistant';
@@ -796,7 +815,66 @@ export interface UnifiedMapResult {
   markers: ViMapMarker[];
   routes: ViMapRoute[];
   heatmap_data?: Record<string, number>;
+  map_commands?: Array<Record<string, any>>;
+  visual_markers?: CommandVisualMarker[];
+  spawned_panels?: Array<Record<string, any>>;
   processing_time_ms: number;
+}
+
+export interface CommandVisualMarker {
+  id: string;
+  type: string;
+  label: string;
+  coordinates: GeoPoint;
+  color: string;
+  pulse?: boolean;
+}
+
+export interface CockpitState {
+  priority_alert: {
+    title: string;
+    body: string;
+    severity: string;
+    dismissible?: boolean;
+  };
+  global_threat_level: {
+    label: string;
+    score: number;
+    severity: string;
+  };
+  ontology_pulse: {
+    countries: number;
+    signals: number;
+    sources: number;
+  };
+  risk_watchlist: Array<{
+    title: string;
+    severity: string;
+  }>;
+  operating_logic: {
+    title: string;
+    summary: string;
+  };
+  active_overlays: Array<{
+    key: string;
+    count: number;
+    delta: number;
+    color: string;
+    icon: string;
+  }>;
+  subpanels: Array<Record<string, any>>;
+  stream_phases: Array<{
+    agent: string;
+    phase: string;
+    status: string;
+  }>;
+  core_intelligence: Array<{
+    id: string;
+    label: string;
+    description: string;
+  }>;
+  demo_mode: boolean;
+  cache_hit: boolean;
 }
 
 export interface UnifiedIntelligenceResponse {
@@ -813,6 +891,9 @@ export interface UnifiedIntelligenceResponse {
   assistant_response: UnifiedAssistantResponse;
   confidence_score: number;
   data_sources_used: string[];
+  map_commands?: Array<Record<string, any>>;
+  visual_markers?: CommandVisualMarker[];
+  cockpit_state?: CockpitState | null;
   capabilities_activated: string[];
   capability_statuses: Array<{
     capability: UnifiedCapabilityType;

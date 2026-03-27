@@ -1,6 +1,5 @@
 import os
 import ast
-
 class AsyncCallVisitor(ast.NodeVisitor):
     def __init__(self, async_funcs):
         self.async_funcs = async_funcs

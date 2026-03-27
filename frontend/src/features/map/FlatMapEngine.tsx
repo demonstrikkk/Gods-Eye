@@ -202,12 +202,16 @@ function MapCommandFocus({
     if (!nextFocus) return;
 
     const focusCountry = countriesById.get(String(nextFocus.data?.country_id || ''));
-    if (!focusCountry || !hasCoords(focusCountry)) return;
+    const fallbackLat = Number(nextFocus.data?.lat);
+    const fallbackLng = Number(nextFocus.data?.lng);
+    const lat = focusCountry?.lat ?? fallbackLat;
+    const lng = focusCountry?.lng ?? fallbackLng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     const zoomLevel = Number(nextFocus.data?.zoom_level);
     const durationSeconds = Number(nextFocus.data?.duration_ms) / 1000;
 
-    map.flyTo([focusCountry.lat, focusCountry.lng], Number.isFinite(zoomLevel) ? zoomLevel : 5, {
+    map.flyTo([lat, lng], Number.isFinite(zoomLevel) ? zoomLevel : 5, {
       animate: true,
       duration: Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 1,
     });
@@ -245,17 +249,15 @@ const popupForAsset = (asset: GlobalAsset) => (
 );
 
 export const FlatMapEngine: React.FC = () => {
-  const {
-    activeLayers,
-    selectedId,
-    selectedType,
-    setHoveredItem,
-    setSelected,
-    setSidebarTab,
-    setSidebarOpen,
-    expertMapLayers,
-    expertAffectedRegions,
-  } = useAppStore();
+  const activeLayers = useAppStore((state) => state.activeLayers);
+  const selectedId = useAppStore((state) => state.selectedId);
+  const selectedType = useAppStore((state) => state.selectedType);
+  const setHoveredItem = useAppStore((state) => state.setHoveredItem);
+  const setSelected = useAppStore((state) => state.setSelected);
+  const setSidebarTab = useAppStore((state) => state.setSidebarTab);
+  const setSidebarOpen = useAppStore((state) => state.setSidebarOpen);
+  const expertMapLayers = useAppStore((state) => state.expertMapLayers);
+  const expertAffectedRegions = useAppStore((state) => state.expertAffectedRegions);
 
   // Fetch and manage map commands from backend
   const { mapCommands } = useMapCommands();
@@ -348,15 +350,26 @@ export const FlatMapEngine: React.FC = () => {
         const toId = String(cmd.data?.to_country || '');
         const fromCountry = countriesById.get(fromId);
         const toCountry = countriesById.get(toId);
-        if (!fromCountry || !toCountry || !hasCoords(fromCountry) || !hasCoords(toCountry)) return null;
+        const fromLat = fromCountry?.lat ?? Number(cmd.data?.from_lat ?? cmd.data?.start_lat);
+        const fromLng = fromCountry?.lng ?? Number(cmd.data?.from_lng ?? cmd.data?.start_lng);
+        const toLat = toCountry?.lat ?? Number(cmd.data?.to_lat ?? cmd.data?.end_lat);
+        const toLng = toCountry?.lng ?? Number(cmd.data?.to_lng ?? cmd.data?.end_lng);
+        if (!Number.isFinite(fromLat) || !Number.isFinite(fromLng) || !Number.isFinite(toLat) || !Number.isFinite(toLng)) {
+          return null;
+        }
         return {
           id: cmd.id,
-          fromCountry,
-          toCountry,
+          fromLat,
+          fromLng,
+          toLat,
+          toLng,
+          fromLabel: fromCountry?.name || String(cmd.data?.from_label || cmd.data?.from_country || 'Origin'),
+          toLabel: toCountry?.name || String(cmd.data?.to_label || cmd.data?.to_country || 'Destination'),
           color: String(cmd.data?.color || '#10b981'),
           weight: Number(cmd.data?.weight) || 3,
           animated: cmd.data?.animated !== false,
           routeType: String(cmd.data?.route_type || 'route'),
+          label: String(cmd.data?.label || ''),
           description: cmd.description,
           priority: cmd.priority,
           source: cmd.source,
@@ -529,12 +542,8 @@ export const FlatMapEngine: React.FC = () => {
   }, [activeLayers, assets]);
 
   const selectedCountry = useMemo(
-    () => (
-      selectedType === 'country'
-        ? countries.filter(hasCoords).find((country) => country.id === selectedId) ?? null
-        : null
-    ),
-    [countries, selectedId, selectedType],
+    () => (selectedType === 'country' && selectedId ? countriesById.get(selectedId) ?? null : null),
+    [countriesById, selectedId, selectedType],
   );
 
   const lastUpdated = useLastUpdated(dataUpdatedAt);
@@ -699,8 +708,8 @@ export const FlatMapEngine: React.FC = () => {
           <Polyline
             key={`cmd-route-${route.id}`}
             positions={[
-              [route.fromCountry.lat, route.fromCountry.lng],
-              [route.toCountry.lat, route.toCountry.lng],
+              [route.fromLat, route.fromLng],
+              [route.toLat, route.toLng],
             ]}
             pathOptions={{
               color: route.color,
@@ -712,7 +721,7 @@ export const FlatMapEngine: React.FC = () => {
             <Popup>
               <div className="text-xs">
                 <div className="font-bold" style={{ color: route.color }}>
-                  {route.fromCountry.name} -&gt; {route.toCountry.name}
+                  {route.label || `${route.fromLabel} -> ${route.toLabel}`}
                 </div>
                 <div className="text-zinc-400">{route.routeType}</div>
                 <div className="text-zinc-500">{route.description}</div>

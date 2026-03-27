@@ -9,12 +9,20 @@ import { useAppStore } from '@/store';
 const MAP_COMMANDS_POLL_INTERVAL_VISIBLE = 8000;
 const MAP_COMMANDS_POLL_INTERVAL_HIDDEN = 30000;
 
+const createCommandsSignature = (commands: Array<Record<string, any>>): string => {
+  if (!commands.length) return '0';
+  return commands
+    .map((command) => `${String(command.id || '')}:${String(command.created_at || '')}:${String(command.command_type || '')}:${String(command.priority || '')}`)
+    .join('|');
+};
+
 export function useMapCommands() {
-  const { mapCommands, setMapCommands } = useAppStore();
+  const mapCommands = useAppStore((state) => state.mapCommands);
+  const setMapCommands = useAppStore((state) => state.setMapCommands);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inFlightRef = useRef(false);
-  const lastPayloadHashRef = useRef('');
+  const lastPayloadHashRef = useRef('0');
 
   const stopPolling = () => {
     if (pollTimeoutRef.current) {
@@ -48,7 +56,7 @@ export function useMapCommands() {
 
       const result = await response.json();
       if (result.status === 'success' && Array.isArray(result.data)) {
-        const payloadHash = JSON.stringify(result.data);
+        const payloadHash = createCommandsSignature(result.data as Array<Record<string, any>>);
         if (payloadHash !== lastPayloadHashRef.current) {
           setMapCommands(result.data);
           lastPayloadHashRef.current = payloadHash;
@@ -94,7 +102,7 @@ export function useMapCommands() {
 
       if (response.ok) {
         setMapCommands([]);
-        lastPayloadHashRef.current = '[]';
+        lastPayloadHashRef.current = '0';
       }
     } catch (err) {
       console.error('Error clearing all map commands:', err);
