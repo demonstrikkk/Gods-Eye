@@ -415,12 +415,15 @@ class RuntimeIntelligenceEngine:
         world_bank = osint_engine.get_world_bank_snapshot().get("countries", {}).get(country.get("iso3"), {})
         search_briefs = osint_engine.get_country_search_briefs(country["name"], country.get("region"))
         search_providers = search_briefs.get("providers", []) if isinstance(search_briefs.get("providers"), list) else []
+        search_bundle_status = str(search_briefs.get("status", "")).lower()
         world_bank_live = any(
             isinstance(metric, dict) and metric.get("value") is not None
             for metric in world_bank.values()
         )
-        search_live = bool(search_briefs.get("results")) and any(provider.get("status") == "live" for provider in search_providers)
-        search_limited = bool(search_briefs.get("results")) and not search_live
+        search_live = bool(search_briefs.get("results")) and (
+            search_bundle_status == "live" or any(provider.get("status") == "live" for provider in search_providers)
+        )
+        search_limited = bool(search_briefs.get("results")) and not search_live and search_bundle_status == "limited"
         search_status = "live" if search_live else "limited" if search_limited else "unavailable"
         if search_status == "unavailable":
             search_briefs = {
@@ -1022,6 +1025,13 @@ class RuntimeIntelligenceEngine:
                 mode="free",
                 fetcher=osint_engine.get_serpapi_search_results,
                 signal_builder=lambda payload: search_builder(payload, "SerpAPI"),
+            ),
+            self._capture_source(
+                source_id="google-news-search",
+                label="Google News Search",
+                mode="free",
+                fetcher=osint_engine.get_google_news_search_results,
+                signal_builder=lambda payload: search_builder(payload, "Google News"),
             ),
         )
         country_payload, market_payload = await asyncio.gather(country_task, market_task)

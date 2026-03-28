@@ -196,6 +196,56 @@ class AssistantResponsePayload:
 
 
 @dataclass
+class UnifiedExecutionStep:
+    """A single execution step in the unified orchestration plan."""
+    id: str
+    label: str
+    lane: str
+    parallelizable: bool = True
+    selected_agents: List[str] = field(default_factory=list)
+    selected_tools: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "lane": self.lane,
+            "parallelizable": self.parallelizable,
+            "selected_agents": self.selected_agents,
+            "selected_tools": self.selected_tools,
+        }
+
+
+@dataclass
+class UnifiedExecutionPlan:
+    """Planner output describing the chosen orchestration strategy."""
+    intent_summary: str
+    priority: str
+    execution_mode: str
+    capabilities: List[str]
+    reasoning_agents: List[str] = field(default_factory=list)
+    tools: List[str] = field(default_factory=list)
+    search_queries: List[str] = field(default_factory=list)
+    response_style: str = "balanced"
+    rationale: List[str] = field(default_factory=list)
+    steps: List[UnifiedExecutionStep] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "intent_summary": self.intent_summary,
+            "priority": self.priority,
+            "execution_mode": self.execution_mode,
+            "capabilities": self.capabilities,
+            "reasoning_agents": self.reasoning_agents,
+            "tools": self.tools,
+            "search_queries": self.search_queries,
+            "response_style": self.response_style,
+            "rationale": self.rationale,
+            "steps": [step.to_dict() for step in self.steps],
+        }
+
+
+@dataclass
 class ReasoningResult:
     """Results from reasoning capability (Expert Agents)."""
     executive_summary: str
@@ -344,6 +394,7 @@ class UnifiedIntelligenceResult:
     capability_statuses: List[Dict[str, Any]]
     total_processing_time_ms: float
     timestamp: str
+    execution_plan: Optional[UnifiedExecutionPlan] = None
     map_commands: List[Dict[str, Any]] = field(default_factory=list)
     visual_markers: List[Dict[str, Any]] = field(default_factory=list)
     cockpit_state: Optional[CockpitState] = None
@@ -375,6 +426,7 @@ class UnifiedIntelligenceResult:
             "capability_statuses": self.capability_statuses,
             "total_processing_time_ms": self.total_processing_time_ms,
             "timestamp": self.timestamp,
+            "execution_plan": self.execution_plan.to_dict() if self.execution_plan else None,
         }
 
 
@@ -412,6 +464,7 @@ class UnifiedIntelligenceResponse(BaseModel):
     capability_statuses: List[Dict[str, Any]]
     total_processing_time_ms: float
     timestamp: str
+    execution_plan: Optional[Dict[str, Any]] = None
 
     # Debug info (optional)
     debug: Optional[Dict[str, Any]] = None

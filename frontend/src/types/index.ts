@@ -778,6 +778,28 @@ export interface UnifiedQueryAssessment {
   suggested_capabilities: string[];
 }
 
+export interface UnifiedExecutionStep {
+  id: string;
+  label: string;
+  lane: string;
+  parallelizable: boolean;
+  selected_agents: string[];
+  selected_tools: string[];
+}
+
+export interface UnifiedExecutionPlan {
+  intent_summary: string;
+  priority: string;
+  execution_mode: string;
+  capabilities: string[];
+  reasoning_agents: string[];
+  tools: string[];
+  search_queries: string[];
+  response_style: string;
+  rationale: string[];
+  steps: UnifiedExecutionStep[];
+}
+
 export interface UnifiedReasoningResult {
   executive_summary: string;
   analysis: string;
@@ -904,4 +926,5 @@ export interface UnifiedIntelligenceResponse {
   }>;
   total_processing_time_ms: number;
   timestamp: string;
+  execution_plan?: UnifiedExecutionPlan | null;
 }

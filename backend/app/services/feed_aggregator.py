@@ -353,6 +353,51 @@ class FeedAggregator:
         """Return recent briefs from the store."""
         return store.get_recent_feed_briefs(limit=MAX_BRIEFS_STORED)
 
+    def get_recent_briefs(self, limit: int = MAX_BRIEFS_STORED) -> List[Dict]:
+        """Backward-compatible alias for callers expecting recent briefing access."""
+        return store.get_recent_feed_briefs(limit=limit)
+
+    def search_briefs(self, query: str, limit: int = 8) -> List[Dict]:
+        """Search cached feed briefs for query-matching items."""
+        terms = [token.strip().lower() for token in (query or "").split() if len(token.strip()) >= 3][:8]
+        briefs = store.get_recent_feed_briefs(limit=MAX_BRIEFS_STORED)
+        if not terms:
+            return briefs[:limit]
+
+        scored: List[tuple[int, Dict]] = []
+        for brief in briefs:
+            haystack = " ".join(
+                str(brief.get(field, "")).lower()
+                for field in ("text", "summary", "category", "source")
+            )
+            score = sum(term in haystack for term in terms)
+            if score <= 0:
+                continue
+            scored.append((score, brief))
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        deduped: List[Dict] = []
+        seen_urls: Set[str] = set()
+        for _, brief in scored:
+            url = str(brief.get("url", "")).strip().lower()
+            dedupe_key = url or str(brief.get("text", "")).strip().lower()
+            if not dedupe_key or dedupe_key in seen_urls:
+                continue
+            seen_urls.add(dedupe_key)
+            deduped.append(
+                {
+                    "title": str(brief.get("text") or brief.get("summary") or "Cached feed brief"),
+                    "url": str(brief.get("url") or ""),
+                    "snippet": str(brief.get("summary") or ""),
+                    "source": str(brief.get("source") or "Feed Cache"),
+                    "category": str(brief.get("category") or "General"),
+                }
+            )
+            if len(deduped) >= limit:
+                break
+
+        return deduped
+
     def get_source_health(self) -> List[Dict]:
         """Expose per-source feed availability for UI health panels."""
         return list(self._source_health.values())

@@ -3,14 +3,18 @@ import hashlib
 import json
 import re
 import html
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, Union, List, Callable
 from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 import urllib.error
 import base64
 import time
+import socket
+import random
+import concurrent.futures
 from pathlib import Path
+from xml.etree import ElementTree
 
 from langchain_community.chains.graph_qa.cypher import GraphCypherQAChain
 try:
@@ -87,6 +91,32 @@ def _json_get(
     if last_error:
         raise last_error
     raise RuntimeError("Request failed without error context")
+
+
+def _classify_request_error(exc: Exception) -> Dict[str, str]:
+    """Normalize common connector failures for UI-friendly status reporting."""
+    if isinstance(exc, urllib.error.HTTPError):
+        if exc.code in {401, 403}:
+            return {"status": "unauthorized", "message": f"HTTP {exc.code}: unauthorized"}
+        if exc.code == 429:
+            return {"status": "rate_limited", "message": "HTTP 429: too many requests"}
+        if exc.code in {408, 504}:
+            return {"status": "timeout", "message": f"HTTP {exc.code}: upstream timeout"}
+        return {"status": "error", "message": f"HTTP {exc.code}: {exc.reason}"}
+
+    if isinstance(exc, urllib.error.URLError):
+        reason = exc.reason
+        if isinstance(reason, (TimeoutError, socket.timeout)):
+            return {"status": "timeout", "message": "Network timeout"}
+        return {"status": "error", "message": f"Network error: {reason}"}
+
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return {"status": "timeout", "message": "Request timed out"}
+
+    message = str(exc).strip() or exc.__class__.__name__
+    if "timed out" in message.lower():
+        return {"status": "timeout", "message": message}
+    return {"status": "error", "message": message}
 
 class CivicIntelligenceQA:
     """
@@ -792,20 +822,32 @@ class OSINTAggregator:
                 "source": "DuckDuckGo Search",
                 "query": query,
                 "results": results,
-                "status": "live" if results else "fallback",
+                "status": "live" if results else "limited",
+                "strategy": "html_search",
             }
             cls._cache_set(cache_key, payload)
             return payload
         except Exception as e:
             logger.warning(f"DuckDuckGo search fetch failed: {e}")
+            error_info = _classify_request_error(e)
             fallback = {
                 "source": "DuckDuckGo Search (fallback)",
                 "query": query,
                 "results": [],
-                "status": "error",
+                "status": error_info["status"],
+                "strategy": "request_error",
+                "message": error_info["message"],
             }
             stale = cls._cache_get(cache_key, ttl_seconds=3600)
-            return stale or fallback
+            if stale:
+                return {
+                    **stale,
+                    "source": "DuckDuckGo Search (stale)",
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": error_info["message"],
+                }
+            return fallback
 
     @classmethod
     def get_yahoo_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
@@ -824,20 +866,32 @@ class OSINTAggregator:
                 "source": "Yahoo Search",
                 "query": query,
                 "results": results,
-                "status": "live" if results else "fallback",
+                "status": "live" if results else "limited",
+                "strategy": "html_search",
             }
             cls._cache_set(cache_key, payload)
             return payload
         except Exception as e:
             logger.warning(f"Yahoo search fetch failed: {e}")
+            error_info = _classify_request_error(e)
             fallback = {
                 "source": "Yahoo Search (fallback)",
                 "query": query,
                 "results": [],
-                "status": "error",
+                "status": error_info["status"],
+                "strategy": "request_error",
+                "message": error_info["message"],
             }
             stale = cls._cache_get(cache_key, ttl_seconds=3600)
-            return stale or fallback
+            if stale:
+                return {
+                    **stale,
+                    "source": "Yahoo Search (stale)",
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": error_info["message"],
+                }
+            return fallback
 
     @classmethod
     def get_serpapi_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
@@ -907,6 +961,7 @@ class OSINTAggregator:
             return response
         except Exception as e:
             logger.warning(f"SerpAPI search fetch failed: {e}")
+            error_info = _classify_request_error(e)
             stale = cls._cache_get(cache_key, ttl_seconds=3600)
             if stale:
                 return {
@@ -914,16 +969,232 @@ class OSINTAggregator:
                     "source": "SerpAPI (stale)",
                     "status": "fallback",
                     "strategy": "stale_cache",
-                    "message": "SerpAPI request failed, returning cached payload.",
+                    "message": error_info["message"],
                 }
             return {
                 "source": "SerpAPI (fallback)",
                 "query": query,
                 "results": [],
-                "status": "error",
+                "status": error_info["status"],
                 "strategy": "request_error",
-                "message": str(e),
+                "message": error_info["message"],
             }
+
+    @classmethod
+    def get_google_news_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
+        query = query or " OR ".join(cls._search_queries())
+        cache_key = f"search:google_news:{query.lower()}"
+        cached = cls._cache_get(cache_key, ttl_seconds=300)
+        if cached:
+            return cached
+
+        try:
+            url = "https://news.google.com/rss/search?" + urllib.parse.urlencode(
+                {"q": query, "hl": "en-IN", "gl": "IN", "ceid": "IN:en"}
+            )
+            req = urllib.request.Request(url, headers={"User-Agent": cls.USER_AGENT})
+            with urllib.request.urlopen(req, timeout=12) as response:
+                xml_text = response.read().decode("utf-8", errors="ignore")
+
+            root = ElementTree.fromstring(xml_text)
+            results: List[Dict[str, str]] = []
+            seen_urls: set[str] = set()
+            for item in root.findall(".//item")[:12]:
+                title = (item.findtext("title") or "").strip()
+                link = (item.findtext("link") or "").strip()
+                if not title or not link or link.lower() in seen_urls:
+                    continue
+                seen_urls.add(link.lower())
+                results.append(
+                    {
+                        "title": title,
+                        "url": link,
+                        "snippet": (item.findtext("description") or "").strip(),
+                    }
+                )
+                if len(results) >= 8:
+                    break
+
+            payload = {
+                "source": "Google News Search",
+                "query": query,
+                "results": results,
+                "status": "live" if results else "limited",
+                "strategy": "rss_search",
+            }
+            cls._cache_set(cache_key, payload)
+            return payload
+        except Exception as e:
+            logger.warning(f"Google News search fetch failed: {e}")
+            error_info = _classify_request_error(e)
+            stale = cls._cache_get(cache_key, ttl_seconds=3600)
+            if stale:
+                return {
+                    **stale,
+                    "source": "Google News Search (stale)",
+                    "status": "fallback",
+                    "strategy": "stale_cache",
+                    "message": error_info["message"],
+                }
+            return {
+                "source": "Google News Search (fallback)",
+                "query": query,
+                "results": [],
+                "status": error_info["status"],
+                "strategy": "request_error",
+                "message": error_info["message"],
+            }
+
+    @classmethod
+    def get_feed_cache_search_results(cls, query: Optional[str] = None) -> Dict[str, Any]:
+        query = query or " OR ".join(cls._search_queries())
+        cache_key = f"search:feed_cache:{query.lower()}"
+        cached = cls._cache_get(cache_key, ttl_seconds=120)
+        if cached:
+            return cached
+
+        try:
+            from app.services.feed_aggregator import feed_engine
+
+            briefs = feed_engine.search_briefs(query, limit=8)
+            payload = {
+                "source": "Feed Cache Search",
+                "query": query,
+                "results": briefs,
+                "status": "live" if briefs else "limited",
+                "strategy": "cached_feed_match",
+            }
+            cls._cache_set(cache_key, payload)
+            return payload
+        except Exception as e:
+            logger.warning(f"Feed cache search failed: {e}")
+            error_info = _classify_request_error(e)
+            return {
+                "source": "Feed Cache Search (fallback)",
+                "query": query,
+                "results": [],
+                "status": error_info["status"],
+                "strategy": "request_error",
+                "message": error_info["message"],
+            }
+
+    @classmethod
+    def search_query_bundle(
+        cls,
+        query: str,
+        *,
+        limit: int = 12,
+        max_providers: int = 4,
+    ) -> Dict[str, Any]:
+        cache_key = f"search:bundle:{query.lower()}"
+        cached = cls._cache_get(cache_key, ttl_seconds=180)
+        if cached:
+            return cached
+
+        provider_specs: List[tuple[str, str, Callable[[], Dict[str, Any]]]] = [
+            ("DuckDuckGo", "web_search", lambda: cls.get_duckduckgo_search_results(query=query)),
+            ("Yahoo", "web_search", lambda: cls.get_yahoo_search_results(query=query)),
+            ("SerpAPI", "web_search", lambda: cls.get_serpapi_search_results(query=query)),
+            ("Google News", "news_search", lambda: cls.get_google_news_search_results(query=query)),
+            ("Feed Cache", "news_cache", lambda: cls.get_feed_cache_search_results(query=query)),
+        ]
+
+        shuffle_seed = int(hashlib.md5(query.encode("utf-8")).hexdigest()[:8], 16)
+        random.Random(shuffle_seed).shuffle(provider_specs)
+
+        completed_payloads: List[tuple[str, str, Dict[str, Any], float]] = []
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(provider_specs))
+        futures: Dict[concurrent.futures.Future, tuple[str, str, float]] = {}
+        try:
+            for provider_name, provider_category, provider_fn in provider_specs:
+                futures[executor.submit(provider_fn)] = (
+                    provider_name,
+                    provider_category,
+                    time.perf_counter(),
+                )
+
+            for future in concurrent.futures.as_completed(futures, timeout=9):
+                provider_name, provider_category, started = futures[future]
+                latency_ms = round((time.perf_counter() - started) * 1000, 2)
+                try:
+                    payload = future.result()
+                except Exception as exc:
+                    error_info = _classify_request_error(exc)
+                    payload = {
+                        "source": provider_name,
+                        "query": query,
+                        "results": [],
+                        "status": error_info["status"],
+                        "strategy": "request_error",
+                        "message": error_info["message"],
+                    }
+
+                normalized_payload = dict(payload)
+                normalized_payload["category"] = provider_category
+                normalized_payload["latency_ms"] = latency_ms
+                completed_payloads.append((provider_name, provider_category, normalized_payload, latency_ms))
+                if len(completed_payloads) >= max(1, max_providers):
+                    break
+        except concurrent.futures.TimeoutError:
+            logger.warning(f"Search bundle timeout for query '{query[:80]}'")
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
+
+        merged: List[Dict[str, str]] = []
+        seen_urls: set[str] = set()
+        providers: List[Dict[str, Any]] = []
+        category_buckets: Dict[str, List[Dict[str, str]]] = {}
+
+        for provider_name, provider_category, payload, latency_ms in completed_payloads:
+            provider_results = payload.get("results", []) or []
+            provider_status = str(payload.get("status", "unknown"))
+            providers.append(
+                {
+                    "source": provider_name,
+                    "category": provider_category,
+                    "status": provider_status,
+                    "count": len(provider_results),
+                    "latency_ms": latency_ms,
+                    "strategy": payload.get("strategy"),
+                    "message": payload.get("message"),
+                }
+            )
+            for item in provider_results:
+                url = str(item.get("url", "")).strip()
+                title = str(item.get("title", "")).strip()
+                if not url or not title:
+                    continue
+                dedupe_key = url.lower()
+                if dedupe_key in seen_urls:
+                    continue
+                seen_urls.add(dedupe_key)
+                merged_item = {
+                    "title": title,
+                    "url": url,
+                    "source": provider_name,
+                    "category": provider_category,
+                    "snippet": str(item.get("snippet", "")).strip(),
+                }
+                merged.append(merged_item)
+                category_buckets.setdefault(provider_category, []).append(merged_item)
+                if len(merged) >= limit:
+                    break
+            if len(merged) >= limit:
+                break
+
+        live_provider_count = len([provider for provider in providers if provider["status"] == "live"])
+        status = "live" if merged and live_provider_count else "limited" if merged else "error"
+        response = {
+            "source": "Unified Search Bundle",
+            "query": query,
+            "results": merged,
+            "status": status,
+            "providers": providers,
+            "categories": category_buckets,
+            "selected_provider_count": len(providers),
+        }
+        cls._cache_set(cache_key, response)
+        return response
 
     @classmethod
     def get_country_search_briefs(cls, country_name: str, region: Optional[str] = None) -> Dict[str, Any]:
@@ -931,43 +1202,16 @@ class OSINTAggregator:
         if region:
             query_terms.append(f"{region} regional stability")
         query = " OR ".join(query_terms)
-        ddg = cls.get_duckduckgo_search_results(query=query)
-        yahoo = cls.get_yahoo_search_results(query=query)
-        serpapi = cls.get_serpapi_search_results(query=query)
-
-        merged: List[Dict[str, str]] = []
-        seen_urls: set[str] = set()
-        providers = (("DuckDuckGo", ddg), ("Yahoo", yahoo), ("SerpAPI", serpapi))
-        source_health = []
-        for source_name, payload in providers:
-            source_health.append(
-                {
-                    "source": source_name,
-                    "status": payload.get("status", "unknown"),
-                    "count": len(payload.get("results", []) or []),
-                }
-            )
-            for item in payload.get("results", []):
-                url = str(item.get("url", "")).strip()
-                title = str(item.get("title", "")).strip()
-                if not url or not title or url in seen_urls:
-                    continue
-                seen_urls.add(url)
-                merged.append({"title": title, "url": url, "source": source_name})
-                if len(merged) >= 12:
-                    break
-            if len(merged) >= 12:
-                break
-
-        live_sources = [item for item in source_health if item["status"] == "live"]
-        status = "live" if merged and live_sources else "fallback" if merged else "error"
+        bundle = cls.search_query_bundle(query, limit=12, max_providers=4)
+        status = bundle.get("status", "error")
         return {
             "source": "Country Search Briefs",
             "country": country_name,
             "query": query,
-            "results": merged,
+            "results": bundle.get("results", []),
             "status": status,
-            "providers": source_health,
+            "providers": bundle.get("providers", []),
+            "categories": bundle.get("categories", {}),
         }
 
     @classmethod

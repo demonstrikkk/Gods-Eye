@@ -108,6 +108,7 @@ async def analyze_unified(
             "capability_statuses": result.capability_statuses,
             "total_processing_time_ms": result.total_processing_time_ms,
             "timestamp": result.timestamp,
+            "execution_plan": result.execution_plan.to_dict() if result.execution_plan else None,
         }
 
     except ValueError as e:

@@ -3,65 +3,65 @@
     {
       "id": "dyn-gdelt-0",
       "country_id": "CTR-UKR",
-      "title": "Nasdaq 100 în corecție , volatilitatea piețelor globale pune presiune pe sectorul tehnologic",
-      "summary": "business24.ro reported a live geopolitical event.",
+      "title": "MoD inks Rs 858 crore contracts for Tunguska Air Defence Missile System & Inspection ( Depot Level ) of P8I Aircraft",
+      "summary": "azerbaijannews.net reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "business24.ro",
-      "time": "20260327T170000Z",
+      "source": "azerbaijannews.net",
+      "time": "20260327T171500Z",
       "lat": 50.4501,
       "lng": 30.5234
     },
     {
       "id": "dyn-gdelt-1",
       "country_id": "CTR-SAU",
-      "title": "Irán prohíbe a sus deportistas viajar a países  hostiles : qué pasa con el Mundial 2026 :: Diario Pregon de Jujuy",
-      "summary": "pregon.com.ar reported a live geopolitical event.",
+      "title": "China bases old jet drones near Strait",
+      "summary": "taipeitimes.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "pregon.com.ar",
-      "time": "20260327T170000Z",
+      "source": "taipeitimes.com",
+      "time": "20260327T171500Z",
       "lat": 24.7136,
       "lng": 46.6753
     },
     {
       "id": "dyn-gdelt-2",
       "country_id": "CTR-IND",
-      "title": "Dombrovskis : Lower Electricity Tax in EU Energy Package",
-      "summary": "athens-times.com reported a live geopolitical event.",
+      "title": "How long will the war last ? No one knows , and it making oil prices weird",
+      "summary": "kansaspublicradio.org reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
-      "severity": "Medium",
-      "source": "athens-times.com",
-      "time": "20260327T170000Z",
+      "severity": "High",
+      "source": "kansaspublicradio.org",
+      "time": "20260327T171500Z",
       "lat": 20.5937,
       "lng": 78.9629
     },
     {
       "id": "dyn-gdelt-3",
       "country_id": "CTR-SGP",
-      "title": "Քոչարյանի պաշտոնավարումն էլ էր կոշտ , ինչպես Փաշինյանինը . իրավապաշտպան",
-      "summary": "azatutyun.am reported a live geopolitical event.",
+      "title": "Gold and silver surge : Why are gold and silver prices rising sharply today and why is silver outperforming gold – Gold and silver add $1 . 3 trillion in market cap today",
+      "summary": "economictimes.indiatimes.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "azatutyun.am",
-      "time": "20260327T170000Z",
+      "source": "economictimes.indiatimes.com",
+      "time": "20260327T171500Z",
       "lat": 1.3521,
       "lng": 103.8198
     },
     {
       "id": "dyn-gdelt-4",
       "country_id": "CTR-BHS",
-      "title": "Ncla stories at Techdirt . ",
-      "summary": "techdirt.com reported a live geopolitical event.",
+      "title": "Προβληματισμένος ο Νετανιάχου από την Μοσάντ : Διαψεύστηκαν τα σενάρια για λαϊκή εξέγερηση ή αλλαγή καθεστώτος",
+      "summary": "tanea.gr reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "techdirt.com",
-      "time": "20260327T170000Z",
+      "source": "tanea.gr",
+      "time": "20260327T171500Z",
       "lat": 38.9072,
       "lng": -77.0369
     },
@@ -296,8 +296,8 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 38.6604,
-      "lng": -9.3863
+      "lat": 38.4205,
+      "lng": -9.3504
     },
     {
       "id": "opensky-1",
@@ -309,11 +309,24 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 47.6267,
-      "lng": 1.8054
+      "lat": 46.9756,
+      "lng": 1.4743
     },
     {
       "id": "opensky-2",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: RTY484",
+      "summary": "OpenSky aircraft state linked to United States.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 40.4504,
+      "lng": -104.9002
+    },
+    {
+      "id": "opensky-3",
       "country_id": "CTR-IND",
       "title": "Aviation activity: AXB1042",
       "summary": "OpenSky aircraft state linked to India.",
@@ -322,11 +335,11 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 27.7277,
-      "lng": 80.3682
+      "lat": 27.9336,
+      "lng": 79.7668
     },
     {
-      "id": "opensky-3",
+      "id": "opensky-4",
       "country_id": "CTR-FRA",
       "title": "Aviation activity: TVF44FX",
       "summary": "OpenSky aircraft state linked to France.",
@@ -335,11 +348,11 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 48.997,
-      "lng": 3.9177
+      "lat": 49.2249,
+      "lng": 4.8453
     },
     {
-      "id": "opensky-4",
+      "id": "opensky-5",
       "country_id": "CTR-FRA",
       "title": "Aviation activity: TVF17PT",
       "summary": "OpenSky aircraft state linked to France.",
@@ -348,11 +361,11 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 59.6651,
-      "lng": 17.9262
+      "lat": 59.5607,
+      "lng": 17.7295
     },
     {
-      "id": "opensky-5",
+      "id": "opensky-6",
       "country_id": "CTR-FRA",
       "title": "Aviation activity: TVF79ZM",
       "summary": "OpenSky aircraft state linked to France.",
@@ -361,11 +374,11 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 47.2202,
-      "lng": 2.3642
+      "lat": 46.5177,
+      "lng": 2.4384
     },
     {
-      "id": "opensky-6",
+      "id": "opensky-7",
       "country_id": "CTR-IND",
       "title": "Aviation activity: AXB1025",
       "summary": "OpenSky aircraft state linked to India.",
@@ -374,21 +387,8 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 19.9768,
-      "lng": 85.9713
-    },
-    {
-      "id": "opensky-7",
-      "country_id": "CTR-USA",
-      "title": "Aviation activity: AAL478",
-      "summary": "OpenSky aircraft state linked to United States.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 33.3132,
-      "lng": -86.5766
+      "lat": 19.7074,
+      "lng": 86.4002
     },
     {
       "id": "cisa-CVE-2026-33634",
@@ -542,7 +542,7 @@
       "status": "live",
       "item_count": 5,
       "message": "GDELT Project",
-      "last_updated": "2026-03-27T17:36:32.695025",
+      "last_updated": "2026-03-27T17:43:11.351389",
       "strategy": null
     },
     {
@@ -552,7 +552,7 @@
       "status": "live",
       "item_count": 4,
       "message": "USGS Earthquake API",
-      "last_updated": "2026-03-27T17:36:33.556281",
+      "last_updated": "2026-03-27T17:41:55.282333",
       "strategy": null
     },
     {
@@ -562,7 +562,7 @@
       "status": "live",
       "item_count": 6,
       "message": "NASA EONET Wildfires",
-      "last_updated": "2026-03-27T17:36:34.081446",
+      "last_updated": "2026-03-27T17:41:56.412254",
       "strategy": null
     },
     {
@@ -572,7 +572,7 @@
       "status": "live",
       "item_count": 0,
       "message": "FRED API",
-      "last_updated": "2026-03-27T17:36:35.030235",
+      "last_updated": "2026-03-27T17:41:56.914493",
       "strategy": null
     },
     {
@@ -582,7 +582,7 @@
       "status": "live",
       "item_count": 5,
       "message": "World Bank Open Data",
-      "last_updated": "2026-03-27T17:36:44.968082",
+      "last_updated": "2026-03-27T17:42:14.437956",
       "strategy": null
     },
     {
@@ -592,7 +592,7 @@
       "status": "live",
       "item_count": 1,
       "message": "EIA API",
-      "last_updated": "2026-03-27T17:36:36.547641",
+      "last_updated": "2026-03-27T17:41:58.066081",
       "strategy": null
     },
     {
@@ -602,7 +602,7 @@
       "status": "live",
       "item_count": 1,
       "message": "data.gov.in live via explicit resource ids.",
-      "last_updated": "2026-03-27T17:36:33.232490",
+      "last_updated": "2026-03-27T17:41:55.561570",
       "strategy": "resource_ids"
     },
     {
@@ -612,7 +612,7 @@
       "status": "live",
       "item_count": 8,
       "message": "OpenSky Network (ADS-B)",
-      "last_updated": "2026-03-27T17:36:34.508115",
+      "last_updated": "2026-03-27T17:42:03.281361",
       "strategy": null
     },
     {
@@ -622,7 +622,7 @@
       "status": "live",
       "item_count": 3,
       "message": "CISA KEV Catalog",
-      "last_updated": "2026-03-27T17:36:33.746280",
+      "last_updated": "2026-03-27T17:41:56.637254",
       "strategy": null
     },
     {
@@ -632,7 +632,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Reddit Public JSON",
-      "last_updated": "2026-03-27T17:36:34.671199",
+      "last_updated": "2026-03-27T17:41:57.207876",
       "strategy": null
     },
     {
@@ -642,7 +642,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Mastodon Public Timeline",
-      "last_updated": "2026-03-27T17:36:33.494281",
+      "last_updated": "2026-03-27T17:41:56.181271",
       "strategy": null
     },
     {
@@ -652,7 +652,7 @@
       "status": "live",
       "item_count": 4,
       "message": "Yahoo Search",
-      "last_updated": "2026-03-27T17:36:33.835278",
+      "last_updated": "2026-03-27T17:41:56.411253",
       "strategy": null
     },
     {
@@ -662,7 +662,7 @@
       "status": "fallback",
       "item_count": 0,
       "message": "DuckDuckGo Search",
-      "last_updated": "2026-03-27T17:36:34.320219",
+      "last_updated": "2026-03-27T17:41:56.911465",
       "strategy": null
     },
     {
@@ -672,7 +672,7 @@
       "status": "live",
       "item_count": 4,
       "message": "SerpAPI",
-      "last_updated": "2026-03-27T17:36:33.530279",
+      "last_updated": "2026-03-27T17:41:55.944858",
       "strategy": "google_engine"
     },
     {
@@ -682,7 +682,7 @@
       "status": "live",
       "item_count": 250,
       "message": "REST Countries",
-      "last_updated": "2026-03-27T17:36:50.386544"
+      "last_updated": "2026-03-27T17:43:28.208513"
     },
     {
       "id": "markets",
@@ -691,39 +691,39 @@
       "status": "live",
       "item_count": 5,
       "message": "Finnhub",
-      "last_updated": "2026-03-27T17:36:50.386544"
+      "last_updated": "2026-03-27T17:43:28.208513"
     }
   ],
   "market_snapshot": [
     {
       "symbol": "SPY",
       "name": "S&P 500 ETF",
-      "price": 637.19,
-      "change_pct": -1.22,
+      "price": 636.69,
+      "change_pct": -1.3,
       "high": 645.05,
       "low": 636.59
     },
     {
       "symbol": "QQQ",
       "name": "Nasdaq 100 ETF",
-      "price": 564.86,
-      "change_pct": -1.56,
+      "price": 564.13,
+      "change_pct": -1.68,
       "high": 573.365,
-      "low": 564.15
+      "low": 564.03
     },
     {
       "symbol": "INDA",
       "name": "India ETF",
-      "price": 45.86,
-      "change_pct": -1.61,
+      "price": 45.82,
+      "change_pct": -1.69,
       "high": 46.11,
       "low": 45.81
     },
     {
       "symbol": "GLD",
       "name": "Gold ETF",
-      "price": 413.23,
-      "change_pct": 3.14,
+      "price": 412.33,
+      "change_pct": 2.92,
       "high": 418.4,
       "low": 405.41
     },
@@ -3738,5 +3738,5 @@
       "area": 110879.0
     }
   ],
-  "last_refresh": "2026-03-27T17:36:50.386544"
+  "last_refresh": "2026-03-27T17:43:28.208513"
 }

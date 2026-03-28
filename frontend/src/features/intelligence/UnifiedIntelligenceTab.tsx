@@ -97,10 +97,10 @@ type ModePreset = {
 
 const MODE_PRESETS: ModePreset[] = [
   { id: 'auto', label: 'Auto', summary: 'Use smart capability selection.' },
-  { id: 'fast', label: 'Fast', summary: 'Low-latency path for quick responses.' },
+  { id: 'fast', label: 'Fast', summary: 'Low-latency source fetch + 1-2 agent brief.' },
   { id: 'visual_only', label: 'Graph', summary: 'Generate charts/graph output only.' },
   { id: 'reasoning_only', label: 'Reasoning', summary: 'Reasoning-only analysis mode.' },
-  { id: 'tools_only', label: 'Data', summary: 'Data/tools fetch mode only.' },
+  { id: 'tools_only', label: 'Data', summary: 'Fetch and return source-grounded data only.' },
   { id: 'map_only', label: 'Map', summary: 'Geospatial/map capability only.' },
   { id: 'manual', label: 'Manual', summary: 'Pick capabilities manually.', manualDefault: ['visuals'] },
 ];

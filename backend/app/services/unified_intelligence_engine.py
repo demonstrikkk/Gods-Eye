@@ -23,9 +23,10 @@ from app.models.unified_intelligence import (
     AssistantResponsePayload,
     AssistantResponseSection,
     CockpitState,
+    UnifiedExecutionPlan,
+    UnifiedExecutionStep,
 )
-from app.services.expert_strategic_agent import run_expert_strategic_analysis
-from app.services.strategic_agent import run_strategic_analysis
+from app.agents.agent_orchestrator import ExpertAgentOrchestrator
 from app.services.visual_intelligence_engine import get_visual_intelligence_engine
 from app.services.map_intelligence_layer import get_map_intelligence_layer
 from app.services.llm_provider import get_enterprise_llm
@@ -185,10 +186,208 @@ class QueryAssessor:
         return domains or ["general"]
 
 
+class UnifiedExecutionPlanner:
+    """Query planner that converts a request into an explicit execution blueprint."""
+
+    DOMAIN_AGENT_MAP = {
+        "economics": "economic",
+        "geopolitics": "geopolitical",
+        "defense": "geopolitical",
+        "climate": "climate",
+        "infrastructure": "policy",
+        "technology": "economic",
+        "space": "geopolitical",
+        "general": "risk",
+    }
+
+    def build_plan(
+        self,
+        query: str,
+        assessment: QueryAssessment,
+        request: UnifiedIntelligenceRequest,
+        capabilities: CapabilitySet,
+    ) -> UnifiedExecutionPlan:
+        query_lower = query.lower()
+        capability_list = capabilities.to_list()
+        reasoning_agents = self._select_reasoning_agents(assessment, request.execution_mode, query_lower, bool(capabilities.reasoning))
+        selected_tools = self._select_tools(assessment, request.execution_mode, query_lower, bool(capabilities.tools))
+        search_queries = self._build_search_queries(query, assessment)
+        rationale = self._build_rationale(assessment, request, capability_list, reasoning_agents, selected_tools)
+        steps = self._build_steps(capabilities, reasoning_agents, selected_tools)
+
+        if request.execution_mode == UnifiedExecutionMode.FAST:
+            response_style = "brief_source_grounded"
+        elif request.execution_mode == UnifiedExecutionMode.TOOLS_ONLY:
+            response_style = "source_only"
+        elif assessment.requires_multi_perspective:
+            response_style = "multi_perspective"
+        else:
+            response_style = "balanced"
+
+        priority = "critical" if assessment.requires_external_data or assessment.complexity in {QueryComplexity.COMPLEX, QueryComplexity.VERY_COMPLEX} else "standard"
+        intent_summary = self._intent_summary(query, assessment, capability_list, reasoning_agents, selected_tools)
+
+        return UnifiedExecutionPlan(
+            intent_summary=intent_summary,
+            priority=priority,
+            execution_mode=request.execution_mode.value,
+            capabilities=capability_list,
+            reasoning_agents=reasoning_agents,
+            tools=selected_tools,
+            search_queries=search_queries,
+            response_style=response_style,
+            rationale=rationale,
+            steps=steps,
+        )
+
+    def _select_reasoning_agents(
+        self,
+        assessment: QueryAssessment,
+        mode: UnifiedExecutionMode,
+        query_lower: str,
+        enabled: bool,
+    ) -> List[str]:
+        if not enabled:
+            return []
+
+        selected: List[str] = ["risk"]
+        for domain in assessment.domains:
+            agent = self.DOMAIN_AGENT_MAP.get(domain)
+            if agent and agent not in selected:
+                selected.append(agent)
+
+        if assessment.requires_multi_perspective:
+            for fallback in ["economic", "geopolitical", "policy"]:
+                if fallback not in selected:
+                    selected.append(fallback)
+                if len(selected) >= 4:
+                    break
+
+        if any(token in query_lower for token in ["forecast", "future", "scenario", "what if", "simulate"]):
+            if "simulation" not in selected:
+                selected.append("simulation")
+
+        max_agents = 2 if mode == UnifiedExecutionMode.FAST else 4
+        return selected[:max_agents]
+
+    def _select_tools(
+        self,
+        assessment: QueryAssessment,
+        mode: UnifiedExecutionMode,
+        query_lower: str,
+        enabled: bool,
+    ) -> List[str]:
+        if not enabled:
+            return []
+
+        tools = ["source_health", "recent_briefs", "search_bundle"]
+        if assessment.requires_external_data or any(token in query_lower for token in ["latest", "current", "recent", "breaking", "live"]):
+            tools.append("alerts")
+        if assessment.has_data_indicators or "economics" in assessment.domains:
+            tools.append("market_snapshot")
+        if assessment.has_geographic_entities or any(token in query_lower for token in ["country", "india", "china", "usa", "region", "border"]):
+            tools.append("country_analysis")
+        if mode == UnifiedExecutionMode.FAST:
+            tools = [tool for tool in tools if tool in {"recent_briefs", "search_bundle", "country_analysis", "source_health"}]
+        return list(dict.fromkeys(tools))
+
+    def _build_search_queries(self, query: str, assessment: QueryAssessment) -> List[str]:
+        queries = [query]
+        if "economics" in assessment.domains:
+            queries.append(f"{query} macroeconomic outlook latest")
+        if "geopolitics" in assessment.domains or "defense" in assessment.domains:
+            queries.append(f"{query} geopolitics conflict diplomacy latest")
+        if "climate" in assessment.domains:
+            queries.append(f"{query} climate disaster weather latest")
+        return list(dict.fromkeys(queries))[:3]
+
+    def _build_rationale(
+        self,
+        assessment: QueryAssessment,
+        request: UnifiedIntelligenceRequest,
+        capabilities: List[str],
+        reasoning_agents: List[str],
+        tools: List[str],
+    ) -> List[str]:
+        reasons = [
+            f"Execution mode '{request.execution_mode.value}' selected with capabilities: {', '.join(capabilities) or 'none'}.",
+            f"Query complexity assessed as {assessment.complexity.value} across domains: {', '.join(assessment.domains)}.",
+        ]
+        if reasoning_agents:
+            reasons.append(f"Reasoning lane constrained to agents: {', '.join(reasoning_agents)}.")
+        if tools:
+            reasons.append(f"Tools lane will run: {', '.join(tools)}.")
+        if assessment.requires_external_data:
+            reasons.append("External-data triggers were detected, so live or cached source fetch is prioritized.")
+        if assessment.requires_multi_perspective:
+            reasons.append("Multi-perspective analysis was requested, so cross-domain agents are included.")
+        return reasons[:6]
+
+    def _build_steps(
+        self,
+        capabilities: CapabilitySet,
+        reasoning_agents: List[str],
+        tools: List[str],
+    ) -> List[UnifiedExecutionStep]:
+        steps: List[UnifiedExecutionStep] = [
+            UnifiedExecutionStep(id="assess", label="Assess query intent and select execution lanes", lane="planner", parallelizable=False),
+        ]
+        if capabilities.tools:
+            steps.append(
+                UnifiedExecutionStep(
+                    id="tools",
+                    label="Fetch live, cached, and search-grounded evidence",
+                    lane="tools",
+                    parallelizable=True,
+                    selected_tools=tools,
+                )
+            )
+        if capabilities.reasoning:
+            steps.append(
+                UnifiedExecutionStep(
+                    id="reasoning",
+                    label="Run targeted expert-agent reasoning",
+                    lane="reasoning",
+                    parallelizable=True,
+                    selected_agents=reasoning_agents,
+                )
+            )
+        if capabilities.visuals:
+            steps.append(UnifiedExecutionStep(id="visuals", label="Generate visual artifacts only if materially useful", lane="visuals", parallelizable=True))
+        if capabilities.map_intelligence:
+            steps.append(UnifiedExecutionStep(id="map", label="Generate map overlays and geographic focus payloads", lane="map", parallelizable=True))
+        steps.append(UnifiedExecutionStep(id="synthesis", label="Assemble assistant response from completed lanes", lane="synthesis", parallelizable=False))
+        return steps
+
+    def _intent_summary(
+        self,
+        query: str,
+        assessment: QueryAssessment,
+        capabilities: List[str],
+        reasoning_agents: List[str],
+        tools: List[str],
+    ) -> str:
+        parts = [f"Query targets {', '.join(assessment.domains)} analysis"]
+        if capabilities:
+            parts.append(f"using {', '.join(capabilities)}")
+        if reasoning_agents:
+            parts.append(f"with agents {', '.join(reasoning_agents)}")
+        if tools:
+            parts.append(f"and tools {', '.join(tools)}")
+        return " ".join(parts) + "."
+
+
 class UnifiedIntelligenceEngine:
     def __init__(self):
         self._assessor = QueryAssessor()
-        self._expert_orchestrator = None
+        self._planner = UnifiedExecutionPlanner()
+        self._expert_orchestrator = ExpertAgentOrchestrator()
+        self._fast_expert_orchestrator = ExpertAgentOrchestrator(
+            enable_debate=False,
+            min_agents_for_debate=99,
+            debate_threshold=1.0,
+            max_parallel_agents=2,
+        )
         self._visual_engine = None
         self._map_intelligence = None
         self._sessions: Dict[str, ConversationSession] = {}
@@ -248,12 +447,20 @@ class UnifiedIntelligenceEngine:
         )
 
         capabilities = self._resolve_capabilities(assessment, request)
+        execution_plan = self._planner.build_plan(request.query, assessment, request, capabilities)
+        context["execution_plan"] = execution_plan.to_dict()
         await self._emit_stream_event(
             stream_callback,
             "phase",
             phase="capabilities_selected",
             message="Capabilities selected for execution.",
             capabilities=capabilities.to_list(),
+        )
+        await self._emit_stream_event(
+            stream_callback,
+            "execution_plan",
+            message="Execution plan synthesized.",
+            execution_plan=execution_plan.to_dict(),
         )
 
         execution_timeout = request.max_processing_time or 30.0
@@ -363,6 +570,7 @@ class UnifiedIntelligenceEngine:
             capability_statuses=capability_statuses,
             total_processing_time_ms=round(total_time, 2),
             timestamp=datetime.now().isoformat(),
+            execution_plan=execution_plan,
         )
 
         await self._emit_stream_event(
@@ -439,18 +647,9 @@ class UnifiedIntelligenceEngine:
         if mode == UnifiedExecutionMode.MAP_ONLY:
             return CapabilitySet(map_intelligence=True)
         if mode == UnifiedExecutionMode.FAST:
-            visual_request = any(token in query_lower for token in ["chart", "graph", "plot", "visual", "visualize"])
-            map_request = any(token in query_lower for token in ["map", "region", "country", "geospatial", "where"])
-            external_request = assessment.requires_external_data
-
-            # In fast mode run exactly one primary lane for predictable low latency.
-            if visual_request:
-                return CapabilitySet(visuals=True)
-            if map_request:
-                return CapabilitySet(map_intelligence=True)
-            if external_request:
-                return CapabilitySet(tools=True)
-            return CapabilitySet(reasoning=True)
+            # Fast mode is explicitly data-first and lightweight:
+            # fetch live/cached sources plus a 1-2 agent reasoning pass.
+            return CapabilitySet(reasoning=True, tools=True)
 
         return capabilities
 
@@ -465,19 +664,21 @@ class UnifiedIntelligenceEngine:
         capabilities: CapabilitySet,
         max_time: float,
     ) -> Tuple[Dict[str, Any], List[CapabilityExecutionStatus]]:
+        execution_context = dict(context)
+        execution_context["_capabilities"] = capabilities.to_list()
         tasks = []
         capability_types: List[CapabilityType] = []
         if capabilities.reasoning:
-            tasks.append(self._execute_reasoning(query_id, query, context))
+            tasks.append(self._execute_reasoning(query_id, query, execution_context))
             capability_types.append(CapabilityType.REASONING)
         if capabilities.tools:
-            tasks.append(self._execute_tools(query_id, query, context))
+            tasks.append(self._execute_tools(query_id, query, execution_context))
             capability_types.append(CapabilityType.TOOLS)
         if capabilities.visuals:
-            tasks.append(self._execute_visuals(query_id, query, context))
+            tasks.append(self._execute_visuals(query_id, query, execution_context))
             capability_types.append(CapabilityType.VISUALS)
         if capabilities.map_intelligence:
-            tasks.append(self._execute_map_intelligence(query_id, query, context))
+            tasks.append(self._execute_map_intelligence(query_id, query, execution_context))
             capability_types.append(CapabilityType.MAP_INTELLIGENCE)
 
         try:
@@ -503,37 +704,47 @@ class UnifiedIntelligenceEngine:
                 )
         return results_dict, statuses
 
+    def _reasoning_result_from_orchestrated(self, response: Any) -> ReasoningResult:
+        disagreement_risks = [
+            {
+                "factor": str(item.get("topic") or "Analyst disagreement"),
+                "severity": str(item.get("severity") or "Medium"),
+                "description": ", ".join(item.get("agent_names", [])[:3]) or "Cross-agent variance detected.",
+            }
+            for item in (response.disagreements or [])[:4]
+        ]
+        return ReasoningResult(
+            executive_summary=response.executive_summary,
+            analysis=response.consensus.consensus_view if response.consensus else response.executive_summary,
+            key_findings=response.key_findings[:6],
+            confidence=response.confidence_score,
+            expert_agents_used=response.agents_consulted,
+            consensus_achieved=bool(response.consensus and response.consensus.consensus_strength.value not in ["weak", "divergent"]),
+            processing_time_ms=round(float(response.processing_time_ms or 0.0), 2),
+            risk_factors=disagreement_risks,
+            strategic_recommendations=response.recommendations[:5],
+            uncertainty_factors=response.uncertainty_factors[:5],
+            timeline=response.timeline[:4],
+        )
+
     async def _execute_reasoning(self, query_id: str, query: str, context: Dict[str, Any]) -> Optional[ReasoningResult]:
         try:
-            start = time.time()
-            query_lower = query.lower()
-            force_deep_reasoning = any(
-                token in query_lower
-                for token in ["debate", "consensus", "expert", "scenario", "counterfactual", "probability"]
-            ) or len(query.split()) > 18
-
-            if force_deep_reasoning:
-                response = await run_expert_strategic_analysis(query=query, context=context)
-                uncertainty = response.get("uncertainty_quantification", {})
-                confidence_score = response.get("expert_assessment", {}).get("confidence", {}).get("score", 0.7)
+            mode = str(context.get("execution_mode") or UnifiedExecutionMode.AUTO.value)
+            execution_plan = context.get("execution_plan") if isinstance(context.get("execution_plan"), dict) else {}
+            forced_agents = execution_plan.get("reasoning_agents") or None
+            if mode == UnifiedExecutionMode.FAST.value:
+                response = await self._fast_expert_orchestrator.process_query(
+                    query=query,
+                    context=context,
+                    force_agents=forced_agents[:2] if forced_agents else None,
+                )
             else:
-                response = await run_strategic_analysis(query)
-                uncertainty = {}
-                confidence_score = 0.72
-
-            return ReasoningResult(
-                executive_summary=response.get("executive_summary", ""),
-                analysis=response.get("situation_analysis", response.get("executive_summary", "")),
-                key_findings=response.get("key_findings", response.get("strategic_recommendations", [])[:5]),
-                confidence=confidence_score,
-                expert_agents_used=response.get("_meta", {}).get("expert_agents_consulted", []),
-                consensus_achieved=response.get("_meta", {}).get("consensus_strength") not in ["weak", "divergent"],
-                processing_time_ms=round((time.time() - start) * 1000, 2),
-                risk_factors=response.get("key_risk_factors", [])[:4],
-                strategic_recommendations=response.get("strategic_recommendations", [])[:5],
-                uncertainty_factors=uncertainty.get("uncertainty_factors", [])[:4],
-                timeline=response.get("timeline", [])[:4],
-            )
+                response = await self._expert_orchestrator.process_query(
+                    query=query,
+                    context=context,
+                    force_agents=forced_agents,
+                )
+            return self._reasoning_result_from_orchestrated(response)
         except Exception as e:
             logger.error(f"[{query_id}] Reasoning failed: {e}", exc_info=True)
             return None
@@ -541,51 +752,103 @@ class UnifiedIntelligenceEngine:
     async def _execute_tools(self, query_id: str, query: str, context: Dict[str, Any]) -> Optional[ToolsResult]:
         try:
             start = time.time()
-            query_lower = query.lower()
-            deep_tools_requested = any(
-                token in query_lower
-                for token in ["deep scan", "comprehensive osint", "full tools", "full sweep", "all sources"]
-            )
+            from app.services.runtime_intelligence import runtime_engine
+            from app.services.feed_aggregator import feed_engine
+            from app.services.osint_aggregator import osint_engine
 
-            if deep_tools_requested:
-                memory_summary = context.get("conversation_memory", {}).get("memory_summary", "")
-                tool_query = query if not memory_summary else f"{query}\n\nConversation memory:\n{memory_summary}"
-                response = await run_strategic_analysis(tool_query)
-                meta = response.get("_meta", {})
-                tools_used = meta.get("tools_used", [])
-                unavailable_tools = meta.get("unavailable_tools", {})
-                tool_outputs = {key: value for key, value in response.items() if not key.startswith("_")}
-                insights = []
-                if response.get("executive_summary"):
-                    insights.append(response["executive_summary"])
-                for factor in response.get("key_risk_factors", [])[:3]:
-                    if isinstance(factor, dict):
-                        insights.append(f"{factor.get('factor', 'Signal')}: {factor.get('description', '')}".strip())
-                for recommendation in response.get("strategic_recommendations", [])[:2]:
-                    insights.append(f"Action: {recommendation}")
-            else:
-                from app.services.runtime_intelligence import runtime_engine
-                from app.services.feed_aggregator import feed_engine
+            matched_country = runtime_engine.find_country_by_query(query)
+            execution_plan = context.get("execution_plan") if isinstance(context.get("execution_plan"), dict) else {}
+            planned_tools = set(execution_plan.get("tools", []))
+            planned_search_queries = execution_plan.get("search_queries") or []
+            search_query = planned_search_queries[0] if planned_search_queries else (query if not matched_country else f"{matched_country['name']} strategic outlook latest")
 
-                source_health = runtime_engine.get_source_health()[:10]
-                market_snapshot = runtime_engine.get_market_snapshot()[:5]
-                recent_briefs = feed_engine.get_recent_briefs()[:5]
-                tools_used = ["runtime_source_health", "market_snapshot", "feed_briefs"]
-                unavailable_tools = {}
-                tool_outputs = {
-                    "source_health": source_health,
-                    "market_snapshot": market_snapshot,
-                    "recent_briefs": recent_briefs,
-                }
-                insights = [
-                    f"{len(source_health)} source connectors are currently tracked in runtime health.",
-                    f"{len(market_snapshot)} market snapshot instruments were included.",
-                    f"{len(recent_briefs)} recent feed briefs were captured for quick context.",
+            task_builders: Dict[str, Callable[[], Awaitable[Any]]] = {
+                "source_health": lambda: asyncio.to_thread(lambda: runtime_engine.get_source_health()[:12]),
+                "market_snapshot": lambda: asyncio.to_thread(lambda: runtime_engine.get_market_snapshot()[:6]),
+                "recent_briefs": lambda: asyncio.to_thread(lambda: feed_engine.get_recent_briefs(10)),
+                "alerts": lambda: asyncio.to_thread(lambda: runtime_engine.get_global_alerts()[:8]),
+                "search_bundle": lambda: asyncio.to_thread(lambda: osint_engine.search_query_bundle(search_query, limit=12, max_providers=4)),
+            }
+            if matched_country:
+                task_builders["country_analysis"] = lambda: asyncio.to_thread(lambda: runtime_engine.get_country_analysis(matched_country["id"]))
+
+            selected_tool_names = [name for name in task_builders.keys() if not planned_tools or name in planned_tools]
+            task_specs: Dict[str, Awaitable[Any]] = {name: task_builders[name]() for name in selected_tool_names}
+
+            task_names = list(task_specs.keys())
+            task_results = await asyncio.gather(*task_specs.values(), return_exceptions=True)
+
+            tool_outputs: Dict[str, Any] = {}
+            unavailable_tools: Dict[str, Any] = {}
+            tools_used: List[str] = []
+            insights: List[str] = []
+
+            for name, result in zip(task_names, task_results):
+                if isinstance(result, Exception):
+                    unavailable_tools[name] = {"status": "error", "message": str(result)}
+                    continue
+                if result is None:
+                    unavailable_tools[name] = {"status": "unavailable", "message": "No payload returned."}
+                    continue
+                tool_outputs[name] = result
+                tools_used.append(name)
+
+            source_health = tool_outputs.get("source_health", [])
+            market_snapshot = tool_outputs.get("market_snapshot", [])
+            recent_briefs = tool_outputs.get("recent_briefs", [])
+            alerts = tool_outputs.get("alerts", [])
+            search_bundle = tool_outputs.get("search_bundle", {})
+            country_analysis = tool_outputs.get("country_analysis")
+
+            live_connectors = len([item for item in source_health if item.get("status") == "live"])
+            degraded_connectors = len([item for item in source_health if item.get("status") not in {"live", "limited"}])
+            insights.append(f"{live_connectors} live source connectors are healthy across the runtime intelligence layer.")
+            if degraded_connectors:
+                insights.append(f"{degraded_connectors} connectors are degraded, rate-limited, timed out, or otherwise unavailable.")
+            if market_snapshot:
+                insights.append(f"{len(market_snapshot)} market instruments were included for quick macro context.")
+            if recent_briefs:
+                insights.append(f"{len(recent_briefs)} recent intelligence briefs were loaded from the feed cache.")
+            if alerts:
+                insights.append(f"{len(alerts)} active alert items were pulled into the tools layer.")
+            if search_bundle:
+                provider_names = [
+                    provider.get("source")
+                    for provider in search_bundle.get("providers", [])
+                    if provider.get("status") == "live"
                 ]
+                result_count = len(search_bundle.get("results", []))
+                if result_count:
+                    insights.append(
+                        f"Open-web search merged {result_count} deduplicated hits from "
+                        f"{', '.join(provider_names[:4]) if provider_names else 'cached/open-search providers'}."
+                    )
+                for provider in search_bundle.get("providers", []):
+                    if provider.get("status") not in {"live", "limited"}:
+                        unavailable_tools[f"search_provider:{provider.get('source')}"] = {
+                            "status": provider.get("status"),
+                            "message": provider.get("message") or "Search provider unavailable.",
+                        }
+            if country_analysis:
+                insights.append(
+                    f"Country-specific live dossier loaded for {matched_country['name']} with source status and search validation."
+                )
 
             return ToolsResult(
                 tools_executed=tools_used,
-                data_sources=[tool.replace("_", " ").title() for tool in tools_used],
+                data_sources=list(
+                    dict.fromkeys(
+                        [
+                            "Runtime Intelligence",
+                            "Feed Aggregator",
+                            *[
+                                provider.get("source")
+                                for provider in search_bundle.get("providers", [])
+                                if provider.get("source")
+                            ],
+                        ]
+                    )
+                ),
                 tool_outputs=tool_outputs,
                 insights=insights[:6],
                 processing_time_ms=round((time.time() - start) * 1000, 2),
