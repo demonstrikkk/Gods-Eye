@@ -99,12 +99,23 @@ class VisualIntelligenceEngine:
                 intent.chart_type = options["force_chart_type"]
                 intent.requires_chart = True
 
+            if options.get("charts_only"):
+                intent.requires_chart = True
+                if not intent.chart_type:
+                    intent.chart_type = ChartType.LINE if intent.intent_type.value == "trend" else ChartType.BAR
+
             if options.get("force_diagram_type"):
                 intent.diagram_type = options["force_diagram_type"]
                 intent.requires_diagram = True
 
+            if options.get("disable_diagrams"):
+                intent.requires_diagram = False
+
             if options.get("include_map") is not None:
                 intent.requires_map = options["include_map"]
+
+            if options.get("disable_map"):
+                intent.requires_map = False
 
             # Phase 2: Fetch Data
             data_result = await self._data_fetcher.fetch_for_intent(intent)

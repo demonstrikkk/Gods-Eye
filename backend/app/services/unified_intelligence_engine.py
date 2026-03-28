@@ -863,7 +863,20 @@ class UnifiedIntelligenceEngine:
             start = time.time()
             if self._visual_engine is None:
                 self._visual_engine = get_visual_intelligence_engine()
-            result = await self._visual_engine.process_query(query, context)
+            mode = str(context.get("execution_mode") or UnifiedExecutionMode.AUTO.value)
+            visual_options: Dict[str, Any] = {}
+
+            if mode == UnifiedExecutionMode.VISUAL_ONLY.value:
+                from app.models.visual_intelligence import ChartType
+
+                visual_options = {
+                    "charts_only": True,
+                    "disable_diagrams": True,
+                    "disable_map": True,
+                    "force_chart_type": ChartType.LINE if any(token in query.lower() for token in ["trend", "over time", "historical", "annual", "year"]) else ChartType.BAR,
+                }
+
+            result = await self._visual_engine.process_query(query, context, visual_options)
             charts = [chart.to_dict() for chart in result.charts]
             diagrams = [diagram.to_dict() for diagram in result.diagrams]
             return VisualsResult(
@@ -885,7 +898,27 @@ class UnifiedIntelligenceEngine:
             if self._map_intelligence is None:
                 self._map_intelligence = get_map_intelligence_layer()
             intent = await self._visual_engine.parse_intent(query)
-            from app.models.visual_intelligence import DataFetchResult
+            mode = str(context.get("execution_mode") or UnifiedExecutionMode.AUTO.value)
+            query_lower = query.lower()
+            should_force_map = (
+                mode == UnifiedExecutionMode.MAP_ONLY.value
+                or "map" in [str(item).lower() for item in context.get("_capabilities", [])]
+                or any(
+                    token in query_lower
+                    for token in ["map", "geographic", "geospatial", "spatial", "location", "route", "corridor", "border", "territory"]
+                )
+            )
+
+            from app.models.visual_intelligence import DataFetchResult, MapFeatureType
+            if should_force_map and not intent.requires_map:
+                intent.requires_map = True
+            if intent.requires_map and not intent.map_features:
+                intent.map_features = [
+                    MapFeatureType.HIGHLIGHT,
+                    MapFeatureType.FOCUS,
+                    MapFeatureType.MARKERS,
+                ]
+
             data_result = DataFetchResult(
                 datasets={},
                 sources_used=[],
@@ -1319,7 +1352,17 @@ class UnifiedIntelligenceEngine:
         if results.get("map_intelligence") and results["map_intelligence"].affected_regions:
             parts.append(f"Spatial layer covers {', '.join(results['map_intelligence'].affected_regions[:3])}.")
         if not parts:
-            parts.append(f"Analysis for '{query}' completed, but the capability outputs were limited.")
+            active_lanes = [
+                lane
+                for lane in ["reasoning", "tools", "visuals", "map"]
+                if results.get("map_intelligence" if lane == "map" else lane)
+            ]
+            if active_lanes:
+                parts.append(
+                    f"Analysis for '{query}' completed via {', '.join(active_lanes)} lanes; preparing the next refinement pass with stronger evidence density."
+                )
+            else:
+                parts.append(f"Analysis for '{query}' completed with limited signal. Re-run with additional context for deeper output.")
         return " ".join(parts)
 
     async def _build_assistant_response(
@@ -1332,6 +1375,14 @@ class UnifiedIntelligenceEngine:
         session: ConversationSession,
         allow_cloud_synthesis: bool = True,
     ) -> AssistantResponsePayload:
+        deterministic_payload = self._build_deterministic_response(
+            query,
+            assessment,
+            results,
+            statuses,
+            unified_summary,
+            session,
+        )
         if allow_cloud_synthesis and self._llm is not None:
             llm_payload = await self._try_llm_assistant_response(
                 query=query,
@@ -1341,9 +1392,72 @@ class UnifiedIntelligenceEngine:
                 unified_summary=unified_summary,
                 session=session,
             )
-            if llm_payload is not None:
-                return llm_payload
-        return self._build_deterministic_response(query, assessment, results, statuses, unified_summary, session)
+            if llm_payload is not None and not self._is_low_signal_payload(llm_payload, results):
+                return self._merge_assistant_payloads(llm_payload, deterministic_payload)
+        return deterministic_payload
+
+    def _is_low_signal_payload(self, payload: AssistantResponsePayload, results: Dict[str, Any]) -> bool:
+        combined_text = " ".join(
+            [
+                payload.executive_brief or "",
+                *payload.key_takeaways,
+                *[block.content for block in payload.response_blocks],
+            ]
+        ).strip()
+        if len(combined_text) < 140:
+            return True
+
+        evidence_available = bool(
+            (results.get("reasoning") and results["reasoning"].key_findings)
+            or (results.get("tools") and results["tools"].insights)
+            or (results.get("visuals") and (results["visuals"].charts or results["visuals"].diagrams))
+            or (results.get("map_intelligence") and results["map_intelligence"].affected_regions)
+        )
+
+        if evidence_available and len(payload.key_takeaways) < 2:
+            return True
+
+        if evidence_available and not payload.response_blocks:
+            return True
+
+        low_signal_phrases = [
+            "analysis completed",
+            "capability outputs were limited",
+            "insufficient data",
+            "not enough information",
+        ]
+        lowered = combined_text.lower()
+        if evidence_available and any(phrase in lowered for phrase in low_signal_phrases):
+            return True
+
+        return False
+
+    def _merge_assistant_payloads(
+        self,
+        primary: AssistantResponsePayload,
+        fallback: AssistantResponsePayload,
+    ) -> AssistantResponsePayload:
+        def merge_unique(first: List[str], second: List[str], limit: int) -> List[str]:
+            merged: List[str] = []
+            for item in [*first, *second]:
+                value = str(item).strip()
+                if value and value not in merged:
+                    merged.append(value)
+                if len(merged) >= limit:
+                    break
+            return merged
+
+        return AssistantResponsePayload(
+            title=primary.title or fallback.title,
+            executive_brief=primary.executive_brief if len((primary.executive_brief or "").strip()) >= 80 else fallback.executive_brief,
+            key_takeaways=merge_unique(primary.key_takeaways, fallback.key_takeaways, 5),
+            next_actions=merge_unique(primary.next_actions, fallback.next_actions, 4),
+            suggested_follow_ups=merge_unique(primary.suggested_follow_ups, fallback.suggested_follow_ups, 4),
+            memory_summary=primary.memory_summary or fallback.memory_summary,
+            response_blocks=primary.response_blocks if primary.response_blocks else fallback.response_blocks,
+            artifact_overview=fallback.artifact_overview,
+            response_mode=primary.response_mode or fallback.response_mode,
+        )
 
     async def _try_llm_assistant_response(
         self,
@@ -1435,10 +1549,15 @@ class UnifiedIntelligenceEngine:
             actions.extend(reasoning.strategic_recommendations[:3])
         if tools and tools.insights:
             takeaways.extend([item for item in tools.insights[:2] if item not in takeaways])
+        if visuals and visuals.chart_insights:
+            takeaways.extend([item for item in visuals.chart_insights[:2] if item and item not in takeaways])
         if visuals and visuals.charts:
             actions.append("Use the generated charts to brief stakeholders on trend direction and divergence.")
         if map_data and map_data.affected_regions:
             actions.append(f"Validate geographic exposure in {', '.join(map_data.affected_regions[:3])}.")
+            takeaways.append(
+                f"Map intelligence generated {len(map_data.commands)} command(s) across {len(map_data.affected_regions)} region(s)."
+            )
         if not takeaways:
             takeaways.append(unified_summary)
         capability_chart_data = json.dumps([
@@ -1456,6 +1575,14 @@ class UnifiedIntelligenceEngine:
             evidence_parts.append("Unavailable connectors: " + ", ".join(list(tools.unavailable_tools.keys())[:4]))
         if reasoning and reasoning.uncertainty_factors:
             evidence_parts.append("Uncertainty: " + "; ".join(reasoning.uncertainty_factors[:3]))
+        if visuals:
+            evidence_parts.append(
+                f"Visual payload: {len(visuals.charts)} chart(s), {len(visuals.diagrams)} diagram(s)."
+            )
+        if map_data:
+            evidence_parts.append(
+                f"Map payload: {len(map_data.commands)} command(s), {len(map_data.markers)} marker(s), {len(map_data.routes)} route(s)."
+            )
         if evidence_parts:
             blocks.append(
                 AssistantResponseSection(

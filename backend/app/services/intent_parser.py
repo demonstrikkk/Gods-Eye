@@ -429,7 +429,11 @@ class IntentParser:
             region_lower = match.lower()
             if region_lower in REGION_KEYWORDS:
                 regions.append(region_lower.title())
-                region_countries.extend(REGION_KEYWORDS[region_lower])
+                normalized_countries = []
+                for country in REGION_KEYWORDS[region_lower]:
+                    normalized = COUNTRY_ALIASES.get(country.lower(), country)
+                    normalized_countries.append(normalized)
+                region_countries.extend(normalized_countries)
         return regions, list(set(region_countries))
 
     def _extract_cities(self, query: str) -> List[str]:

@@ -121,6 +121,18 @@ COUNTRY_TO_ISO3.update({
 })
 
 
+DEFAULT_GLOBAL_COUNTRIES = ["United States", "China", "India"]
+DEFAULT_COUNTRIES_BY_DOMAIN = {
+    DomainType.ECONOMICS: ["United States", "China", "India"],
+    DomainType.TRADE: ["China", "United States", "India"],
+    DomainType.GEOPOLITICS: ["United States", "China", "Russia"],
+    DomainType.DEFENSE: ["United States", "China", "Russia"],
+    DomainType.CLIMATE: ["India", "China", "United States"],
+    DomainType.ENERGY: ["United States", "Saudi Arabia", "Russia"],
+    DomainType.TECHNOLOGY: ["United States", "China", "India"],
+}
+
+
 # =============================================================================
 # World Bank Indicator Mappings
 # =============================================================================
@@ -449,6 +461,30 @@ class DataFetchLayer:
         await self._world_bank.close()
         await self._data_commons.close()
 
+    def _resolve_target_countries(self, intent: ParsedIntent) -> List[str]:
+        """Resolve countries for data fetch, including sensible defaults for global queries."""
+        normalized_countries: List[str] = []
+        for country in intent.countries:
+            if country in COUNTRY_TO_ISO3 and country not in normalized_countries:
+                normalized_countries.append(country)
+        if normalized_countries:
+            return normalized_countries
+
+        normalized_comparisons: List[str] = []
+        for country in intent.comparison_entities:
+            if country in COUNTRY_TO_ISO3 and country not in normalized_comparisons:
+                normalized_comparisons.append(country)
+        if normalized_comparisons:
+            return normalized_comparisons
+
+        query_lower = intent.raw_query.lower()
+        default_candidates = DEFAULT_COUNTRIES_BY_DOMAIN.get(intent.primary_domain, DEFAULT_GLOBAL_COUNTRIES)
+        if any(token in query_lower for token in ["global", "world", "international", "worldwide"]):
+            return list(default_candidates)
+
+        # When no geography is specified, keep a stable baseline basket to avoid empty visual output.
+        return list(default_candidates)
+
     async def fetch_for_intent(self, intent: ParsedIntent) -> DataFetchResult:
         """
         Fetch data based on parsed intent.
@@ -463,7 +499,7 @@ class DataFetchLayer:
         sources_used: List[str] = []
         sources_failed: List[str] = []
 
-        countries = intent.countries
+        countries = self._resolve_target_countries(intent)
         indicators = intent.indicators
         time_range = intent.time_range or TimeRange(2018, datetime.now().year)
 

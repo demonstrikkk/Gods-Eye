@@ -37,6 +37,7 @@ import {
   X,
 } from 'lucide-react';
 import { postUnifiedIntelligence, streamUnifiedIntelligence } from '@/services/api';
+import { GeneratedChartArtifact } from '@/components/intelligence/GeneratedChartArtifact';
 import { useAppStore } from '@/store';
 import type {
   UnifiedIntelligenceResponse,
@@ -437,13 +438,7 @@ function ArtifactsPanel({ response }: { response: UnifiedIntelligenceResponse })
 
       <div className="grid gap-4 sm:grid-cols-2">
         {charts.map((chart) => (
-          <div key={chart.chart_url} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
-            <div className="border-b border-slate-200 px-4 py-2.5 text-xs font-medium text-slate-700">{chart.title}</div>
-            <div className="bg-slate-50 p-2">
-              <img src={chart.chart_url} alt={chart.title} className="w-full mix-blend-screen" loading="lazy" />
-            </div>
-            {chart.insight && <div className="p-4 text-[13px] leading-relaxed text-slate-600">{chart.insight}</div>}
-          </div>
+          <GeneratedChartArtifact key={`${chart.title}-${chart.chart_url}`} chart={chart} theme="light" />
         ))}
 
         {diagrams.map((diagram) => (

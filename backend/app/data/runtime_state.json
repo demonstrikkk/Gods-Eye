@@ -3,65 +3,65 @@
     {
       "id": "dyn-gdelt-0",
       "country_id": "CTR-UKR",
-      "title": "MoD inks Rs 858 crore contracts for Tunguska Air Defence Missile System & Inspection ( Depot Level ) of P8I Aircraft",
-      "summary": "azerbaijannews.net reported a live geopolitical event.",
+      "title": " „ Let Talk About Sex : Was machen eigentlich Salt  n  Pepa ? ",
+      "summary": "kreiszeitung.de reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "azerbaijannews.net",
-      "time": "20260327T171500Z",
+      "source": "kreiszeitung.de",
+      "time": "20260328T070000Z",
       "lat": 50.4501,
       "lng": 30.5234
     },
     {
       "id": "dyn-gdelt-1",
       "country_id": "CTR-SAU",
-      "title": "China bases old jet drones near Strait",
-      "summary": "taipeitimes.com reported a live geopolitical event.",
+      "title": "Measures in place to safeguard Malbatt personnel in Lebanon , says Khaled",
+      "summary": "thestar.com.my reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "taipeitimes.com",
-      "time": "20260327T171500Z",
+      "source": "thestar.com.my",
+      "time": "20260328T070000Z",
       "lat": 24.7136,
       "lng": 46.6753
     },
     {
       "id": "dyn-gdelt-2",
       "country_id": "CTR-IND",
-      "title": "How long will the war last ? No one knows , and it making oil prices weird",
-      "summary": "kansaspublicradio.org reported a live geopolitical event.",
+      "title": "Учёные ЛЭТИ представили инновационный глазной протез с Bluetooth",
+      "summary": "n-mar.ru reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
-      "severity": "High",
-      "source": "kansaspublicradio.org",
-      "time": "20260327T171500Z",
+      "severity": "Medium",
+      "source": "n-mar.ru",
+      "time": "20260328T070000Z",
       "lat": 20.5937,
       "lng": 78.9629
     },
     {
       "id": "dyn-gdelt-3",
       "country_id": "CTR-SGP",
-      "title": "Gold and silver surge : Why are gold and silver prices rising sharply today and why is silver outperforming gold – Gold and silver add $1 . 3 trillion in market cap today",
-      "summary": "economictimes.indiatimes.com reported a live geopolitical event.",
+      "title": "India signals openness to extending tariff - free deal on e - commerce , two diplomats say",
+      "summary": "thehindubusinessline.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "economictimes.indiatimes.com",
-      "time": "20260327T171500Z",
+      "source": "thehindubusinessline.com",
+      "time": "20260328T070000Z",
       "lat": 1.3521,
       "lng": 103.8198
     },
     {
       "id": "dyn-gdelt-4",
       "country_id": "CTR-BHS",
-      "title": "Προβληματισμένος ο Νετανιάχου από την Μοσάντ : Διαψεύστηκαν τα σενάρια για λαϊκή εξέγερηση ή αλλαγή καθεστώτος",
-      "summary": "tanea.gr reported a live geopolitical event.",
+      "title": "What Was Elon Musk Doing in the Modi",
+      "summary": "gulte.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "tanea.gr",
-      "time": "20260327T171500Z",
+      "source": "gulte.com",
+      "time": "20260328T070000Z",
       "lat": 38.9072,
       "lng": -77.0369
     },
@@ -118,82 +118,82 @@
       "lng": -45.8331
     },
     {
-      "id": "fire-EONET_18750",
+      "id": "fire-EONET_18975",
       "country_id": "CTR-USA",
-      "title": "90 Degrees Wildfire, Latimer, Oklahoma",
+      "title": "Rx Hardin 2806 Prescribed Fire, Hardin, Texas",
       "summary": "NASA wildfire event detected in open-event feed.",
       "category": "Climate",
       "layer": "climate",
       "severity": "Medium",
       "source": "NASA EONET",
       "time": "LIVE",
-      "lat": 35.0336111,
-      "lng": -95.2988889
+      "lat": 30.3957,
+      "lng": -94.34081
     },
     {
-      "id": "fire-EONET_18758",
+      "id": "fire-EONET_18971",
       "country_id": "CTR-USA",
-      "title": "Luna Branch Wildfire, Adair, Oklahoma",
+      "title": "Carroll - CR 145 Wildfire, Carroll, Mississippi",
       "summary": "NASA wildfire event detected in open-event feed.",
       "category": "Climate",
       "layer": "climate",
       "severity": "Medium",
       "source": "NASA EONET",
       "time": "LIVE",
-      "lat": 36.1103333,
-      "lng": -94.7343333
+      "lat": 33.3744444,
+      "lng": -89.9555556
     },
     {
-      "id": "fire-EONET_18768",
+      "id": "fire-EONET_18979",
       "country_id": "CTR-USA",
-      "title": "Oxbow Wildfire, Okfuskee, Oklahoma",
+      "title": "Salt Wildfire, Stafford, Kansas",
       "summary": "NASA wildfire event detected in open-event feed.",
       "category": "Climate",
       "layer": "climate",
       "severity": "Medium",
       "source": "NASA EONET",
       "time": "LIVE",
-      "lat": 35.5188889,
-      "lng": -96.4380556
+      "lat": 38.20875,
+      "lng": -98.47647
     },
     {
-      "id": "fire-EONET_18772",
+      "id": "fire-EONET_18984",
       "country_id": "CTR-USA",
-      "title": "Polk Treat Mountain Wildfire, Floyd, Georgia",
+      "title": "Big Toe Wildfire, Pittsburg, Oklahoma",
       "summary": "NASA wildfire event detected in open-event feed.",
       "category": "Climate",
       "layer": "climate",
       "severity": "Medium",
       "source": "NASA EONET",
       "time": "LIVE",
-      "lat": 34.2797222,
-      "lng": -85.4469444
+      "lat": 35.0533333,
+      "lng": -95.3672222
     },
     {
-      "id": "fire-EONET_18780",
+      "id": "fire-EONET_18982",
       "country_id": "CTR-USA",
-      "title": "MIDDLE CREEK Wildfire, Hughes, Oklahoma",
+      "title": "BOX Wildfire, Osage, Oklahoma",
       "summary": "NASA wildfire event detected in open-event feed.",
       "category": "Climate",
       "layer": "climate",
       "severity": "Medium",
       "source": "NASA EONET",
       "time": "LIVE",
-      "lat": 35.207222,
-      "lng": -95.987222
+      "lat": 36.4778,
+      "lng": -96.6398
     },
     {
-      "id": "fire-EONET_18781",
+      "id": "fire-EONET_18989",
       "country_id": "CTR-USA",
-      "title": "SALTSMAN Wildfire, McIntosh, Oklahoma",
+      "title": "Cedar Canyon Wildfire, Blaine, Oklahoma",
       "summary": "NASA wildfire event detected in open-event feed.",
       "category": "Climate",
       "layer": "climate",
       "severity": "Medium",
       "source": "NASA EONET",
       "time": "LIVE",
-      "lat": 35.203333,
-      "lng": -95.803611
+      "lat": 36.005,
+      "lng": -98.3569444
     },
     {
       "id": "wb-IND",
@@ -289,110 +289,123 @@
     {
       "id": "opensky-0",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF61UE",
+      "title": "Aviation activity: TVF32PN",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 38.4205,
-      "lng": -9.3504
+      "lat": 41.4686,
+      "lng": -2.5364
     },
     {
       "id": "opensky-1",
+      "country_id": "CTR-CHL",
+      "title": "Aviation activity: LPE2376",
+      "summary": "OpenSky aircraft state linked to Chile.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": -33.9474,
+      "lng": -61.2005
+    },
+    {
+      "id": "opensky-2",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF47ZR",
+      "title": "Aviation activity: TVF87SP",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 46.9756,
-      "lng": 1.4743
+      "lat": 34.6708,
+      "lng": -8.5684
     },
     {
-      "id": "opensky-2",
+      "id": "opensky-3",
       "country_id": "CTR-USA",
-      "title": "Aviation activity: RTY484",
+      "title": "Aviation activity: UAL194",
       "summary": "OpenSky aircraft state linked to United States.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 40.4504,
-      "lng": -104.9002
-    },
-    {
-      "id": "opensky-3",
-      "country_id": "CTR-IND",
-      "title": "Aviation activity: AXB1042",
-      "summary": "OpenSky aircraft state linked to India.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 27.9336,
-      "lng": 79.7668
+      "lat": 51.4443,
+      "lng": 10.4594
     },
     {
       "id": "opensky-4",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF44FX",
+      "title": "Aviation activity: TVF39ZD",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 49.2249,
-      "lng": 4.8453
+      "lat": 45.5211,
+      "lng": 12.5028
     },
     {
       "id": "opensky-5",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF17PT",
+      "title": "Aviation activity: TVF48WP",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 59.5607,
-      "lng": 17.7295
+      "lat": 45.6596,
+      "lng": 6.393
     },
     {
       "id": "opensky-6",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: AAL1106",
+      "summary": "OpenSky aircraft state linked to United States.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 47.6118,
+      "lng": -121.8289
+    },
+    {
+      "id": "opensky-7",
       "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF79ZM",
+      "title": "Aviation activity: TVF51SN",
       "summary": "OpenSky aircraft state linked to France.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 46.5177,
-      "lng": 2.4384
+      "lat": 35.7876,
+      "lng": -7.5141
     },
     {
-      "id": "opensky-7",
-      "country_id": "CTR-IND",
-      "title": "Aviation activity: AXB1025",
-      "summary": "OpenSky aircraft state linked to India.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 19.7074,
-      "lng": 86.4002
+      "id": "cisa-CVE-2025-53521",
+      "country_id": "CTR-USA",
+      "title": "CISA KEV: CVE-2025-53521 on BIG-IP",
+      "summary": "F5 BIG-IP APM contains an unspecified vulnerability that could allow a threat actor to achieve remote code execution.",
+      "category": "Cyber",
+      "layer": "cyber",
+      "severity": "High",
+      "source": "CISA KEV",
+      "time": "2026-03-27",
+      "lat": 39.0438,
+      "lng": -77.4874
     },
     {
       "id": "cisa-CVE-2026-33634",
-      "country_id": "CTR-USA",
+      "country_id": "CTR-IND",
       "title": "CISA KEV: CVE-2026-33634 on Trivy",
       "summary": "Aquasecurity Trivy contains an embedded malicious code vulnerability that could allow an attacker to gain access to everything in the CI/CD environment, including all tokens, SSH keys, cloud credentials, database passwords, and any sensitive configuration in memory.",
       "category": "Cyber",
@@ -400,12 +413,12 @@
       "severity": "High",
       "source": "CISA KEV",
       "time": "2026-03-26",
-      "lat": 39.0438,
-      "lng": -77.4874
+      "lat": 17.385,
+      "lng": 78.4867
     },
     {
       "id": "cisa-CVE-2026-33017",
-      "country_id": "CTR-IND",
+      "country_id": "CTR-DEU",
       "title": "CISA KEV: CVE-2026-33017 on Langflow",
       "summary": "Langflow contains a code injection vulnerability that could allow building public flows without requiring authentication.",
       "category": "Cyber",
@@ -413,24 +426,11 @@
       "severity": "High",
       "source": "CISA KEV",
       "time": "2026-03-25",
-      "lat": 17.385,
-      "lng": 78.4867
-    },
-    {
-      "id": "cisa-CVE-2025-32432",
-      "country_id": "CTR-DEU",
-      "title": "CISA KEV: CVE-2025-32432 on Craft CMS",
-      "summary": "Craft CMS contains a code injection vulnerability that allows a remote attacker to execute arbitrary code.",
-      "category": "Cyber",
-      "layer": "cyber",
-      "severity": "High",
-      "source": "CISA KEV",
-      "time": "2026-03-20",
       "lat": 50.1109,
       "lng": 8.6821
     },
     {
-      "id": "yahoo search-0-72332",
+      "id": "yahoo search-0-61427",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: Firstpost https://www.firstpost.com › business › india-cuts-windfall India cuts petrol, di",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -443,20 +443,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-1-23996",
-      "country_id": "CTR-IND",
-      "title": "Yahoo Search: humanonline.org https://humanonline.org › news › modi-calls-emergency Modi Calls Emergency",
-      "summary": "Open search signal captured from Yahoo Search.",
-      "category": "Geopolitics",
-      "layer": "conflict",
-      "severity": "Medium",
-      "source": "Yahoo Search",
-      "time": "LIVE",
-      "lat": 28.6139,
-      "lng": 77.209
-    },
-    {
-      "id": "yahoo search-2-66846",
+      "id": "yahoo search-1-99726",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: LinkedIn https://www.linkedin.com › pulse › iran-israel-war-puts Iran-Israel War Puts Indi",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -469,7 +456,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-3-98002",
+      "id": "yahoo search-2-85659",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: multibagg.ai https://www.multibagg.ai › market-pulse › articles Global Energy Shock: 4% Wo",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -482,9 +469,22 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-0-75487",
+      "id": "yahoo search-3-57243",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: India Energy Supply Crisis: Response & Impact",
+      "title": "Yahoo Search: The Economic Times https://economictimes.indiatimes.com › topic › india india geopolitics ",
+      "summary": "Open search signal captured from Yahoo Search.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Yahoo Search",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "serpapi-0-19871",
+      "country_id": "CTR-IND",
+      "title": "SerpAPI: The Hormuz Effect: How a Distant Strait Is Testing India's ...",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -495,9 +495,9 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-1-78209",
+      "id": "serpapi-1-55731",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: Iran War: India faces 'triple threat' amid West Asia crisis",
+      "title": "SerpAPI: West Asia war deepens global energy fear; India steps up ...",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -508,9 +508,9 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-2-56054",
+      "id": "serpapi-2-36470",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: PM Modi flags global energy shock, shipping disruptions ...",
+      "title": "SerpAPI: moneycontrol.com",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -521,14 +521,66 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-3-30504",
+      "id": "serpapi-3-51592",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: How vulnerable is India's power grid to global supply chain ...",
+      "title": "SerpAPI: India is set to restart LNG imports from Russia, marking ...",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
       "source": "SerpAPI",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "google news-0-40689",
+      "country_id": "CTR-IND",
+      "title": "Google News: West Asia war deepens global energy fear; India steps up fuel supply measures - downtoeart",
+      "summary": "Open search signal captured from Google News.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Google News",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "google news-1-63932",
+      "country_id": "CTR-IND",
+      "title": "Google News: Oil, power, and politics of disruption - The Hindu",
+      "summary": "Open search signal captured from Google News.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Google News",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "google news-2-97744",
+      "country_id": "CTR-IND",
+      "title": "Google News: Disruptions in the Hormuz Strait and the Future of Oil Trade - Centre for Public Policy Re",
+      "summary": "Open search signal captured from Google News.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Google News",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "google news-3-69378",
+      "country_id": "CTR-IND",
+      "title": "Google News: Business Today MindRush & Best CEOs Awards 2026: Navigating a Fragmented World, Defining I",
+      "summary": "Open search signal captured from Google News.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Google News",
       "time": "LIVE",
       "lat": 28.6139,
       "lng": 77.209
@@ -542,7 +594,7 @@
       "status": "live",
       "item_count": 5,
       "message": "GDELT Project",
-      "last_updated": "2026-03-27T17:43:11.351389",
+      "last_updated": "2026-03-28T07:33:23.824916",
       "strategy": null
     },
     {
@@ -552,7 +604,7 @@
       "status": "live",
       "item_count": 4,
       "message": "USGS Earthquake API",
-      "last_updated": "2026-03-27T17:41:55.282333",
+      "last_updated": "2026-03-28T07:33:25.450645",
       "strategy": null
     },
     {
@@ -562,7 +614,7 @@
       "status": "live",
       "item_count": 6,
       "message": "NASA EONET Wildfires",
-      "last_updated": "2026-03-27T17:41:56.412254",
+      "last_updated": "2026-03-28T07:33:27.000228",
       "strategy": null
     },
     {
@@ -572,7 +624,7 @@
       "status": "live",
       "item_count": 0,
       "message": "FRED API",
-      "last_updated": "2026-03-27T17:41:56.914493",
+      "last_updated": "2026-03-28T07:33:26.491420",
       "strategy": null
     },
     {
@@ -582,7 +634,7 @@
       "status": "live",
       "item_count": 5,
       "message": "World Bank Open Data",
-      "last_updated": "2026-03-27T17:42:14.437956",
+      "last_updated": "2026-03-28T07:33:41.597789",
       "strategy": null
     },
     {
@@ -592,7 +644,7 @@
       "status": "live",
       "item_count": 1,
       "message": "EIA API",
-      "last_updated": "2026-03-27T17:41:58.066081",
+      "last_updated": "2026-03-28T07:33:30.056283",
       "strategy": null
     },
     {
@@ -602,7 +654,7 @@
       "status": "live",
       "item_count": 1,
       "message": "data.gov.in live via explicit resource ids.",
-      "last_updated": "2026-03-27T17:41:55.561570",
+      "last_updated": "2026-03-28T07:33:24.625261",
       "strategy": "resource_ids"
     },
     {
@@ -612,7 +664,7 @@
       "status": "live",
       "item_count": 8,
       "message": "OpenSky Network (ADS-B)",
-      "last_updated": "2026-03-27T17:42:03.281361",
+      "last_updated": "2026-03-28T07:33:28.777745",
       "strategy": null
     },
     {
@@ -622,7 +674,7 @@
       "status": "live",
       "item_count": 3,
       "message": "CISA KEV Catalog",
-      "last_updated": "2026-03-27T17:41:56.637254",
+      "last_updated": "2026-03-28T07:33:27.031234",
       "strategy": null
     },
     {
@@ -632,7 +684,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Reddit Public JSON",
-      "last_updated": "2026-03-27T17:41:57.207876",
+      "last_updated": "2026-03-28T07:33:25.776811",
       "strategy": null
     },
     {
@@ -642,7 +694,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Mastodon Public Timeline",
-      "last_updated": "2026-03-27T17:41:56.181271",
+      "last_updated": "2026-03-28T07:33:25.257783",
       "strategy": null
     },
     {
@@ -652,18 +704,18 @@
       "status": "live",
       "item_count": 4,
       "message": "Yahoo Search",
-      "last_updated": "2026-03-27T17:41:56.411253",
-      "strategy": null
+      "last_updated": "2026-03-28T07:33:27.031234",
+      "strategy": "html_search"
     },
     {
       "id": "duckduckgo-search",
       "label": "DuckDuckGo Search",
       "mode": "free",
-      "status": "fallback",
+      "status": "limited",
       "item_count": 0,
       "message": "DuckDuckGo Search",
-      "last_updated": "2026-03-27T17:41:56.911465",
-      "strategy": null
+      "last_updated": "2026-03-28T07:33:26.093475",
+      "strategy": "html_search"
     },
     {
       "id": "serpapi-search",
@@ -672,8 +724,18 @@
       "status": "live",
       "item_count": 4,
       "message": "SerpAPI",
-      "last_updated": "2026-03-27T17:41:55.944858",
+      "last_updated": "2026-03-28T07:33:24.909393",
       "strategy": "google_engine"
+    },
+    {
+      "id": "google-news-search",
+      "label": "Google News Search",
+      "mode": "free",
+      "status": "live",
+      "item_count": 4,
+      "message": "Google News Search",
+      "last_updated": "2026-03-28T07:33:27.043779",
+      "strategy": "rss_search"
     },
     {
       "id": "country-catalog",
@@ -682,7 +744,7 @@
       "status": "live",
       "item_count": 250,
       "message": "REST Countries",
-      "last_updated": "2026-03-27T17:43:28.208513"
+      "last_updated": "2026-03-28T07:33:47.046057"
     },
     {
       "id": "markets",
@@ -691,25 +753,25 @@
       "status": "live",
       "item_count": 5,
       "message": "Finnhub",
-      "last_updated": "2026-03-27T17:43:28.208513"
+      "last_updated": "2026-03-28T07:33:47.046057"
     }
   ],
   "market_snapshot": [
     {
       "symbol": "SPY",
       "name": "S&P 500 ETF",
-      "price": 636.69,
-      "change_pct": -1.3,
-      "high": 645.05,
-      "low": 636.59
+      "price": 634.09,
+      "change_pct": -1.71,
+      "high": 642.66,
+      "low": 633.105
     },
     {
       "symbol": "QQQ",
       "name": "Nasdaq 100 ETF",
-      "price": 564.13,
-      "change_pct": -1.68,
-      "high": 573.365,
-      "low": 564.03
+      "price": 562.58,
+      "change_pct": -1.95,
+      "high": 571.02,
+      "low": 561.57
     },
     {
       "symbol": "INDA",
@@ -717,13 +779,13 @@
       "price": 45.82,
       "change_pct": -1.69,
       "high": 46.11,
-      "low": 45.81
+      "low": 45.71
     },
     {
       "symbol": "GLD",
       "name": "Gold ETF",
-      "price": 412.33,
-      "change_pct": 2.92,
+      "price": 414.7,
+      "change_pct": 3.51,
       "high": 418.4,
       "low": 405.41
     },
@@ -3738,5 +3800,5 @@
       "area": 110879.0
     }
   ],
-  "last_refresh": "2026-03-27T17:43:28.208513"
+  "last_refresh": "2026-03-28T07:33:47.046057"
 }

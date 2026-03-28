@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { postVisualIntelligence } from '@/services/api';
+import { GeneratedChartArtifact } from '@/components/intelligence/GeneratedChartArtifact';
 import type { VisualIntelligenceResponse, ViChartOutput, ViDiagramOutput, ViInsightSynthesis, ViParsedIntent } from '@/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,54 +153,10 @@ function ChartViewer({ charts }: { charts: ViChartOutput[] }) {
         key={selectedChart}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-slate-800/50 rounded-lg border border-slate-700/50 overflow-hidden"
+        className="rounded-lg"
       >
-        <div className="p-3 border-b border-slate-700/50 flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-200">{chart.title}</span>
-          <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400">
-            {chart.chart_type}
-          </span>
-        </div>
-
-        <div className="p-4">
-          <img
-            src={chart.chart_url}
-            alt={chart.title}
-            className="w-full rounded"
-            loading="lazy"
-          />
-        </div>
-
-        {/* Chart insight */}
-        {chart.insight && (
-          <div className="px-4 pb-3">
-            <div className="flex items-start gap-2 p-3 rounded bg-cyan-500/10 border border-cyan-500/20">
-              <Sparkles className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-cyan-300">{chart.insight}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Data summary */}
-        <div className="px-4 pb-4">
-          <p className="text-xs text-slate-500">{chart.data_summary}</p>
-        </div>
+        <GeneratedChartArtifact chart={chart} theme="dark" showActions />
       </motion.div>
-
-      {/* Actions */}
-      <div className="flex gap-2">
-        <a
-          href={chart.chart_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs px-3 py-1.5 rounded bg-slate-800 text-slate-400 hover:text-white border border-slate-700 hover:border-slate-600 flex items-center gap-1.5 transition-all"
-        >
-          <ExternalLink className="w-3 h-3" /> Open Full Size
-        </a>
-        <button className="text-xs px-3 py-1.5 rounded bg-slate-800 text-slate-400 hover:text-white border border-slate-700 hover:border-slate-600 flex items-center gap-1.5 transition-all">
-          <Download className="w-3 h-3" /> Download
-        </button>
-      </div>
     </div>
   );
 }
