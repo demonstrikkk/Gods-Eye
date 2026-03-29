@@ -3,65 +3,65 @@
     {
       "id": "dyn-gdelt-0",
       "country_id": "CTR-UKR",
-      "title": " „ Let Talk About Sex : Was machen eigentlich Salt  n  Pepa ? ",
-      "summary": "kreiszeitung.de reported a live geopolitical event.",
+      "title": "  Would love my legacy to be made as a great peacemaker : says US President Trump",
+      "summary": "arabherald.com reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "kreiszeitung.de",
-      "time": "20260328T070000Z",
+      "source": "arabherald.com",
+      "time": "20260328T091500Z",
       "lat": 50.4501,
       "lng": 30.5234
     },
     {
       "id": "dyn-gdelt-1",
       "country_id": "CTR-SAU",
-      "title": "Measures in place to safeguard Malbatt personnel in Lebanon , says Khaled",
-      "summary": "thestar.com.my reported a live geopolitical event.",
+      "title": "20 миллиардов долларов и рабский труд . Британия ударила по « финансовому сердцу » мошенников",
+      "summary": "securitylab.ru reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "thestar.com.my",
-      "time": "20260328T070000Z",
+      "source": "securitylab.ru",
+      "time": "20260328T091500Z",
       "lat": 24.7136,
       "lng": 46.6753
     },
     {
       "id": "dyn-gdelt-2",
       "country_id": "CTR-IND",
-      "title": "Учёные ЛЭТИ представили инновационный глазной протез с Bluetooth",
-      "summary": "n-mar.ru reported a live geopolitical event.",
+      "title": "Putinin suunnitelma Venäjn kansan eristämisestä etenee , mutta sillä on iso hinta –  Kreml tavallaan ampuu itsen jalkaan  ",
+      "summary": "karjalainen.fi reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "n-mar.ru",
-      "time": "20260328T070000Z",
+      "source": "karjalainen.fi",
+      "time": "20260328T091500Z",
       "lat": 20.5937,
       "lng": 78.9629
     },
     {
       "id": "dyn-gdelt-3",
       "country_id": "CTR-SGP",
-      "title": "India signals openness to extending tariff - free deal on e - commerce , two diplomats say",
-      "summary": "thehindubusinessline.com reported a live geopolitical event.",
+      "title": "PM Modi : యుద్ధ సవాళ్లను దీటుగా ఎదుర్కొంటున్నాం : మోదీ",
+      "summary": "eenadu.net reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "thehindubusinessline.com",
-      "time": "20260328T070000Z",
+      "source": "eenadu.net",
+      "time": "20260328T091500Z",
       "lat": 1.3521,
       "lng": 103.8198
     },
     {
       "id": "dyn-gdelt-4",
       "country_id": "CTR-BHS",
-      "title": "What Was Elon Musk Doing in the Modi",
-      "summary": "gulte.com reported a live geopolitical event.",
+      "title": "Australia to be  overprepared  for ongoing fuel woes",
+      "summary": "inverelltimes.com.au reported a live geopolitical event.",
       "category": "Geopolitics",
       "layer": "conflict",
       "severity": "Medium",
-      "source": "gulte.com",
-      "time": "20260328T070000Z",
+      "source": "inverelltimes.com.au",
+      "time": "20260328T091500Z",
       "lat": 38.9072,
       "lng": -77.0369
     },
@@ -288,84 +288,6 @@
     },
     {
       "id": "opensky-0",
-      "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF32PN",
-      "summary": "OpenSky aircraft state linked to France.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 41.4686,
-      "lng": -2.5364
-    },
-    {
-      "id": "opensky-1",
-      "country_id": "CTR-CHL",
-      "title": "Aviation activity: LPE2376",
-      "summary": "OpenSky aircraft state linked to Chile.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": -33.9474,
-      "lng": -61.2005
-    },
-    {
-      "id": "opensky-2",
-      "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF87SP",
-      "summary": "OpenSky aircraft state linked to France.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 34.6708,
-      "lng": -8.5684
-    },
-    {
-      "id": "opensky-3",
-      "country_id": "CTR-USA",
-      "title": "Aviation activity: UAL194",
-      "summary": "OpenSky aircraft state linked to United States.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 51.4443,
-      "lng": 10.4594
-    },
-    {
-      "id": "opensky-4",
-      "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF39ZD",
-      "summary": "OpenSky aircraft state linked to France.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 45.5211,
-      "lng": 12.5028
-    },
-    {
-      "id": "opensky-5",
-      "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF48WP",
-      "summary": "OpenSky aircraft state linked to France.",
-      "category": "Aviation",
-      "layer": "mobility",
-      "severity": "Low",
-      "source": "OpenSky",
-      "time": "LIVE",
-      "lat": 45.6596,
-      "lng": 6.393
-    },
-    {
-      "id": "opensky-6",
       "country_id": "CTR-USA",
       "title": "Aviation activity: AAL1106",
       "summary": "OpenSky aircraft state linked to United States.",
@@ -374,21 +296,99 @@
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 47.6118,
-      "lng": -121.8289
+      "lat": 43.7534,
+      "lng": -93.3234
     },
     {
-      "id": "opensky-7",
-      "country_id": "CTR-FRA",
-      "title": "Aviation activity: TVF51SN",
-      "summary": "OpenSky aircraft state linked to France.",
+      "id": "opensky-1",
+      "country_id": "CTR-CAN",
+      "title": "Aviation activity: JZA7891",
+      "summary": "OpenSky aircraft state linked to Canada.",
       "category": "Aviation",
       "layer": "mobility",
       "severity": "Low",
       "source": "OpenSky",
       "time": "LIVE",
-      "lat": 35.7876,
-      "lng": -7.5141
+      "lat": 45.8149,
+      "lng": -69.5416
+    },
+    {
+      "id": "opensky-2",
+      "country_id": "CTR-DEU",
+      "title": "Aviation activity: PTN68Z",
+      "summary": "OpenSky aircraft state linked to Germany.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 48.7637,
+      "lng": -1.0034
+    },
+    {
+      "id": "opensky-3",
+      "country_id": "CTR-DEU",
+      "title": "Aviation activity: DMDMP",
+      "summary": "OpenSky aircraft state linked to Germany.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 47.8171,
+      "lng": 12.1408
+    },
+    {
+      "id": "opensky-4",
+      "country_id": "CTR-JPN",
+      "title": "Aviation activity: ANA73",
+      "summary": "OpenSky aircraft state linked to Japan.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 42.9779,
+      "lng": 141.6684
+    },
+    {
+      "id": "opensky-5",
+      "country_id": "CTR-USA",
+      "title": "Aviation activity: AAL2504",
+      "summary": "OpenSky aircraft state linked to United States.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 39.8662,
+      "lng": -98.4192
+    },
+    {
+      "id": "opensky-6",
+      "country_id": "CTR-DEU",
+      "title": "Aviation activity: DMOEP",
+      "summary": "OpenSky aircraft state linked to Germany.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 47.9888,
+      "lng": 13.713
+    },
+    {
+      "id": "opensky-7",
+      "country_id": "CTR-IND",
+      "title": "Aviation activity: AXB1059",
+      "summary": "OpenSky aircraft state linked to India.",
+      "category": "Aviation",
+      "layer": "mobility",
+      "severity": "Low",
+      "source": "OpenSky",
+      "time": "LIVE",
+      "lat": 28.1417,
+      "lng": 77.1848
     },
     {
       "id": "cisa-CVE-2025-53521",
@@ -443,20 +443,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-1-99726",
-      "country_id": "CTR-IND",
-      "title": "Yahoo Search: LinkedIn https://www.linkedin.com › pulse › iran-israel-war-puts Iran-Israel War Puts Indi",
-      "summary": "Open search signal captured from Yahoo Search.",
-      "category": "Geopolitics",
-      "layer": "conflict",
-      "severity": "Medium",
-      "source": "Yahoo Search",
-      "time": "LIVE",
-      "lat": 28.6139,
-      "lng": 77.209
-    },
-    {
-      "id": "yahoo search-2-85659",
+      "id": "yahoo search-1-85659",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: multibagg.ai https://www.multibagg.ai › market-pulse › articles Global Energy Shock: 4% Wo",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -469,7 +456,7 @@
       "lng": 77.209
     },
     {
-      "id": "yahoo search-3-57243",
+      "id": "yahoo search-2-57243",
       "country_id": "CTR-IND",
       "title": "Yahoo Search: The Economic Times https://economictimes.indiatimes.com › topic › india india geopolitics ",
       "summary": "Open search signal captured from Yahoo Search.",
@@ -482,9 +469,22 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-0-19871",
+      "id": "yahoo search-3-31694",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: The Hormuz Effect: How a Distant Strait Is Testing India's ...",
+      "title": "Yahoo Search: bwsecurityworld.com https://bwsecurityworld.com › technology › indias-risk India’s Risk Ou",
+      "summary": "Open search signal captured from Yahoo Search.",
+      "category": "Geopolitics",
+      "layer": "conflict",
+      "severity": "Medium",
+      "source": "Yahoo Search",
+      "time": "LIVE",
+      "lat": 28.6139,
+      "lng": 77.209
+    },
+    {
+      "id": "serpapi-0-48962",
+      "country_id": "CTR-IND",
+      "title": "SerpAPI: India Energy Supply Crisis: Response & Impact",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -495,9 +495,9 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-1-55731",
+      "id": "serpapi-1-4933",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: West Asia war deepens global energy fear; India steps up ...",
+      "title": "SerpAPI: Iran War: India faces 'triple threat' amid West Asia crisis",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -508,9 +508,9 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-2-36470",
+      "id": "serpapi-2-30025",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: moneycontrol.com",
+      "title": "SerpAPI: PM Modi flags global energy shock, shipping disruptions ...",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -521,9 +521,9 @@
       "lng": 77.209
     },
     {
-      "id": "serpapi-3-51592",
+      "id": "serpapi-3-45128",
       "country_id": "CTR-IND",
-      "title": "SerpAPI: India is set to restart LNG imports from Russia, marking ...",
+      "title": "SerpAPI: How vulnerable is India's power grid to global supply chain ...",
       "summary": "Open search signal captured from SerpAPI.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -534,9 +534,9 @@
       "lng": 77.209
     },
     {
-      "id": "google news-0-40689",
+      "id": "google news-0-28163",
       "country_id": "CTR-IND",
-      "title": "Google News: West Asia war deepens global energy fear; India steps up fuel supply measures - downtoeart",
+      "title": "Google News: West Asia war deepens global energy fear; India steps up fuel supply measures - Down To Ea",
       "summary": "Open search signal captured from Google News.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -560,9 +560,9 @@
       "lng": 77.209
     },
     {
-      "id": "google news-2-97744",
+      "id": "google news-2-28446",
       "country_id": "CTR-IND",
-      "title": "Google News: Disruptions in the Hormuz Strait and the Future of Oil Trade - Centre for Public Policy Re",
+      "title": "Google News: Disruptions in the Hormuz Strait and the Future of Oil Trade - cppr.in",
       "summary": "Open search signal captured from Google News.",
       "category": "Geopolitics",
       "layer": "conflict",
@@ -573,7 +573,7 @@
       "lng": 77.209
     },
     {
-      "id": "google news-3-69378",
+      "id": "google news-3-85103",
       "country_id": "CTR-IND",
       "title": "Google News: Business Today MindRush & Best CEOs Awards 2026: Navigating a Fragmented World, Defining I",
       "summary": "Open search signal captured from Google News.",
@@ -594,7 +594,7 @@
       "status": "live",
       "item_count": 5,
       "message": "GDELT Project",
-      "last_updated": "2026-03-28T07:33:23.824916",
+      "last_updated": "2026-03-28T09:47:09.889908",
       "strategy": null
     },
     {
@@ -604,7 +604,7 @@
       "status": "live",
       "item_count": 4,
       "message": "USGS Earthquake API",
-      "last_updated": "2026-03-28T07:33:25.450645",
+      "last_updated": "2026-03-28T09:47:07.335289",
       "strategy": null
     },
     {
@@ -614,7 +614,7 @@
       "status": "live",
       "item_count": 6,
       "message": "NASA EONET Wildfires",
-      "last_updated": "2026-03-28T07:33:27.000228",
+      "last_updated": "2026-03-28T09:47:08.506488",
       "strategy": null
     },
     {
@@ -624,7 +624,7 @@
       "status": "live",
       "item_count": 0,
       "message": "FRED API",
-      "last_updated": "2026-03-28T07:33:26.491420",
+      "last_updated": "2026-03-28T09:47:10.013818",
       "strategy": null
     },
     {
@@ -634,7 +634,7 @@
       "status": "live",
       "item_count": 5,
       "message": "World Bank Open Data",
-      "last_updated": "2026-03-28T07:33:41.597789",
+      "last_updated": "2026-03-28T09:47:25.520520",
       "strategy": null
     },
     {
@@ -644,7 +644,7 @@
       "status": "live",
       "item_count": 1,
       "message": "EIA API",
-      "last_updated": "2026-03-28T07:33:30.056283",
+      "last_updated": "2026-03-28T09:47:13.175050",
       "strategy": null
     },
     {
@@ -654,7 +654,7 @@
       "status": "live",
       "item_count": 1,
       "message": "data.gov.in live via explicit resource ids.",
-      "last_updated": "2026-03-28T07:33:24.625261",
+      "last_updated": "2026-03-28T09:47:06.729717",
       "strategy": "resource_ids"
     },
     {
@@ -664,7 +664,7 @@
       "status": "live",
       "item_count": 8,
       "message": "OpenSky Network (ADS-B)",
-      "last_updated": "2026-03-28T07:33:28.777745",
+      "last_updated": "2026-03-28T09:47:14.144965",
       "strategy": null
     },
     {
@@ -674,7 +674,7 @@
       "status": "live",
       "item_count": 3,
       "message": "CISA KEV Catalog",
-      "last_updated": "2026-03-28T07:33:27.031234",
+      "last_updated": "2026-03-28T09:47:11.395189",
       "strategy": null
     },
     {
@@ -684,7 +684,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Reddit Public JSON",
-      "last_updated": "2026-03-28T07:33:25.776811",
+      "last_updated": "2026-03-28T09:47:08.007892",
       "strategy": null
     },
     {
@@ -694,7 +694,7 @@
       "status": "live",
       "item_count": 0,
       "message": "Mastodon Public Timeline",
-      "last_updated": "2026-03-28T07:33:25.257783",
+      "last_updated": "2026-03-28T09:47:07.932155",
       "strategy": null
     },
     {
@@ -704,7 +704,7 @@
       "status": "live",
       "item_count": 4,
       "message": "Yahoo Search",
-      "last_updated": "2026-03-28T07:33:27.031234",
+      "last_updated": "2026-03-28T09:47:08.469488",
       "strategy": "html_search"
     },
     {
@@ -714,7 +714,7 @@
       "status": "limited",
       "item_count": 0,
       "message": "DuckDuckGo Search",
-      "last_updated": "2026-03-28T07:33:26.093475",
+      "last_updated": "2026-03-28T09:47:12.287727",
       "strategy": "html_search"
     },
     {
@@ -724,7 +724,7 @@
       "status": "live",
       "item_count": 4,
       "message": "SerpAPI",
-      "last_updated": "2026-03-28T07:33:24.909393",
+      "last_updated": "2026-03-28T09:47:08.389477",
       "strategy": "google_engine"
     },
     {
@@ -734,7 +734,7 @@
       "status": "live",
       "item_count": 4,
       "message": "Google News Search",
-      "last_updated": "2026-03-28T07:33:27.043779",
+      "last_updated": "2026-03-28T09:47:11.501734",
       "strategy": "rss_search"
     },
     {
@@ -744,7 +744,7 @@
       "status": "live",
       "item_count": 250,
       "message": "REST Countries",
-      "last_updated": "2026-03-28T07:33:47.046057"
+      "last_updated": "2026-03-28T09:47:31.943947"
     },
     {
       "id": "markets",
@@ -753,7 +753,7 @@
       "status": "live",
       "item_count": 5,
       "message": "Finnhub",
-      "last_updated": "2026-03-28T07:33:47.046057"
+      "last_updated": "2026-03-28T09:47:31.945182"
     }
   ],
   "market_snapshot": [
@@ -3800,5 +3800,5 @@
       "area": 110879.0
     }
   ],
-  "last_refresh": "2026-03-28T07:33:47.046057"
+  "last_refresh": "2026-03-28T09:47:31.945182"
 }
